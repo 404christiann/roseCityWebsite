@@ -113,7 +113,7 @@ export default function ChampionsBadge() {
             style={{ fontSize: "1.0625rem" }}
           >
             Rose City Futbol Club captured the 2024 UPSL Southwest Conference
-            Championship, cementing our place as Pasadena's premier club.
+            Championship, cementing our place as Pasadena&apos;s premier club.
             The journey continues — and the best is still ahead.
           </p>
         </div>

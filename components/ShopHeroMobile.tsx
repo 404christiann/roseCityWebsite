@@ -5,10 +5,10 @@ import Image from "next/image";
 
 // Portrait-oriented player photos — better suited for mobile
 const SLIDES = [
-  "/images/shop/shopSlideshow2.jpeg",
-  "/images/shop/shopSlideshow3.jpeg",
-  "/images/shop/shopSlideshow4.jpeg",
-  "/images/shop/shopSlideshow5.jpeg",
+  "/images/shop/rosecityshirt1.webp",
+  "/images/shop/rosecityshirt2.jpeg",
+  "/images/shop/rosecityshirt3.jpeg",
+  "/images/shop/rosecityshirt4.jpeg",
 ];
 
 const DURATION = 4500;

@@ -719,9 +719,6 @@ a {
 .mt-6{
   margin-top: 1.5rem;
 }
-.-mt-10{
-  margin-top: -2.5rem;
-}
 .block{
   display: block;
 }
@@ -906,14 +903,14 @@ a {
 .resize{
   resize: both;
 }
+.grid-cols-1{
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
 .grid-cols-2{
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .grid-cols-3{
   grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-.grid-cols-1{
-  grid-template-columns: repeat(1, minmax(0, 1fr));
 }
 .flex-col{
   flex-direction: column;
@@ -1019,12 +1016,11 @@ a {
   --tw-bg-opacity: 1;
   background-color: rgb(14 14 14 / var(--tw-bg-opacity, 1));
 }
+.bg-\[var\(--color-black\)\]{
+  background-color: var(--color-black);
+}
 .bg-\[var\(--color-red\)\]{
   background-color: var(--color-red);
-}
-.bg-black{
-  --tw-bg-opacity: 1;
-  background-color: rgb(10 10 10 / var(--tw-bg-opacity, 1));
 }
 .bg-black\/10{
   background-color: rgb(10 10 10 / 0.1);
@@ -1048,9 +1044,6 @@ a {
 .bg-white\/95{
   background-color: rgb(255 255 255 / 0.95);
 }
-.bg-\[var\(--color-black\)\]{
-  background-color: var(--color-black);
-}
 .object-contain{
   -o-object-fit: contain;
      object-fit: contain;
@@ -1069,6 +1062,10 @@ a {
 }
 .p-2{
   padding: 0.5rem;
+}
+.px-1{
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
 }
 .px-10{
   padding-left: 2.5rem;
@@ -1150,10 +1147,6 @@ a {
   padding-top: 2rem;
   padding-bottom: 2rem;
 }
-.px-1{
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
-}
 .pb-1{
   padding-bottom: 0.25rem;
 }
@@ -1162,6 +1155,9 @@ a {
 }
 .pb-14{
   padding-bottom: 3.5rem;
+}
+.pb-2{
+  padding-bottom: 0.5rem;
 }
 .pb-20{
   padding-bottom: 5rem;
@@ -1205,12 +1201,6 @@ a {
 .pt-8{
   padding-top: 2rem;
 }
-.pt-6{
-  padding-top: 1.5rem;
-}
-.pb-2{
-  padding-bottom: 0.5rem;
-}
 .text-center{
   text-align: center;
 }
@@ -1223,6 +1213,9 @@ a {
 .text-3xl{
   font-size: 1.875rem;
   line-height: 2.25rem;
+}
+.text-\[0\.65rem\]{
+  font-size: 0.65rem;
 }
 .text-base{
   font-size: 1rem;
@@ -1239,9 +1232,6 @@ a {
 .text-xs{
   font-size: 0.75rem;
   line-height: 1rem;
-}
-.text-\[0\.65rem\]{
-  font-size: 0.65rem;
 }
 .font-black{
   font-weight: 900;
@@ -1274,14 +1264,14 @@ a {
 .leading-tight{
   line-height: 1.25;
 }
+.tracking-\[0\.3em\]{
+  letter-spacing: 0.3em;
+}
 .tracking-wide{
   letter-spacing: 0.025em;
 }
 .tracking-widest{
   letter-spacing: 0.1em;
-}
-.tracking-\[0\.3em\]{
-  letter-spacing: 0.3em;
 }
 .text-\[\#9A9A9A\]{
   --tw-text-opacity: 1;
@@ -1458,10 +1448,6 @@ a {
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
-.group:hover .group-hover\:opacity-100{
-  opacity: 1;
-}
-
 @media (min-width: 640px){
 
   .sm\:block{
@@ -1538,16 +1524,12 @@ a {
 
 @media (min-width: 768px){
 
-  .md\:mb-16{
-    margin-bottom: 4rem;
-  }
-
-  .md\:mt-0{
-    margin-top: 0px;
-  }
-
   .md\:mb-14{
     margin-bottom: 3.5rem;
+  }
+
+  .md\:mb-16{
+    margin-bottom: 4rem;
   }
 
   .md\:block{
@@ -1630,10 +1612,6 @@ a {
     gap: 5rem;
   }
 
-  .md\:gap-3{
-    gap: 0.75rem;
-  }
-
   .md\:gap-4{
     gap: 1rem;
   }
@@ -1660,9 +1638,19 @@ a {
        object-position: center;
   }
 
+  .md\:px-0{
+    padding-left: 0px;
+    padding-right: 0px;
+  }
+
   .md\:px-14{
     padding-left: 3.5rem;
     padding-right: 3.5rem;
+  }
+
+  .md\:px-7{
+    padding-left: 1.75rem;
+    padding-right: 1.75rem;
   }
 
   .md\:px-8{
@@ -1690,19 +1678,13 @@ a {
     padding-bottom: 1.5rem;
   }
 
-  .md\:px-0{
-    padding-left: 0px;
-    padding-right: 0px;
-  }
-
-  .md\:px-7{
-    padding-left: 1.75rem;
-    padding-right: 1.75rem;
-  }
-
   .md\:py-8{
     padding-top: 2rem;
     padding-bottom: 2rem;
+  }
+
+  .md\:pb-0{
+    padding-bottom: 0px;
   }
 
   .md\:pb-14{
@@ -1713,16 +1695,12 @@ a {
     padding-bottom: 8rem;
   }
 
-  .md\:pt-16{
-    padding-top: 4rem;
-  }
-
   .md\:pt-0{
     padding-top: 0px;
   }
 
-  .md\:pb-0{
-    padding-bottom: 0px;
+  .md\:pt-16{
+    padding-top: 4rem;
   }
 }
 
@@ -1730,10 +1708,6 @@ a {
 
   .lg\:grid-cols-4{
     grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .lg\:grid-cols-5{
-    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .lg\:px-10{

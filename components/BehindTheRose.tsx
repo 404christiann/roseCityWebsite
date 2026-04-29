@@ -57,7 +57,7 @@ export default function BehindTheRose() {
           className="font-body leading-relaxed max-w-xl mx-auto"
           style={{ color: "rgba(255,255,255,0.5)", fontSize: "clamp(0.9rem, 1.5vw, 1.05rem)" }}
         >
-          Go behind the scenes with Pasadena's Rose City FC as they battle
+          Go behind the scenes with Pasadena&apos;s Rose City FC as they battle
           during the 2024 UPSL Final. A cinematic view brings you even closer
           to the City of Roses.
         </p>

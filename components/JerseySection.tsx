@@ -50,7 +50,7 @@ export default function JerseySection() {
           style={{ height: "60vw", minHeight: "320px", maxHeight: "700px", opacity: 0 }}
         >
           <Image
-            src="/images/shop/shopSlideshow2.jpeg"
+            src="/images/shop/rosecityshirt2.jpeg"
             alt="Rose City Thorn Edition 2026 Match Home Jersey"
             fill
             className="object-cover object-top"
@@ -121,7 +121,7 @@ export default function JerseySection() {
 
           {/* Store note */}
           <p className="font-body text-xs mb-8" style={{ color: "rgba(255,255,255,0.3)" }}>
-            Sold exclusively at Niky's Sports<br />
+            Sold exclusively at Niky&apos;s Sports<br />
             {shopProduct.storeAddress}
           </p>
 
