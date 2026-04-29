@@ -105,7 +105,7 @@ export default function PlayerCard({ player }: { player: Player }) {
               className="mt-3 pt-3 grid grid-cols-3 gap-2 text-center"
               style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}
             >
-              {gk ? (
+              {isGK(stats) ? (
                 <>
                   <StatBox label="Saves" value={stats.saves} />
                   <StatBox label="Clean" value={stats.cleanSheets} />

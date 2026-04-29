@@ -20,7 +20,8 @@ interface Props {
 }
 
 export default function PlayerModal({ player, onClose }: Props) {
-  const gk = isGK(player.stats);
+  const stats = player.stats;
+  const gk = isGK(stats);
   const flagCode = player.nationality ? FLAG_CODES[player.nationality] : null;
 
   return (
@@ -143,25 +144,25 @@ export default function PlayerModal({ player, onClose }: Props) {
             </p>
 
             <div className="flex flex-col">
-              {gk ? (
+              {isGK(stats) ? (
                 <>
-                  <StatRow label="Goals Against" value={player.stats.goalsAgainst} />
-                  <StatRow label="Saves"         value={player.stats.saves} />
-                  <StatRow label="Clean Sheets"  value={(player.stats as GoalkeeperStats).cleanSheets} />
-                  <StatRow label="Starts"        value={player.stats.starts} />
-                  <StatRow label="Yellow Cards"  value={player.stats.yellow} />
-                  <StatRow label="Red Cards"     value={player.stats.red} />
-                  <StatRow label="Minutes"       value={player.stats.mins} />
+                  <StatRow label="Goals Against" value={stats.goalsAgainst} />
+                  <StatRow label="Saves"         value={stats.saves} />
+                  <StatRow label="Clean Sheets"  value={stats.cleanSheets} />
+                  <StatRow label="Starts"        value={stats.starts} />
+                  <StatRow label="Yellow Cards"  value={stats.yellow} />
+                  <StatRow label="Red Cards"     value={stats.red} />
+                  <StatRow label="Minutes"       value={stats.mins} />
                 </>
               ) : (
                 <>
-                  <StatRow label="Goals"        value={(player.stats as FieldStats).goals} />
-                  <StatRow label="Assists"      value={(player.stats as FieldStats).assists} />
-                  <StatRow label="Tackles"      value={(player.stats as FieldStats).tackles} />
-                  <StatRow label="Starts"       value={player.stats.starts} />
-                  <StatRow label="Yellow Cards" value={player.stats.yellow} />
-                  <StatRow label="Red Cards"    value={player.stats.red} />
-                  <StatRow label="Minutes"      value={player.stats.mins} />
+                  <StatRow label="Goals"        value={stats.goals} />
+                  <StatRow label="Assists"      value={stats.assists} />
+                  <StatRow label="Tackles"      value={stats.tackles} />
+                  <StatRow label="Starts"       value={stats.starts} />
+                  <StatRow label="Yellow Cards" value={stats.yellow} />
+                  <StatRow label="Red Cards"    value={stats.red} />
+                  <StatRow label="Minutes"      value={stats.mins} />
                 </>
               )}
             </div>
