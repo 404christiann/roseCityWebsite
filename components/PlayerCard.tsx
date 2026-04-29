@@ -18,7 +18,8 @@ const FLAG_CODES: Record<string, string> = {
 export default function PlayerCard({ player }: { player: Player }) {
   const [hovered, setHovered] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const gk = isGK(player.stats);
+  const stats = player.stats;
+  const gk = isGK(stats);
 
   return (
     <>
@@ -106,15 +107,15 @@ export default function PlayerCard({ player }: { player: Player }) {
             >
               {gk ? (
                 <>
-                  <StatBox label="Saves" value={player.stats.saves} />
-                  <StatBox label="Clean" value={(player.stats as GoalkeeperStats).cleanSheets} />
-                  <StatBox label="Mins" value={player.stats.mins} />
+                  <StatBox label="Saves" value={stats.saves} />
+                  <StatBox label="Clean" value={stats.cleanSheets} />
+                  <StatBox label="Mins" value={stats.mins} />
                 </>
               ) : (
                 <>
-                  <StatBox label="Goals" value={(player.stats as FieldStats).goals} />
-                  <StatBox label="Assists" value={(player.stats as FieldStats).assists} />
-                  <StatBox label="Mins" value={player.stats.mins} />
+                  <StatBox label="Goals" value={stats.goals} />
+                  <StatBox label="Assists" value={stats.assists} />
+                  <StatBox label="Mins" value={stats.mins} />
                 </>
               )}
             </div>
