@@ -57,7 +57,17 @@ export default function SchedulePage() {
 
   // ── Add ─────────────────────────────────────
 
+  function validate(form: FormState): string | null {
+    if (!form.date)     return "Date is required.";
+    if (!form.time)     return "Time is required.";
+    if (!form.opponent.trim()) return "Opponent is required.";
+    if (!form.venue.trim())    return "Venue is required.";
+    return null;
+  }
+
   async function handleAdd() {
+    const validationError = validate(addForm);
+    if (validationError) { setError(validationError); return; }
     setSaving(true);
     setError(null);
     const supabase = createClient();
@@ -82,6 +92,8 @@ export default function SchedulePage() {
 
   async function handleSaveEdit() {
     if (!editingId) return;
+    const validationError = validate(editForm);
+    if (validationError) { setError(validationError); return; }
     setSaving(true);
     setError(null);
     const supabase = createClient();
@@ -306,7 +318,7 @@ function MatchForm({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <Field label="Date">
+      <Field label="Date" required>
         <input
           type="date"
           value={form.date}
@@ -315,7 +327,7 @@ function MatchForm({
         />
       </Field>
 
-      <Field label="Time">
+      <Field label="Time" required>
         <input
           type="time"
           value={form.time}
@@ -324,7 +336,7 @@ function MatchForm({
         />
       </Field>
 
-      <Field label="Opponent">
+      <Field label="Opponent" required>
         <input
           type="text"
           placeholder="e.g. Portland FC"
@@ -334,7 +346,7 @@ function MatchForm({
         />
       </Field>
 
-      <Field label="Home / Away">
+      <Field label="Home / Away" required>
         <select
           value={form.home ? "home" : "away"}
           onChange={(e) => set("home", e.target.value === "home")}
@@ -345,7 +357,7 @@ function MatchForm({
         </select>
       </Field>
 
-      <Field label="Venue">
+      <Field label="Venue" required>
         <input
           type="text"
           placeholder="e.g. Delta Park"
@@ -368,7 +380,7 @@ function MatchForm({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div>
       <label
@@ -376,6 +388,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
         style={{ color: "rgba(255,255,255,0.35)" }}
       >
         {label}
+        {required && <span style={{ color: "#dc2626", marginLeft: 3 }}>*</span>}
       </label>
       {children}
     </div>
