@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -888,7 +889,7 @@ function NationalitySelect({ value, onChange }: { value: string; onChange: (v: s
             ) : (
               filtered.map((n) => (
                 <button
-                  key={n.code}
+                  key={n.label}
                   type="button"
                   onClick={() => { onChange(n.label); setOpen(false); setSearch(""); }}
                   className="w-full flex items-center gap-3 px-3 py-2 text-left transition-colors"
