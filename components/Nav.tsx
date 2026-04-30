@@ -6,10 +6,10 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 const navLogos = [
-  { src: "/images/logo/rosecityLogo-Photoroom.png", alt: "Rose City FC",  size: 76, invertOnScroll: false },
-  { src: "/images/logo/us_new_image.png",            alt: "USA Soccer",    size: 62, invertOnScroll: false },
-  { src: "/images/logo/fifa_logo_white2.png",        alt: "FIFA",          size: 62, invertOnScroll: true  },
-  { src: "/images/logo/us_cup.png",                  alt: "U.S. Open Cup", size: 62, invertOnScroll: true  },
+  { src: "/images/logo/rosecityLogo-Photoroom.png", alt: "Rose City FC",  size: 68, invertOnScroll: false },
+  { src: "/images/logo/us_new_image.png",            alt: "USA Soccer",    size: 28, invertOnScroll: false },
+  { src: "/images/logo/fifa_logo_white2.png",        alt: "FIFA",          size: 28, invertOnScroll: true  },
+  { src: "/images/logo/us_cup.png",                  alt: "U.S. Open Cup", size: 28, invertOnScroll: true  },
 ];
 
 const navLinks = [
@@ -59,9 +59,27 @@ export default function Nav() {
       <nav className="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between h-20">
         {/* Logo row */}
         <Link href="/" className="flex items-center gap-3 flex-shrink-0" aria-label="Rose City FC Home">
-          {navLogos.map((logo, i) => (
-            <div key={logo.alt} className="flex items-center gap-3">
-              <div className="relative flex-shrink-0" style={{ width: logo.size, height: logo.size }}>
+          {/* Rose City crest — primary */}
+          <div className="relative flex-shrink-0" style={{ width: 68, height: 68 }}>
+            <Image
+              src="/images/logo/rosecityLogo-Photoroom.png"
+              alt="Rose City FC"
+              fill
+              className="object-contain transition-all duration-300"
+              priority
+            />
+          </div>
+
+          {/* Divider */}
+          <div
+            className="flex-shrink-0"
+            style={{ width: "1px", height: "28px", backgroundColor: isHero ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.15)" }}
+          />
+
+          {/* Affiliation logos — tighter cluster */}
+          <div className="flex items-center gap-2">
+            {navLogos.slice(1).map((logo) => (
+              <div key={logo.alt} className="relative flex-shrink-0" style={{ width: logo.size, height: logo.size }}>
                 <Image
                   src={logo.src}
                   alt={logo.alt}
@@ -71,15 +89,8 @@ export default function Nav() {
                   style={{ filter: !isHero && logo.invertOnScroll ? "invert(1)" : "none" }}
                 />
               </div>
-              {/* Divider only after Rose City crest */}
-              {i === 0 && (
-                <div
-                  className="flex-shrink-0"
-                  style={{ width: "1px", height: "28px", backgroundColor: isHero ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.15)" }}
-                />
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </Link>
 
         {/* Desktop Links */}
