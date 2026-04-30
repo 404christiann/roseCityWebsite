@@ -31,6 +31,10 @@ export async function middleware(request: NextRequest) {
   const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
   const isLoginPage  = request.nextUrl.pathname === "/admin/login";
 
+  // Allowlist — only these emails can access the admin panel
+  const ALLOWED_EMAILS = ["christianjavieralcala@gmail.com", "info@rosecityfutbolclub.com"];
+  const isAllowed = user && ALLOWED_EMAILS.includes(user.email ?? "");
+
   // Not logged in and trying to access admin → redirect to login
   if (isAdminRoute && !isLoginPage && !user) {
     const loginUrl = request.nextUrl.clone();
@@ -38,8 +42,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Logged in but not on the allowlist → sign out and redirect to login
+  if (isAdminRoute && !isLoginPage && user && !isAllowed) {
+    await supabase.auth.signOut();
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/admin/login";
+    return NextResponse.redirect(loginUrl);
+  }
+
   // Already logged in and hitting login page → redirect to dashboard
-  if (isLoginPage && user) {
+  if (isLoginPage && isAllowed) {
     const dashUrl = request.nextUrl.clone();
     dashUrl.pathname = "/admin";
     return NextResponse.redirect(dashUrl);
