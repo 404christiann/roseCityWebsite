@@ -96,7 +96,7 @@ export default function LoginPage() {
               Sign in
             </h1>
             <p className="font-body text-sm mb-6" style={{ color: "rgba(255,255,255,0.4)" }}>
-              Enter your email — we'll send a magic link.
+              Enter your email &mdash; we&apos;ll send a magic link.
             </p>
 
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
