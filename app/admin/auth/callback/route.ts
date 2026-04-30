@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
 
   if (code) {
-    const cookieStore = await cookies();
+    const cookieStore = cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -31,6 +31,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // If something went wrong, send back to login
   return NextResponse.redirect(`${origin}/admin/login`);
 }
