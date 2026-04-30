@@ -1,0 +1,515 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase-browser";
+
+// ── Types ─────────────────────────────────────
+
+type Match = {
+  id: string;
+  date: string;
+  time: string;
+  opponent: string;
+  home: boolean;
+};
+
+type Player = {
+  id: string;
+  number: number;
+  name: string;
+  position: "Goalkeeper" | "Defender" | "Midfielder" | "Forward";
+};
+
+type FieldRow = {
+  starts: boolean;
+  mins: number;
+  goals: number;
+  assists: number;
+  tackles: number;
+  yellow: number;
+  red: number;
+};
+
+type GKRow = {
+  starts: boolean;
+  mins: number;
+  goals_against: number;
+  saves: number;
+  clean_sheets: number;
+  yellow: number;
+  red: number;
+};
+
+type StatsMap = Record<string, FieldRow | GKRow>;
+
+// ── Defaults ──────────────────────────────────
+
+function defaultField(): FieldRow {
+  return { starts: false, mins: 0, goals: 0, assists: 0, tackles: 0, yellow: 0, red: 0 };
+}
+function defaultGK(): GKRow {
+  return { starts: false, mins: 0, goals_against: 0, saves: 0, clean_sheets: 0, yellow: 0, red: 0 };
+}
+
+// ── Helpers ───────────────────────────────────
+
+function isGKRow(row: FieldRow | GKRow): row is GKRow {
+  return "saves" in row;
+}
+
+const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Forward"] as const;
+
+// ── Main component ────────────────────────────
+
+export default function StatsPage() {
+  const [matches, setMatches]     = useState<Match[]>([]);
+  const [players, setPlayers]     = useState<Player[]>([]);
+  const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
+  const [stats, setStats]         = useState<StatsMap>({});
+  const [loading, setLoading]     = useState(false);
+  const [saving, setSaving]       = useState(false);
+  const [saved, setSaved]         = useState(false);
+  const [error, setError]         = useState<string | null>(null);
+
+  // Load matches + players on mount
+  useEffect(() => {
+    const supabase = createClient();
+    Promise.all([
+      supabase.from("matches").select("id, date, time, opponent, home").order("id"),
+      supabase.from("players").select("id, number, name, position").eq("active", true).order("number"),
+    ]).then(([{ data: m }, { data: p }]) => {
+      setMatches((m ?? []) as Match[]);
+      setPlayers((p ?? []) as Player[]);
+    });
+  }, []);
+
+  // When match is selected, load existing stats
+  useEffect(() => {
+    if (!selectedMatch || players.length === 0) return;
+    setLoading(true);
+    setSaved(false);
+    setError(null);
+
+    const supabase = createClient();
+    Promise.all([
+      supabase.from("player_match_stats").select("*").eq("match_id", selectedMatch),
+      supabase.from("goalkeeper_match_stats").select("*").eq("match_id", selectedMatch),
+    ]).then(([{ data: fieldData }, { data: gkData }]) => {
+      const map: StatsMap = {};
+
+      // Initialise all players with defaults first
+      players.forEach((p) => {
+        map[p.id] = p.position === "Goalkeeper" ? defaultGK() : defaultField();
+      });
+
+      // Overlay existing field stats
+      (fieldData ?? []).forEach((r: Record<string, unknown>) => {
+        map[r.player_id as number] = {
+          starts:  Boolean(r.starts),
+          mins:    Number(r.mins),
+          goals:   Number(r.goals),
+          assists: Number(r.assists),
+          tackles: Number(r.tackles),
+          yellow:  Number(r.yellow),
+          red:     Number(r.red),
+        } as FieldRow;
+      });
+
+      // Overlay existing GK stats
+      (gkData ?? []).forEach((r: Record<string, unknown>) => {
+        map[r.player_id as number] = {
+          starts:       Boolean(r.starts),
+          mins:         Number(r.mins),
+          goals_against: Number(r.goals_against),
+          saves:        Number(r.saves),
+          clean_sheets: Number(r.clean_sheets),
+          yellow:       Number(r.yellow),
+          red:          Number(r.red),
+        } as GKRow;
+      });
+
+      setStats(map);
+      setLoading(false);
+    });
+  }, [selectedMatch, players]);
+
+  // Update a single field in a player's stat row
+  function updateStat(
+    playerId: string,
+    field: string,
+    value: number | boolean
+  ) {
+    setStats((prev) => ({
+      ...prev,
+      [playerId]: { ...prev[playerId], [field]: value },
+    }));
+  }
+
+  // Save all stats
+  async function handleSave() {
+    if (!selectedMatch) return;
+    setSaving(true);
+    setError(null);
+
+    const supabase = createClient();
+    const fieldRows: Record<string, unknown>[] = [];
+    const gkRows:    Record<string, unknown>[] = [];
+
+    players.forEach((p) => {
+      const row = stats[p.id];
+      if (!row) return;
+      if (p.position === "Goalkeeper" && isGKRow(row)) {
+        gkRows.push({ player_id: p.id, match_id: selectedMatch, ...row });
+      } else if (!isGKRow(row)) {
+        fieldRows.push({ player_id: p.id, match_id: selectedMatch, ...row });
+      }
+    });
+
+    const [{ error: fe }, { error: ge }] = await Promise.all([
+      fieldRows.length > 0
+        ? supabase.from("player_match_stats").upsert(fieldRows, { onConflict: "player_id,match_id" })
+        : Promise.resolve({ error: null }),
+      gkRows.length > 0
+        ? supabase.from("goalkeeper_match_stats").upsert(gkRows, { onConflict: "player_id,match_id" })
+        : Promise.resolve({ error: null }),
+    ]);
+
+    if (fe || ge) {
+      setError(fe?.message ?? ge?.message ?? "Unknown error");
+    } else {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    }
+    setSaving(false);
+  }
+
+  const selectedMatchData = matches.find((m) => m.id === selectedMatch);
+
+  return (
+    <div className="max-w-5xl mx-auto">
+
+      {/* Header */}
+      <div className="mb-8">
+        <h1
+          className="font-display font-black uppercase text-white leading-none"
+          style={{ fontSize: "clamp(1.8rem, 4vw, 2.5rem)" }}
+        >
+          Match Stats
+        </h1>
+        <p className="font-body text-sm mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
+          Select a match to enter or update player statistics.
+        </p>
+      </div>
+
+      {/* Match selector */}
+      <div className="mb-8">
+        <label
+          className="block font-display text-xs tracking-widest uppercase mb-2"
+          style={{ color: "rgba(255,255,255,0.4)" }}
+        >
+          Match
+        </label>
+        <select
+          value={selectedMatch ?? ""}
+          onChange={(e) => setSelectedMatch(e.target.value || null)}
+          className="w-full rounded-lg px-4 py-3 font-body text-sm outline-none"
+          style={{
+            backgroundColor: "#1a1a1a",
+            border: "1px solid rgba(255,255,255,0.1)",
+            color: "white",
+            maxWidth: 480,
+          }}
+        >
+          <option value="" style={{ backgroundColor: "#1a1a1a" }}>— Select a match —</option>
+          {matches
+            .slice()
+            .sort((a, b) => new Date(`${a.date} ${a.time}`).getTime() - new Date(`${b.date} ${b.time}`).getTime())
+            .map((m) => (
+              <option key={m.id} value={m.id.toString()} style={{ backgroundColor: "#1a1a1a" }}>
+                {m.date} · {m.home ? "vs" : "@"} {m.opponent}
+              </option>
+            ))}
+        </select>
+
+      </div>
+
+      {/* Stats form */}
+      {selectedMatch && !loading && (
+        <>
+          {/* Match label */}
+          {selectedMatchData && (
+            <div className="mb-6 flex items-center gap-3">
+              <div
+                className="h-px flex-1"
+                style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+              />
+              <span
+                className="font-display text-xs tracking-widest uppercase"
+                style={{ color: "rgba(255,255,255,0.25)" }}
+              >
+                {selectedMatchData.date} · {selectedMatchData.home ? "vs" : "@"} {selectedMatchData.opponent}
+              </span>
+              <div
+                className="h-px flex-1"
+                style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+              />
+            </div>
+          )}
+
+          {/* Player rows by position group */}
+          {POSITIONS.map((pos) => {
+            const group = players.filter((p) => p.position === pos);
+            if (group.length === 0) return null;
+            const isGK = pos === "Goalkeeper";
+
+            return (
+              <PositionGroup
+                key={pos}
+                pos={pos}
+                group={group}
+                isGK={isGK}
+                stats={stats}
+                updateStat={updateStat}
+              />
+            );
+          })}
+
+
+          {/* Error */}
+          {error && (
+            <p className="font-body text-sm mb-4" style={{ color: "#dc2626" }}>
+              Error saving: {error}
+            </p>
+          )}
+
+          {/* Save button */}
+          <div className="flex items-center gap-4 mt-6">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-8 py-3 rounded-lg font-display font-black uppercase tracking-widest text-white text-sm transition-opacity duration-200"
+              style={{
+                backgroundColor: "#dc2626",
+                opacity: saving ? 0.6 : 1,
+                cursor: saving ? "not-allowed" : "pointer",
+              }}
+            >
+              {saving ? "Saving…" : "Save All Stats"}
+            </button>
+
+            {saved && (
+              <span
+                className="font-display text-sm tracking-widest uppercase"
+                style={{ color: "rgba(34,197,94,0.9)" }}
+              >
+                ✓ Saved
+              </span>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Loading state */}
+      {loading && (
+        <p
+          className="font-display text-sm tracking-widest uppercase"
+          style={{ color: "rgba(255,255,255,0.3)" }}
+        >
+          Loading players…
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Collapsible position group ────────────────
+
+function PositionGroup({
+  pos,
+  group,
+  isGK,
+  stats,
+  updateStat,
+}: {
+  pos: string;
+  group: Player[];
+  isGK: boolean;
+  stats: StatsMap;
+  updateStat: (playerId: string, field: string, value: number | boolean) => void;
+}) {
+  const [open, setOpen] = useState(true);
+
+  const fieldHeaders = ["#", "Name", "Start", "Mins", "Goals", "Ast", "Tackles", "Y", "R"];
+  const gkHeaders    = ["#", "Name", "Start", "Mins", "GA", "Saves", "CS", "Y", "R"];
+  const headers = isGK ? gkHeaders : fieldHeaders;
+
+  // Grid template: number col, name col, then stat cols
+  const gridCols = isGK
+    ? "40px 1fr 52px 60px 52px 52px 52px 44px 44px"
+    : "40px 1fr 52px 60px 52px 52px 64px 44px 44px";
+
+  return (
+    <div className="mb-4 rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.07)" }}>
+      {/* Position header / toggle */}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 transition-colors duration-150"
+        style={{ backgroundColor: "#161616" }}
+      >
+        <span
+          className="font-display font-black uppercase tracking-widest text-xs"
+          style={{ color: "rgba(255,255,255,0.9)" }}
+        >
+          {pos}s &nbsp;
+          <span style={{ color: "rgba(255,255,255,0.25)", fontWeight: 400 }}>
+            {group.length}
+          </span>
+        </span>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          style={{
+            color: "rgba(255,255,255,0.3)",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.25s ease",
+          }}
+        >
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
+      {/* Animated content */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateRows: open ? "1fr" : "0fr",
+          transition: "grid-template-rows 0.25s ease",
+        }}
+      >
+        <div style={{ overflow: "hidden" }}>
+          {/* Column headers */}
+          <div
+            className="grid gap-2 px-4 py-2"
+            style={{
+              gridTemplateColumns: gridCols,
+              backgroundColor: "#111111",
+              borderBottom: "1px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            {headers.map((h) => (
+              <span
+                key={h}
+                className="font-display font-bold uppercase text-center"
+                style={{
+                  fontSize: "0.6rem",
+                  letterSpacing: "0.08em",
+                  color: "rgba(255,255,255,0.9)",
+                }}
+              >
+                {h}
+              </span>
+            ))}
+          </div>
+
+          {/* Player rows */}
+          {group.map((p, i) => {
+            const row = stats[p.id];
+            if (!row) return null;
+
+            return (
+              <div
+                key={p.id}
+                className="grid gap-2 items-center px-4 py-2"
+                style={{
+                  gridTemplateColumns: gridCols,
+                  backgroundColor: i % 2 === 0 ? "#0f0f0f" : "#111111",
+                  borderBottom: i < group.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                }}
+              >
+                {/* # */}
+                <span
+                  className="font-display font-bold text-center text-sm"
+                  style={{ color: "rgba(255,255,255,0.35)" }}
+                >
+                  {p.number}
+                </span>
+
+                {/* Name */}
+                <span
+                  className="font-body text-sm truncate"
+                  style={{ color: "rgba(255,255,255,0.85)" }}
+                >
+                  {p.name}
+                </span>
+
+                {/* Start checkbox */}
+                <div className="flex justify-center">
+                  <input
+                    type="checkbox"
+                    checked={row.starts}
+                    onChange={(e) => updateStat(p.id, "starts", e.target.checked)}
+                    className="w-4 h-4 rounded cursor-pointer"
+                    style={{ accentColor: "#dc2626" }}
+                  />
+                </div>
+
+                {/* Mins */}
+                <StatInput
+                  value={row.mins}
+                  onChange={(v) => updateStat(p.id, "mins", v)}
+                />
+
+                {isGK && isGKRow(row) ? (
+                  <>
+                    <StatInput value={row.goals_against} onChange={(v) => updateStat(p.id, "goals_against", v)} />
+                    <StatInput value={row.saves}         onChange={(v) => updateStat(p.id, "saves", v)} />
+                    <StatInput value={row.clean_sheets}  onChange={(v) => updateStat(p.id, "clean_sheets", v)} />
+                    <StatInput value={row.yellow}        onChange={(v) => updateStat(p.id, "yellow", v)} />
+                    <StatInput value={row.red}           onChange={(v) => updateStat(p.id, "red", v)} />
+                  </>
+                ) : !isGKRow(row) ? (
+                  <>
+                    <StatInput value={row.goals}   onChange={(v) => updateStat(p.id, "goals", v)} />
+                    <StatInput value={row.assists}  onChange={(v) => updateStat(p.id, "assists", v)} />
+                    <StatInput value={row.tackles}  onChange={(v) => updateStat(p.id, "tackles", v)} />
+                    <StatInput value={row.yellow}   onChange={(v) => updateStat(p.id, "yellow", v)} />
+                    <StatInput value={row.red}      onChange={(v) => updateStat(p.id, "red", v)} />
+                  </>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Reusable number input ─────────────────────
+
+function StatInput({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <input
+      type="number"
+      min={0}
+      value={value}
+      onChange={(e) => onChange(Math.max(0, Number(e.target.value)))}
+      className="w-full rounded text-center font-display font-bold text-white text-sm outline-none"
+      style={{
+        backgroundColor: "#0e0e0e",
+        border: "1px solid rgba(255,255,255,0.08)",
+        padding: "4px 2px",
+      }}
+      onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(220,38,38,0.5)")}
+      onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")}
+    />
+  );
+}

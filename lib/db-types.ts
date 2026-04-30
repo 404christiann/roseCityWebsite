@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────
 
 export type DBPlayer = {
-  id: number;
+  id: string;
   number: number;
   name: string;
   caption: string | null;
@@ -22,7 +22,7 @@ export type DBPlayer = {
 };
 
 export type DBStaff = {
-  id: number;
+  id: string;
   initials: string;
   name: string;
   role: string;
@@ -32,7 +32,7 @@ export type DBStaff = {
 };
 
 export type DBMatch = {
-  id: number;
+  id: string;
   date: string;
   time: string;
   opponent: string;
@@ -42,9 +42,9 @@ export type DBMatch = {
 };
 
 export type DBPlayerMatchStats = {
-  id: number;
-  player_id: number;
-  match_id: number;
+  id: string;
+  player_id: string;
+  match_id: string;
   goals: number;
   assists: number;
   tackles: number;
@@ -55,9 +55,9 @@ export type DBPlayerMatchStats = {
 };
 
 export type DBGoalkeeperMatchStats = {
-  id: number;
-  player_id: number;
-  match_id: number;
+  id: string;
+  player_id: string;
+  match_id: string;
   goals_against: number;
   saves: number;
   clean_sheets: number;
