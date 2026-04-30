@@ -28,15 +28,16 @@ export async function middleware(request: NextRequest) {
   // Refresh session if expired
   const { data: { user } } = await supabase.auth.getUser();
 
-  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
-  const isLoginPage  = request.nextUrl.pathname === "/admin/login";
+  const isAdminRoute    = request.nextUrl.pathname.startsWith("/admin");
+  const isLoginPage     = request.nextUrl.pathname === "/admin/login";
+  const isCallbackRoute = request.nextUrl.pathname === "/admin/auth/callback";
 
   // Allowlist — only these emails can access the admin panel
-  const ALLOWED_EMAILS = ["christianjavieralcala@gmail.com", "info@rosecityfutbolclub.com"];
+  const ALLOWED_EMAILS = ["christianjavieralcala@gmail.com", "info@rosecityfutbolclub.com", "calcala1@berkeley.edu"];
   const isAllowed = user && ALLOWED_EMAILS.includes(user.email ?? "");
 
   // Not logged in and trying to access admin → redirect to login
-  if (isAdminRoute && !isLoginPage && !user) {
+  if (isAdminRoute && !isLoginPage && !isCallbackRoute && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/admin/login";
     return NextResponse.redirect(loginUrl);

@@ -47,7 +47,7 @@ export default function AdminDashboard() {
   }, []);
 
   return (
-    <div>
+    <div className="max-w-5xl mx-auto">
       {/* Header */}
       <div className="mb-8">
         <h1
@@ -57,7 +57,14 @@ export default function AdminDashboard() {
           Dashboard
         </h1>
         <p className="font-body text-sm mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
-          2025 – 2026 Season
+          {(() => {
+            const now = new Date();
+            const year = now.getFullYear();
+            // UPSL season runs Jan–Aug; after August we roll into the next season
+            return now.getMonth() >= 8
+              ? `${year} – ${year + 1} Season`
+              : `${year - 1} – ${year} Season`;
+          })()}
         </p>
       </div>
 
@@ -138,13 +145,13 @@ function StatCard({
     <div
       className="rounded-xl p-5"
       style={{
-        backgroundColor: accent ? "rgba(220,38,38,0.1)" : "#1a1a1a",
-        border: `1px solid ${accent ? "rgba(220,38,38,0.25)" : "rgba(255,255,255,0.06)"}`,
+        backgroundColor: accent ? "rgba(34,197,94,0.12)" : "#1a1a1a",
+        border: `1px solid ${accent ? "rgba(34,197,94,0.3)" : "rgba(255,255,255,0.06)"}`,
       }}
     >
       <p
         className="font-display text-xs tracking-widest uppercase mb-2"
-        style={{ color: accent ? "rgba(220,38,38,0.7)" : "rgba(255,255,255,0.3)" }}
+        style={{ color: accent ? "rgba(34,197,94,0.9)" : "rgba(255,255,255,0.3)" }}
       >
         {label}
       </p>
