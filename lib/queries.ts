@@ -140,14 +140,14 @@ export async function fetchRoster(): Promise<{
     .select("*")
     .in("player_id", playerIds);
 
-  const fieldStatsByPlayer = new Map<number, DBPlayerMatchStats[]>();
+  const fieldStatsByPlayer = new Map<string, DBPlayerMatchStats[]>();
   (fieldRows ?? []).forEach((r: DBPlayerMatchStats) => {
     const arr = fieldStatsByPlayer.get(r.player_id) ?? [];
     arr.push(r);
     fieldStatsByPlayer.set(r.player_id, arr);
   });
 
-  const gkStatsByPlayer = new Map<number, DBGoalkeeperMatchStats[]>();
+  const gkStatsByPlayer = new Map<string, DBGoalkeeperMatchStats[]>();
   (gkRows ?? []).forEach((r: DBGoalkeeperMatchStats) => {
     const arr = gkStatsByPlayer.get(r.player_id) ?? [];
     arr.push(r);
