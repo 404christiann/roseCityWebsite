@@ -6,7 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 const navLogos = [
-  { src: "/images/logo/rosecityLogo-Photoroom.png", alt: "Rose City FC",  size: 76, invertOnScroll: false },
+  { src: "/images/logo/rosecityLogo-Photoroom.png", alt: "Rose City FC",  size: 96, invertOnScroll: false },
   { src: "/images/logo/us_new_image.png",            alt: "USA Soccer",    size: 28, invertOnScroll: false },
   { src: "/images/logo/fifa_logo_white2.png",        alt: "FIFA",          size: 28, invertOnScroll: true  },
   { src: "/images/logo/us_cup.png",                  alt: "U.S. Open Cup", size: 28, invertOnScroll: true  },
@@ -56,11 +56,11 @@ export default function Nav() {
           : "bg-white/95 backdrop-blur-sm shadow-sm"
       }`}
     >
-      <nav className="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between h-24">
+      <nav className="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between h-28">
         {/* Logo row */}
         <Link href="/" className="flex items-center gap-3 flex-shrink-0" aria-label="Rose City FC Home">
           {/* Rose City crest — primary */}
-          <div className="relative flex-shrink-0" style={{ width: 76, height: 76 }}>
+          <div className="relative flex-shrink-0" style={{ width: 96, height: 96 }}>
             <Image
               src="/images/logo/rosecityLogo-Photoroom.png"
               alt="Rose City FC"
