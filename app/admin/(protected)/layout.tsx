@@ -11,7 +11,7 @@ const NAV_ITEMS = [
     label: "Dashboard",
     href: "/admin",
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
         <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
         <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
@@ -23,7 +23,7 @@ const NAV_ITEMS = [
     label: "Roster",
     href: "/admin/roster",
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2"/>
         <path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
         <path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.85" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -34,8 +34,8 @@ const NAV_ITEMS = [
     label: "Schedule",
     href: "/admin/schedule",
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="4" width="22" height="22" rx="2" stroke="currentColor" strokeWidth="2"/>
         <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
       </svg>
     ),
@@ -44,7 +44,7 @@ const NAV_ITEMS = [
     label: "Match Stats",
     href: "/admin/stats",
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path d="M18 20V10M12 20V4M6 20v-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
@@ -53,7 +53,7 @@ const NAV_ITEMS = [
     label: "Season Stats",
     href: "/admin/season-stats",
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
         <rect x="9" y="3" width="6" height="4" rx="1" stroke="currentColor" strokeWidth="2"/>
         <path d="M9 12h6M9 16h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -100,7 +100,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
       <aside
         className={`fixed top-0 left-0 h-full z-30 flex flex-col lg:translate-x-0 lg:static lg:flex ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
         style={{
-          width: 220,
+          width: 280,
           backgroundColor: "#141414",
           borderRight: "1px solid rgba(255,255,255,0.06)",
           transition: "transform 0.3s ease",
@@ -135,8 +135,9 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
               key={item.href}
               href={item.href}
               onClick={() => setSidebarOpen(false)}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 font-display font-bold uppercase text-xs tracking-widest"
+              className="flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-150 font-display font-bold uppercase tracking-widest"
               style={{
+                fontSize: "1.15rem",
                 color: isActive(item.href) ? "#fff" : "rgba(255,255,255,0.35)",
                 backgroundColor: isActive(item.href) ? "rgba(220,38,38,0.15)" : "transparent",
                 borderLeft: isActive(item.href) ? "2px solid #dc2626" : "2px solid transparent",
@@ -157,8 +158,8 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
         >
           {userEmail && (
             <p
-              className="font-body text-xs mb-3 truncate"
-              style={{ color: "rgba(255,255,255,0.25)" }}
+              className="font-body mb-3 truncate"
+              style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.25)" }}
               title={userEmail}
             >
               {userEmail}
@@ -166,10 +167,10 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
           )}
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-2 font-display text-xs tracking-widest uppercase transition-opacity duration-200 opacity-40 hover:opacity-100"
-            style={{ color: "white" }}
+            className="flex items-center gap-2 font-display tracking-widest uppercase transition-opacity duration-200 opacity-40 hover:opacity-100"
+            style={{ fontSize: "0.95rem", color: "white" }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             Sign out

@@ -134,19 +134,19 @@ export default function SchedulePage() {
         <div>
           <h1
             className="font-display font-black uppercase text-white leading-none"
-            style={{ fontSize: "clamp(1.8rem, 4vw, 2.5rem)" }}
+            style={{ fontSize: "clamp(2.5rem, 5vw, 3.5rem)" }}
           >
             Schedule
           </h1>
-          <p className="font-body text-sm mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
+          <p className="font-body mt-1" style={{ fontSize: "1rem", color: "rgba(255,255,255,0.35)" }}>
             Add, edit, or remove matches.
           </p>
         </div>
 
         <button
           onClick={() => { setAddOpen((o) => !o); setAddForm(emptyForm()); setError(null); }}
-          className="flex-shrink-0 px-5 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white text-xs transition-opacity"
-          style={{ backgroundColor: "#dc2626" }}
+          className="flex-shrink-0 px-6 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white transition-opacity"
+          style={{ backgroundColor: "#dc2626", fontSize: "1.1rem" }}
         >
           {addOpen ? "Cancel" : "+ Add Match"}
         </button>
@@ -238,15 +238,15 @@ export default function SchedulePage() {
                   >
                     <div className="min-w-0">
                       {/* Date + home/away badge */}
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-display font-bold text-white text-sm">{m.date}</span>
-                        <span className="font-body text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>{m.time}</span>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="font-display font-bold text-white" style={{ fontSize: "1.1rem" }}>{m.date}</span>
+                        <span className="font-body" style={{ fontSize: "1rem", color: "rgba(255,255,255,0.3)" }}>{m.time}</span>
                         <span
-                          className="font-display font-black uppercase text-xs px-2 py-0.5 rounded"
+                          className="font-display font-black uppercase px-2 py-0.5 rounded"
                           style={{
                             backgroundColor: m.home ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.07)",
                             color: m.home ? "rgba(34,197,94,0.9)" : "rgba(255,255,255,0.4)",
-                            fontSize: "0.6rem",
+                            fontSize: "0.75rem",
                             letterSpacing: "0.08em",
                           }}
                         >
@@ -255,12 +255,12 @@ export default function SchedulePage() {
                       </div>
 
                       {/* Opponent */}
-                      <p className="font-display font-black uppercase text-white" style={{ fontSize: "0.95rem" }}>
+                      <p className="font-display font-black uppercase text-white" style={{ fontSize: "1.25rem" }}>
                         {m.home ? "vs" : "@"} {m.opponent}
                       </p>
 
                       {/* Venue */}
-                      <p className="font-body text-xs mt-0.5 truncate" style={{ color: "rgba(255,255,255,0.3)" }}>
+                      <p className="font-body mt-0.5 truncate" style={{ fontSize: "0.95rem", color: "rgba(255,255,255,0.3)" }}>
                         {m.venue}{m.address ? ` · ${m.address}` : ""}
                       </p>
                     </div>
@@ -269,8 +269,9 @@ export default function SchedulePage() {
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button
                         onClick={() => startEdit(m)}
-                        className="px-4 py-1.5 rounded-lg font-display font-black uppercase tracking-widest text-xs transition-colors"
+                        className="px-4 py-2 rounded-lg font-display font-black uppercase tracking-widest transition-colors"
                         style={{
+                          fontSize: "0.95rem",
                           backgroundColor: "#1e1e1e",
                           border: "1px solid rgba(255,255,255,0.08)",
                           color: "rgba(255,255,255,0.6)",
@@ -281,8 +282,9 @@ export default function SchedulePage() {
                       <button
                         onClick={() => handleDelete(m.id)}
                         disabled={isDeleting}
-                        className="px-4 py-1.5 rounded-lg font-display font-black uppercase tracking-widest text-xs transition-colors"
+                        className="px-4 py-2 rounded-lg font-display font-black uppercase tracking-widest transition-colors"
                         style={{
+                          fontSize: "0.95rem",
                           backgroundColor: "rgba(220,38,38,0.1)",
                           border: "1px solid rgba(220,38,38,0.2)",
                           color: isDeleting ? "rgba(220,38,38,0.4)" : "rgba(220,38,38,0.8)",

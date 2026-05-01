@@ -52,7 +52,7 @@ export default function AdminDashboard() {
       <div className="mb-8">
         <h1
           className="font-display font-black uppercase text-white leading-none"
-          style={{ fontSize: "clamp(1.8rem, 4vw, 2.5rem)" }}
+          style={{ fontSize: "clamp(2.5rem, 5vw, 3.5rem)" }}
         >
           Dashboard
         </h1>
@@ -85,7 +85,7 @@ export default function AdminDashboard() {
       <div className="mb-4">
         <h2
           className="font-display font-bold uppercase tracking-widest mb-4"
-          style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.3)" }}
+          style={{ fontSize: "1rem", color: "rgba(255,255,255,0.3)" }}
         >
           Quick Actions
         </h2>
@@ -150,19 +150,19 @@ function StatCard({
       }}
     >
       <p
-        className="font-display text-xs tracking-widest uppercase mb-2"
-        style={{ color: accent ? "rgba(34,197,94,0.9)" : "rgba(255,255,255,0.3)" }}
+        className="font-display tracking-widest uppercase mb-2"
+        style={{ fontSize: "0.985rem", color: accent ? "rgba(34,197,94,0.9)" : "rgba(255,255,255,0.3)" }}
       >
         {label}
       </p>
       <p
         className="font-display font-black text-white leading-none"
-        style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)" }}
+        style={{ fontSize: "clamp(1.8rem, 3vw, 2.5rem)" }}
       >
         {value}
       </p>
       {sub && (
-        <p className="font-body text-xs mt-1 truncate" style={{ color: "rgba(255,255,255,0.4)" }}>
+        <p className="font-body mt-1 truncate" style={{ fontSize: "0.95rem", color: "rgba(255,255,255,0.4)" }}>
           {sub}
         </p>
       )}
@@ -199,10 +199,10 @@ function ActionCard({
       }}
     >
       <div className="mb-3" style={{ color: "#dc2626" }}>{icon}</div>
-      <h3 className="font-display font-black uppercase text-white text-sm mb-1">
+      <h3 className="font-display font-black uppercase text-white mb-1" style={{ fontSize: "1.5rem" }}>
         {title}
       </h3>
-      <p className="font-body text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
+      <p className="font-body leading-relaxed" style={{ fontSize: "1.15rem", color: "rgba(255,255,255,0.35)" }}>
         {description}
       </p>
     </Link>

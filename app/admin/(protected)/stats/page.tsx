@@ -192,11 +192,11 @@ export default function StatsPage() {
       <div className="mb-8">
         <h1
           className="font-display font-black uppercase text-white leading-none"
-          style={{ fontSize: "clamp(1.8rem, 4vw, 2.5rem)" }}
+          style={{ fontSize: "clamp(2.5rem, 5vw, 3.5rem)" }}
         >
           Match Stats
         </h1>
-        <p className="font-body text-sm mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
+        <p className="font-body mt-1" style={{ fontSize: "1rem", color: "rgba(255,255,255,0.35)" }}>
           Select a match to enter or update player statistics.
         </p>
       </div>
@@ -204,20 +204,21 @@ export default function StatsPage() {
       {/* Match selector */}
       <div className="mb-8">
         <label
-          className="block font-display text-xs tracking-widest uppercase mb-2"
-          style={{ color: "rgba(255,255,255,0.4)" }}
+          className="block font-display tracking-widest uppercase mb-2"
+          style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.4)" }}
         >
           Match
         </label>
         <select
           value={selectedMatch ?? ""}
           onChange={(e) => setSelectedMatch(e.target.value || null)}
-          className="w-full rounded-lg px-4 py-3 font-body text-sm outline-none"
+          className="w-full rounded-lg px-4 py-3 font-body outline-none"
           style={{
+            fontSize: "1rem",
             backgroundColor: "#1a1a1a",
             border: "1px solid rgba(255,255,255,0.1)",
             color: "white",
-            maxWidth: 480,
+            maxWidth: 560,
           }}
         >
           <option value="" style={{ backgroundColor: "#1a1a1a" }}>— Select a match —</option>
@@ -287,7 +288,8 @@ export default function StatsPage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-8 py-3 rounded-lg font-display font-black uppercase tracking-widest text-white text-sm transition-opacity duration-200"
+              className="px-8 py-3 rounded-lg font-display font-black uppercase tracking-widest text-white transition-opacity duration-200"
+              style={{ fontSize: "1.1rem" }}
               style={{
                 backgroundColor: "#dc2626",
                 opacity: saving ? 0.6 : 1,
@@ -345,8 +347,8 @@ function PositionGroup({
 
   // Grid template: number col, name col, then stat cols
   const gridCols = isGK
-    ? "40px 1fr 52px 60px 52px 52px 52px 44px 44px"
-    : "40px 1fr 52px 60px 52px 52px 64px 44px 44px";
+    ? "48px 1fr 60px 72px 60px 60px 60px 52px 52px"
+    : "48px 1fr 60px 72px 60px 60px 72px 52px 52px";
 
   return (
     <div className="mb-4 rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.07)" }}>
@@ -357,8 +359,8 @@ function PositionGroup({
         style={{ backgroundColor: "#161616" }}
       >
         <span
-          className="font-display font-black uppercase tracking-widest text-xs"
-          style={{ color: "rgba(255,255,255,0.9)" }}
+          className="font-display font-black uppercase tracking-widest"
+          style={{ fontSize: "1.1rem", color: "rgba(255,255,255,0.9)" }}
         >
           {pos}s &nbsp;
           <span style={{ color: "rgba(255,255,255,0.25)", fontWeight: 400 }}>
@@ -366,8 +368,8 @@ function PositionGroup({
           </span>
         </span>
         <svg
-          width="14"
-          height="14"
+          width="18"
+          height="18"
           viewBox="0 0 24 24"
           fill="none"
           style={{
@@ -389,6 +391,9 @@ function PositionGroup({
         }}
       >
         <div style={{ overflow: "hidden" }}>
+          {/* Horizontally scrollable wrapper */}
+          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+            <div style={{ minWidth: 600 }}>
           {/* Column headers */}
           <div
             className="grid gap-2 px-4 py-2"
@@ -403,7 +408,7 @@ function PositionGroup({
                 key={h}
                 className="font-display font-bold uppercase text-center"
                 style={{
-                  fontSize: "0.6rem",
+                  fontSize: "0.75rem",
                   letterSpacing: "0.08em",
                   color: "rgba(255,255,255,0.9)",
                 }}
@@ -430,16 +435,16 @@ function PositionGroup({
               >
                 {/* # */}
                 <span
-                  className="font-display font-bold text-center text-sm"
-                  style={{ color: "rgba(255,255,255,0.35)" }}
+                  className="font-display font-bold text-center"
+                  style={{ fontSize: "1rem", color: "rgba(255,255,255,0.35)" }}
                 >
                   {p.number}
                 </span>
 
                 {/* Name */}
                 <span
-                  className="font-body text-sm truncate"
-                  style={{ color: "rgba(255,255,255,0.85)" }}
+                  className="font-body truncate"
+                  style={{ fontSize: "1rem", color: "rgba(255,255,255,0.85)" }}
                 >
                   {p.name}
                 </span>
@@ -450,7 +455,7 @@ function PositionGroup({
                     type="checkbox"
                     checked={row.starts}
                     onChange={(e) => updateStat(p.id, "starts", e.target.checked)}
-                    className="w-4 h-4 rounded cursor-pointer"
+                    className="w-5 h-5 rounded cursor-pointer"
                     style={{ accentColor: "#dc2626" }}
                   />
                 </div>
@@ -481,6 +486,8 @@ function PositionGroup({
               </div>
             );
           })}
+            </div> {/* end minWidth wrapper */}
+          </div> {/* end overflow-x scroll */}
         </div>
       </div>
     </div>
@@ -502,11 +509,12 @@ function StatInput({
       min={0}
       value={value}
       onChange={(e) => onChange(Math.max(0, Number(e.target.value)))}
-      className="w-full rounded text-center font-display font-bold text-white text-sm outline-none"
+      className="w-full rounded text-center font-display font-bold text-white outline-none"
       style={{
+        fontSize: "1rem",
         backgroundColor: "#0e0e0e",
         border: "1px solid rgba(255,255,255,0.08)",
-        padding: "4px 2px",
+        padding: "6px 2px",
       }}
       onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(220,38,38,0.5)")}
       onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")}

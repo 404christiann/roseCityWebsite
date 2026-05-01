@@ -120,7 +120,7 @@ export default function RosterPage() {
       <div className="mb-8">
         <h1
           className="font-display font-black uppercase text-white leading-none"
-          style={{ fontSize: "clamp(1.8rem, 4vw, 2.5rem)" }}
+          style={{ fontSize: "clamp(2.5rem, 5vw, 3.5rem)" }}
         >
           Roster
         </h1>
@@ -135,7 +135,8 @@ export default function RosterPage() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className="px-5 py-2 rounded-lg font-display font-black uppercase tracking-widest text-xs transition-all"
+            className="px-6 py-2.5 rounded-lg font-display font-black uppercase tracking-widest transition-all"
+            style={{ fontSize: "1.1rem" } as React.CSSProperties}
             style={{
               backgroundColor: tab === t ? "#dc2626" : "#1a1a1a",
               color: tab === t ? "white" : "rgba(255,255,255,0.4)",
@@ -274,8 +275,8 @@ function PlayersTab() {
         </p>
         <button
           onClick={() => { setAddOpen(o => !o); setAddForm(emptyPlayer()); setAddPhoto(null); setError(null); }}
-          className="px-5 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white text-xs"
-          style={{ backgroundColor: "#dc2626" }}
+          className="px-6 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white"
+          style={{ backgroundColor: "#dc2626", fontSize: "1.1rem" }}
         >
           {addOpen ? "Cancel" : "+ Add Player"}
         </button>
@@ -361,11 +362,11 @@ function PlayerPositionGroup({
         className="w-full flex items-center justify-between px-4 py-3"
         style={{ backgroundColor: "#161616" }}
       >
-        <span className="font-display font-black uppercase tracking-widest text-xs" style={{ color: "rgba(255,255,255,0.9)" }}>
+        <span className="font-display font-black uppercase tracking-widest" style={{ fontSize: "1.15rem", color: "rgba(255,255,255,0.9)" }}>
           {pos}s{" "}
           <span style={{ color: "rgba(255,255,255,0.25)", fontWeight: 400 }}>{group.length}</span>
         </span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
           style={{ color: "rgba(255,255,255,0.3)", transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s ease" }}>
           <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -397,38 +398,40 @@ function PlayerPositionGroup({
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-4 px-5 py-4"
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4"
                       style={{ backgroundColor: p.active ? "#111111" : "#0d0d0d", opacity: p.active ? 1 : 0.5 }}>
-                      {/* Photo */}
-                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0"
-                        style={{ backgroundColor: "#1a1a1a", border: "1px solid rgba(255,255,255,0.08)" }}>
-                        <img src={p.photo_url || DEFAULT_PLAYER_PHOTO} alt={p.name} className="w-full h-full object-cover" />
-                      </div>
-                      {/* Info */}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-display font-black text-white text-sm">#{p.number} {p.name}</span>
-                          {!p.active && (
-                            <span className="font-display uppercase px-2 py-0.5 rounded"
-                              style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.3)", fontSize: "0.55rem", letterSpacing: "0.08em" }}>
-                              Inactive
-                            </span>
-                          )}
+                      {/* Photo + Info */}
+                      <div className="flex items-center gap-4 flex-1 min-w-0">
+                        <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0"
+                          style={{ backgroundColor: "#1a1a1a", border: "1px solid rgba(255,255,255,0.08)" }}>
+                          <img src={p.photo_url || DEFAULT_PLAYER_PHOTO} alt={p.name} className="w-full h-full object-cover" />
                         </div>
-                        <p className="font-body text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
-                          {p.nationality}
-                        </p>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-display font-black text-white" style={{ fontSize: "1.25rem" }}>#{p.number} {p.name}</span>
+                            {!p.active && (
+                              <span className="font-display uppercase px-2 py-0.5 rounded"
+                                style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.3)", fontSize: "0.65rem", letterSpacing: "0.08em" }}>
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                          <p className="font-body" style={{ fontSize: "1rem", color: "rgba(255,255,255,0.3)" }}>
+                            {p.nationality}
+                          </p>
+                        </div>
                       </div>
                       {/* Actions */}
                       <div className="flex gap-2 flex-shrink-0">
                         <button onClick={() => startEdit(p)}
-                          className="px-4 py-1.5 rounded-lg font-display font-black uppercase tracking-widest text-xs"
-                          style={{ backgroundColor: "#1e1e1e", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" }}>
+                          className="flex-1 sm:flex-none px-4 py-2 rounded-lg font-display font-black uppercase tracking-widest"
+                          style={{ fontSize: "0.95rem", backgroundColor: "#1e1e1e", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" }}>
                           Edit
                         </button>
                         <button onClick={() => toggleActive(p)}
-                          className="px-4 py-1.5 rounded-lg font-display font-black uppercase tracking-widest text-xs"
+                          className="flex-1 sm:flex-none px-4 py-2 rounded-lg font-display font-black uppercase tracking-widest"
                           style={{
+                            fontSize: "0.95rem",
                             backgroundColor: p.active ? "rgba(220,38,38,0.1)" : "rgba(34,197,94,0.1)",
                             border: `1px solid ${p.active ? "rgba(220,38,38,0.2)" : "rgba(34,197,94,0.2)"}`,
                             color: p.active ? "rgba(220,38,38,0.8)" : "rgba(34,197,94,0.8)",
@@ -542,8 +545,8 @@ function StaffTab() {
         </p>
         <button
           onClick={() => { setAddOpen(o => !o); setAddForm(emptyStaff()); setAddPhoto(null); setError(null); }}
-          className="px-5 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white text-xs"
-          style={{ backgroundColor: "#dc2626" }}>
+          className="px-6 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white"
+          style={{ backgroundColor: "#dc2626", fontSize: "1.1rem" }}>
           {addOpen ? "Cancel" : "+ Add Staff"}
         </button>
       </div>
@@ -594,39 +597,41 @@ function StaffTab() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-4 px-5 py-4"
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4"
                     style={{ backgroundColor: s.active ? "#111111" : "#0d0d0d", opacity: s.active ? 1 : 0.5 }}>
-                    {/* Photo */}
-                    <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
-                      style={{ backgroundColor: "#1a1a1a", border: "1px solid rgba(255,255,255,0.08)" }}>
-                      {s.photo_url
-                        ? <img src={s.photo_url} alt={s.name} className="w-full h-full object-cover" />
-                        : <span className="font-display font-black text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>{s.initials}</span>
-                      }
-                    </div>
-                    {/* Info */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-display font-black text-white text-sm">{s.name}</span>
-                        {!s.active && (
-                          <span className="font-display text-xs uppercase px-2 py-0.5 rounded"
-                            style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.3)", fontSize: "0.55rem", letterSpacing: "0.08em" }}>
-                            Inactive
-                          </span>
-                        )}
+                    {/* Photo + Info */}
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
+                        style={{ backgroundColor: "#1a1a1a", border: "1px solid rgba(255,255,255,0.08)" }}>
+                        {s.photo_url
+                          ? <img src={s.photo_url} alt={s.name} className="w-full h-full object-cover" />
+                          : <span className="font-display font-black text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>{s.initials}</span>
+                        }
                       </div>
-                      <p className="font-body text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>{s.role}</p>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-display font-black text-white" style={{ fontSize: "1.25rem" }}>{s.name}</span>
+                          {!s.active && (
+                            <span className="font-display uppercase px-2 py-0.5 rounded"
+                              style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.3)", fontSize: "0.65rem", letterSpacing: "0.08em" }}>
+                              Inactive
+                            </span>
+                          )}
+                        </div>
+                        <p className="font-body" style={{ fontSize: "1rem", color: "rgba(255,255,255,0.3)" }}>{s.role}</p>
+                      </div>
                     </div>
                     {/* Actions */}
                     <div className="flex gap-2 flex-shrink-0">
                       <button onClick={() => { startEdit(s); setError(null); }}
-                        className="px-4 py-1.5 rounded-lg font-display font-black uppercase tracking-widest text-xs"
-                        style={{ backgroundColor: "#1e1e1e", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" }}>
+                        className="flex-1 sm:flex-none px-4 py-2 rounded-lg font-display font-black uppercase tracking-widest"
+                        style={{ fontSize: "0.95rem", backgroundColor: "#1e1e1e", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" }}>
                         Edit
                       </button>
                       <button onClick={() => toggleActive(s)}
-                        className="px-4 py-1.5 rounded-lg font-display font-black uppercase tracking-widest text-xs"
+                        className="flex-1 sm:flex-none px-4 py-2 rounded-lg font-display font-black uppercase tracking-widest"
                         style={{
+                          fontSize: "0.95rem",
                           backgroundColor: s.active ? "rgba(220,38,38,0.1)" : "rgba(34,197,94,0.1)",
                           border: `1px solid ${s.active ? "rgba(220,38,38,0.2)" : "rgba(34,197,94,0.2)"}`,
                           color: s.active ? "rgba(220,38,38,0.8)" : "rgba(34,197,94,0.8)",
@@ -666,7 +671,7 @@ function PlayerFormFields({
     <div className="space-y-4">
       {/* Photo picker */}
       <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
+        <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
           style={{ backgroundColor: "#0e0e0e", border: "1px solid rgba(255,255,255,0.08)" }}>
           <img src={preview} alt="preview" className="w-full h-full object-cover" />
         </div>
@@ -759,7 +764,7 @@ function StaffFormFields({
     <div className="space-y-4">
       {/* Photo picker */}
       <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
+        <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
           style={{ backgroundColor: "#0e0e0e", border: "1px solid rgba(255,255,255,0.08)" }}>
           {preview
             ? <img src={preview} alt="preview" className="w-full h-full object-cover" />

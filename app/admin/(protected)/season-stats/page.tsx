@@ -154,26 +154,26 @@ export default function SeasonStatsPage() {
         <div>
           <h1
             className="font-display font-black uppercase text-white leading-none"
-            style={{ fontSize: "clamp(1.8rem, 4vw, 2.5rem)" }}
+            style={{ fontSize: "clamp(2.5rem, 5vw, 3.5rem)" }}
           >
             Season Stats
           </h1>
-          <p className="font-body text-sm mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
+          <p className="font-body mt-1" style={{ fontSize: "1rem", color: "rgba(255,255,255,0.35)" }}>
             Edit season totals for each player. Changes apply to the public roster page.
           </p>
         </div>
 
         <div className="flex items-center gap-4 flex-shrink-0">
           {saved && (
-            <span className="font-display text-sm tracking-widest uppercase" style={{ color: "rgba(34,197,94,0.9)" }}>
+            <span className="font-display tracking-widest uppercase" style={{ fontSize: "1rem", color: "rgba(34,197,94,0.9)" }}>
               ✓ Saved
             </span>
           )}
           <button
             onClick={handleSave}
             disabled={saving || loading}
-            className="px-6 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white text-xs"
-            style={{ backgroundColor: "#dc2626", opacity: saving ? 0.6 : 1, cursor: saving ? "not-allowed" : "pointer" }}
+            className="px-6 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white"
+            style={{ fontSize: "1.1rem", backgroundColor: "#dc2626", opacity: saving ? 0.6 : 1, cursor: saving ? "not-allowed" : "pointer" }}
           >
             {saving ? "Saving…" : "Save All"}
           </button>
@@ -197,17 +197,21 @@ export default function SeasonStatsPage() {
             const headers = isGKPos
               ? ["#", "Name", "GA", "Saves", "CS", "Starts", "Y", "R", "Mins"]
               : ["#", "Name", "Goals", "Ast", "Tackles", "Starts", "Y", "R", "Mins"];
-            const gridCols = "40px 1fr 56px 56px 56px 56px 44px 44px 64px";
+            const gridCols = "48px 1fr 64px 64px 64px 64px 52px 52px 72px";
 
             return (
               <div key={pos} className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.07)" }}>
                 {/* Position header */}
                 <div className="px-4 py-3" style={{ backgroundColor: "#161616" }}>
-                  <span className="font-display font-black uppercase tracking-widest text-xs" style={{ color: "rgba(255,255,255,0.9)" }}>
+                  <span className="font-display font-black uppercase tracking-widest" style={{ fontSize: "1.1rem", color: "rgba(255,255,255,0.9)" }}>
                     {pos}s{" "}
                     <span style={{ color: "rgba(255,255,255,0.25)", fontWeight: 400 }}>{group.length}</span>
                   </span>
                 </div>
+
+                {/* Horizontally scrollable on mobile */}
+                <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                  <div style={{ minWidth: 600 }}>
 
                 {/* Column headers */}
                 <div
@@ -218,7 +222,7 @@ export default function SeasonStatsPage() {
                     <span
                       key={h}
                       className="font-display font-bold uppercase text-center"
-                      style={{ fontSize: "0.6rem", letterSpacing: "0.08em", color: "rgba(255,255,255,0.9)" }}
+                      style={{ fontSize: "0.75rem", letterSpacing: "0.08em", color: "rgba(255,255,255,0.9)" }}
                     >
                       {h}
                     </span>
@@ -241,12 +245,12 @@ export default function SeasonStatsPage() {
                       }}
                     >
                       {/* # */}
-                      <span className="font-display font-bold text-center text-sm" style={{ color: "rgba(255,255,255,0.35)" }}>
+                      <span className="font-display font-bold text-center" style={{ fontSize: "1rem", color: "rgba(255,255,255,0.35)" }}>
                         {p.number}
                       </span>
 
                       {/* Name */}
-                      <span className="font-body text-sm truncate" style={{ color: "rgba(255,255,255,0.85)" }}>
+                      <span className="font-body truncate" style={{ fontSize: "1rem", color: "rgba(255,255,255,0.85)" }}>
                         {p.name}
                       </span>
 
@@ -275,6 +279,8 @@ export default function SeasonStatsPage() {
                     </div>
                   );
                 })}
+                  </div> {/* end minWidth */}
+                </div> {/* end overflow-x */}
               </div>
             );
           })}
@@ -293,11 +299,12 @@ function StatInput({ value, onChange }: { value: number; onChange: (v: number) =
       min={0}
       value={value}
       onChange={(e) => onChange(Math.max(0, Number(e.target.value)))}
-      className="w-full rounded text-center font-display font-bold text-white text-sm outline-none"
+      className="w-full rounded text-center font-display font-bold text-white outline-none"
       style={{
+        fontSize: "1rem",
         backgroundColor: "#0e0e0e",
         border: "1px solid rgba(255,255,255,0.08)",
-        padding: "4px 2px",
+        padding: "6px 2px",
       }}
       onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(220,38,38,0.5)")}
       onBlur={(e)  => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")}
