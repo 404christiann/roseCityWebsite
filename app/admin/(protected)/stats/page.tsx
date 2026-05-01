@@ -289,8 +289,8 @@ export default function StatsPage() {
               onClick={handleSave}
               disabled={saving}
               className="px-8 py-3 rounded-lg font-display font-black uppercase tracking-widest text-white transition-opacity duration-200"
-              style={{ fontSize: "1.1rem" }}
               style={{
+                fontSize: "1.1rem",
                 backgroundColor: "#dc2626",
                 opacity: saving ? 0.6 : 1,
                 cursor: saving ? "not-allowed" : "pointer",

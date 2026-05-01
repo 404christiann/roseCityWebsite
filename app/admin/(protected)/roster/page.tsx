@@ -136,8 +136,8 @@ export default function RosterPage() {
             key={t}
             onClick={() => setTab(t)}
             className="px-6 py-2.5 rounded-lg font-display font-black uppercase tracking-widest transition-all"
-            style={{ fontSize: "1.1rem" } as React.CSSProperties}
             style={{
+              fontSize: "1.1rem",
               backgroundColor: tab === t ? "#dc2626" : "#1a1a1a",
               color: tab === t ? "white" : "rgba(255,255,255,0.4)",
               border: `1px solid ${tab === t ? "#dc2626" : "rgba(255,255,255,0.07)"}`,
