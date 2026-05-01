@@ -16,8 +16,6 @@ import {
   DBPlayer,
   DBStaff,
   DBMatch,
-  DBPlayerMatchStats,
-  DBGoalkeeperMatchStats,
 } from "@/lib/db-types";
 
 // ── Helpers ───────────────────────────────────
@@ -69,37 +67,6 @@ function mapFixture(row: DBMatch): Fixture {
   };
 }
 
-// ── Aggregation helpers ───────────────────────
-
-function aggregateGKStats(rows: DBGoalkeeperMatchStats[]): GoalkeeperStats {
-  return rows.reduce(
-    (acc, r) => ({
-      goalsAgainst: acc.goalsAgainst + r.goals_against,
-      saves: acc.saves + r.saves,
-      cleanSheets: acc.cleanSheets + r.clean_sheets,
-      starts: acc.starts + r.starts,
-      yellow: acc.yellow + r.yellow,
-      red: acc.red + r.red,
-      mins: acc.mins + r.mins,
-    }),
-    defaultGKStats()
-  );
-}
-
-function aggregateFieldStats(rows: DBPlayerMatchStats[]): FieldStats {
-  return rows.reduce(
-    (acc, r) => ({
-      goals: acc.goals + r.goals,
-      assists: acc.assists + r.assists,
-      tackles: acc.tackles + r.tackles,
-      starts: acc.starts + r.starts,
-      yellow: acc.yellow + r.yellow,
-      red: acc.red + r.red,
-      mins: acc.mins + r.mins,
-    }),
-    defaultFieldStats()
-  );
-}
 
 // ── Public queries ────────────────────────────
 
@@ -128,40 +95,39 @@ export async function fetchRoster(): Promise<{
   const players = rows as DBPlayer[];
   const playerIds = players.map((p) => p.id);
 
-  // 2. Fetch aggregated field stats for all players in one query
-  const { data: fieldRows } = await supabase
-    .from("player_match_stats")
+  // 2. Fetch season stats from direct-edit tables
+  const { data: fieldSeasonRows } = await supabase
+    .from("player_season_stats")
     .select("*")
     .in("player_id", playerIds);
 
-  // 3. Fetch aggregated GK stats for all players in one query
-  const { data: gkRows } = await supabase
-    .from("goalkeeper_match_stats")
+  const { data: gkSeasonRows } = await supabase
+    .from("goalkeeper_season_stats")
     .select("*")
     .in("player_id", playerIds);
 
-  const fieldStatsByPlayer = new Map<string, DBPlayerMatchStats[]>();
-  (fieldRows ?? []).forEach((r: DBPlayerMatchStats) => {
-    const arr = fieldStatsByPlayer.get(r.player_id) ?? [];
-    arr.push(r);
-    fieldStatsByPlayer.set(r.player_id, arr);
+  const fieldStatsByPlayer = new Map<string, FieldStats>();
+  (fieldSeasonRows ?? []).forEach((r: Record<string, number>) => {
+    fieldStatsByPlayer.set(r.player_id as unknown as string, {
+      goals: r.goals, assists: r.assists, tackles: r.tackles,
+      starts: r.starts, yellow: r.yellow, red: r.red, mins: r.mins,
+    });
   });
 
-  const gkStatsByPlayer = new Map<string, DBGoalkeeperMatchStats[]>();
-  (gkRows ?? []).forEach((r: DBGoalkeeperMatchStats) => {
-    const arr = gkStatsByPlayer.get(r.player_id) ?? [];
-    arr.push(r);
-    gkStatsByPlayer.set(r.player_id, arr);
+  const gkStatsByPlayer = new Map<string, GoalkeeperStats>();
+  (gkSeasonRows ?? []).forEach((r: Record<string, number>) => {
+    gkStatsByPlayer.set(r.player_id as unknown as string, {
+      goalsAgainst: r.goals_against, saves: r.saves, cleanSheets: r.clean_sheets,
+      starts: r.starts, yellow: r.yellow, red: r.red, mins: r.mins,
+    });
   });
 
-  // 4. Map each player to the UI type with aggregated stats
+  // 3. Map each player to the UI type with season stats
   const mapped = players.map((row) => {
     if (row.position === "Goalkeeper") {
-      const gkData = gkStatsByPlayer.get(row.id) ?? [];
-      return mapPlayer(row, aggregateGKStats(gkData));
+      return mapPlayer(row, gkStatsByPlayer.get(row.id) ?? defaultGKStats());
     } else {
-      const fieldData = fieldStatsByPlayer.get(row.id) ?? [];
-      return mapPlayer(row, aggregateFieldStats(fieldData));
+      return mapPlayer(row, fieldStatsByPlayer.get(row.id) ?? defaultFieldStats());
     }
   });
 
