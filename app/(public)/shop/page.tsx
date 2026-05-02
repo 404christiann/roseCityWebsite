@@ -35,37 +35,32 @@ export default function ShopPage() {
   }, []);
 
   return (
-    <div className="pt-20 sm:pt-0" style={{ backgroundColor: "var(--color-black)" }}>
+    <div className="pt-20 sm:pt-0" style={{ backgroundColor: "var(--color-white)" }}>
 
       {/* ── Cinematic hero slideshow ── */}
       <ShopHero />
 
       {/* ── Hero product split ── */}
-      <div className="flex flex-col md:flex-row md:min-h-screen">
+      <div className="flex flex-col md:flex-row" style={{ backgroundColor: "var(--color-white)" }}>
 
         {/* Slideshow — left / top on mobile */}
         <div
-          className="relative w-full flex-shrink-0 bg-[var(--color-black)] px-4 pt-8 pb-2 sm:px-6 md:w-3/5 md:min-h-screen md:bg-transparent md:px-0 md:pt-0 md:pb-0"
+          className="relative w-full flex-shrink-0 md:w-3/5"
+          style={{ backgroundColor: "var(--color-white)" }}
         >
-          <div className="mb-4 flex items-center gap-3 px-1 md:hidden">
-            <div
-              className="h-px flex-1"
-              style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
-            />
+          <div className="mb-2 flex items-center gap-3 px-4 pt-6 md:hidden">
+            <div className="h-px flex-1" style={{ backgroundColor: "rgba(0,0,0,0.08)" }} />
             <span
               className="font-display text-[0.65rem] font-bold tracking-[0.3em] uppercase"
-              style={{ color: "rgba(255,255,255,0.35)" }}
+              style={{ color: "rgba(0,0,0,0.35)" }}
             >
               Shop Detail
             </span>
-            <div
-              className="h-px flex-1"
-              style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
-            />
+            <div className="h-px flex-1" style={{ backgroundColor: "rgba(0,0,0,0.08)" }} />
           </div>
           <div
-            className="relative w-full aspect-[4/5] overflow-hidden sm:aspect-[3/4] md:h-full md:min-h-screen md:aspect-auto"
-            style={{ minHeight: "min(80vw, 520px)", maxHeight: "100vh" }}
+            className="relative w-full overflow-hidden"
+            style={{ aspectRatio: "3/4" }}
           >
             <ShopSlideshow images={shopProduct.slideshowImages} />
           </div>
@@ -75,7 +70,7 @@ export default function ShopPage() {
         <div
           ref={heroRef}
           className="w-full md:w-2/5 flex flex-col justify-start md:justify-center px-8 sm:px-12 md:px-14 lg:px-20 py-12 md:py-24"
-          style={{ opacity: 0 }}
+          style={{ opacity: 0, backgroundColor: "var(--color-white)" }}
         >
           <p
             className="font-display font-bold tracking-widest uppercase mb-4"
@@ -85,8 +80,8 @@ export default function ShopPage() {
           </p>
 
           <h1
-            className="font-display font-black uppercase text-white leading-none mb-6"
-            style={{ fontSize: "clamp(2.8rem, 5vw, 5rem)" }}
+            className="font-display font-black uppercase leading-none mb-6"
+            style={{ fontSize: "clamp(2.8rem, 5vw, 5rem)", color: "var(--color-black)" }}
           >
             Thorn<br />Edition<br />2026
           </h1>
@@ -95,7 +90,7 @@ export default function ShopPage() {
 
           <p
             className="font-body mb-8 leading-relaxed"
-            style={{ color: "rgba(255,255,255,0.5)", fontSize: "clamp(0.9rem, 1.4vw, 1rem)" }}
+            style={{ color: "rgba(0,0,0,0.6)", fontSize: "clamp(0.9rem, 1.4vw, 1rem)" }}
           >
             {shopProduct.description}
           </p>
@@ -105,20 +100,20 @@ export default function ShopPage() {
             {shopProduct.includes.map((item) => (
               <li key={item} className="flex items-center gap-3">
                 <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: "var(--color-red)" }} />
-                <span className="font-body text-sm" style={{ color: "rgba(255,255,255,0.65)" }}>{item}</span>
+                <span className="font-body text-sm" style={{ color: "rgba(0,0,0,0.6)" }}>{item}</span>
               </li>
             ))}
             {shopProduct.addOn && (
               <li className="flex items-center gap-3">
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
-                <span className="font-body text-sm italic" style={{ color: "rgba(255,255,255,0.35)" }}>
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: "rgba(0,0,0,0.2)" }} />
+                <span className="font-body text-sm italic" style={{ color: "rgba(0,0,0,0.4)" }}>
                   Add-on: {shopProduct.addOn}
                 </span>
               </li>
             )}
           </ul>
 
-          <p className="font-body text-xs mb-8" style={{ color: "rgba(255,255,255,0.25)" }}>
+          <p className="font-body text-xs mb-8" style={{ color: "rgba(0,0,0,0.4)" }}>
             Sold exclusively at Niky&apos;s Sports<br />
             {shopProduct.storeAddress}
           </p>
@@ -138,6 +133,7 @@ export default function ShopPage() {
       </div>
 
       {/* ── Purchase info ── */}
+      <div style={{ backgroundColor: "var(--color-black)" }}>
       <div
         ref={nikysRef}
         className="px-6 lg:px-10 max-w-7xl mx-auto py-20 md:py-28"
@@ -228,6 +224,7 @@ export default function ShopPage() {
             Buy Now →
           </a>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -19,6 +19,9 @@ type FieldStats = {
   goals: number;
   assists: number;
   tackles: number;
+  offsides: number;
+  fouls: number;
+  fouls_suffered: number;
   starts: number;
   yellow: number;
   red: number;
@@ -38,7 +41,7 @@ type GKStats = {
 type StatsMap = Record<string, FieldStats | GKStats>;
 
 function defaultField(): FieldStats {
-  return { goals: 0, assists: 0, tackles: 0, starts: 0, yellow: 0, red: 0, mins: 0 };
+  return { goals: 0, assists: 0, tackles: 0, offsides: 0, fouls: 0, fouls_suffered: 0, starts: 0, yellow: 0, red: 0, mins: 0 };
 }
 function defaultGK(): GKStats {
   return { goals_against: 0, saves: 0, clean_sheets: 0, starts: 0, yellow: 0, red: 0, mins: 0 };
@@ -77,13 +80,16 @@ export default function SeasonStatsPage() {
 
       (fieldRows ?? []).forEach((r: Record<string, unknown>) => {
         map[r.player_id as string] = {
-          goals:   Number(r.goals),
-          assists: Number(r.assists),
-          tackles: Number(r.tackles),
-          starts:  Number(r.starts),
-          yellow:  Number(r.yellow),
-          red:     Number(r.red),
-          mins:    Number(r.mins),
+          goals:          Number(r.goals),
+          assists:        Number(r.assists),
+          tackles:        Number(r.tackles),
+          offsides:       Number(r.offsides ?? 0),
+          fouls:          Number(r.fouls ?? 0),
+          fouls_suffered: Number(r.fouls_suffered ?? 0),
+          starts:         Number(r.starts),
+          yellow:         Number(r.yellow),
+          red:            Number(r.red),
+          mins:           Number(r.mins),
         } as FieldStats;
       });
 
@@ -201,8 +207,10 @@ export default function SeasonStatsPage() {
             const isGKPos = pos === "Goalkeeper";
             const headers = isGKPos
               ? ["#", "Name", "GA", "Saves", "CS", "Starts", "Y", "R", "Mins"]
-              : ["#", "Name", "Goals", "Ast", "Tackles", "Starts", "Y", "R", "Mins"];
-            const gridCols = "48px 1fr 64px 64px 64px 64px 52px 52px 72px";
+              : ["#", "Name", "Goals", "Ast", "Tackles", "OFF", "F", "FS", "Starts", "Y", "R", "Mins"];
+            const gridCols = isGKPos
+              ? "48px 1fr 64px 64px 64px 64px 52px 52px 72px"
+              : "48px 1fr 64px 64px 72px 56px 56px 56px 64px 52px 52px 72px";
 
             return (
               <div key={pos} className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.07)" }}>
@@ -272,13 +280,16 @@ export default function SeasonStatsPage() {
                         </>
                       ) : !isGK(s) ? (
                         <>
-                          <StatInput value={s.goals}   onChange={(v) => updateStat(p.id, "goals", v)} />
-                          <StatInput value={s.assists}  onChange={(v) => updateStat(p.id, "assists", v)} />
-                          <StatInput value={s.tackles}  onChange={(v) => updateStat(p.id, "tackles", v)} />
-                          <StatInput value={s.starts}   onChange={(v) => updateStat(p.id, "starts", v)} />
-                          <StatInput value={s.yellow}   onChange={(v) => updateStat(p.id, "yellow", v)} />
-                          <StatInput value={s.red}      onChange={(v) => updateStat(p.id, "red", v)} />
-                          <StatInput value={s.mins}     onChange={(v) => updateStat(p.id, "mins", v)} />
+                          <StatInput value={s.goals}          onChange={(v) => updateStat(p.id, "goals", v)} />
+                          <StatInput value={s.assists}         onChange={(v) => updateStat(p.id, "assists", v)} />
+                          <StatInput value={s.tackles}         onChange={(v) => updateStat(p.id, "tackles", v)} />
+                          <StatInput value={s.offsides}        onChange={(v) => updateStat(p.id, "offsides", v)} />
+                          <StatInput value={s.fouls}           onChange={(v) => updateStat(p.id, "fouls", v)} />
+                          <StatInput value={s.fouls_suffered}  onChange={(v) => updateStat(p.id, "fouls_suffered", v)} />
+                          <StatInput value={s.starts}          onChange={(v) => updateStat(p.id, "starts", v)} />
+                          <StatInput value={s.yellow}          onChange={(v) => updateStat(p.id, "yellow", v)} />
+                          <StatInput value={s.red}             onChange={(v) => updateStat(p.id, "red", v)} />
+                          <StatInput value={s.mins}            onChange={(v) => updateStat(p.id, "mins", v)} />
                         </>
                       ) : null}
                     </div>

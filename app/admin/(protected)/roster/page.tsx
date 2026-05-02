@@ -789,9 +789,34 @@ function PlayerFormFields({
           <input type="text" placeholder="e.g. Portland FC" value={form.previous_club ?? ""}
             onChange={(e) => set("previous_club", e.target.value)} style={inputStyle} />
         </Field>
-        <Field label="Caption (optional)">
-          <input type="text" placeholder='e.g. "(C)"' value={form.caption ?? ""}
-            onChange={(e) => set("caption", e.target.value)} style={inputStyle} />
+        <Field label="Captain">
+          <button
+            type="button"
+            onClick={() => set("caption", form.caption === "(C)" ? "" : "(C)")}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-all"
+            style={{
+              backgroundColor: form.caption === "(C)" ? "rgba(220,38,38,0.15)" : "#0e0e0e",
+              border: `1px solid ${form.caption === "(C)" ? "rgba(220,38,38,0.5)" : "rgba(255,255,255,0.08)"}`,
+              width: "100%",
+            }}
+          >
+            <span
+              className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
+              style={{
+                backgroundColor: form.caption === "(C)" ? "#dc2626" : "transparent",
+                border: `2px solid ${form.caption === "(C)" ? "#dc2626" : "rgba(255,255,255,0.2)"}`,
+              }}
+            >
+              {form.caption === "(C)" && (
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </span>
+            <span className="font-body text-sm" style={{ color: form.caption === "(C)" ? "white" : "rgba(255,255,255,0.4)" }}>
+              {form.caption === "(C)" ? "Captain — displays (C) next to name" : "Not a captain"}
+            </span>
+          </button>
         </Field>
         <Field label="Pronunciation (optional)">
           <input type="text" placeholder='e.g. "duh-MORE-ee-uh"' value={form.pronunciation ?? ""}

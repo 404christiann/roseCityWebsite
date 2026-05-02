@@ -26,6 +26,9 @@ type FieldRow = {
   goals: number;
   assists: number;
   tackles: number;
+  offsides: number;
+  fouls: number;
+  fouls_suffered: number;
   yellow: number;
   red: number;
 };
@@ -45,7 +48,7 @@ type StatsMap = Record<string, FieldRow | GKRow>;
 // ── Defaults ──────────────────────────────────
 
 function defaultField(): FieldRow {
-  return { starts: false, mins: 0, goals: 0, assists: 0, tackles: 0, yellow: 0, red: 0 };
+  return { starts: false, mins: 0, goals: 0, assists: 0, tackles: 0, offsides: 0, fouls: 0, fouls_suffered: 0, yellow: 0, red: 0 };
 }
 function defaultGK(): GKRow {
   return { starts: false, mins: 0, goals_against: 0, saves: 0, clean_sheets: 0, yellow: 0, red: 0 };
@@ -107,13 +110,16 @@ export default function StatsPage() {
       // Overlay existing field stats
       (fieldData ?? []).forEach((r: Record<string, unknown>) => {
         map[r.player_id as number] = {
-          starts:  Boolean(r.starts),
-          mins:    Number(r.mins),
-          goals:   Number(r.goals),
-          assists: Number(r.assists),
-          tackles: Number(r.tackles),
-          yellow:  Number(r.yellow),
-          red:     Number(r.red),
+          starts:         Boolean(r.starts),
+          mins:           Number(r.mins),
+          goals:          Number(r.goals),
+          assists:        Number(r.assists),
+          tackles:        Number(r.tackles),
+          offsides:       Number(r.offsides ?? 0),
+          fouls:          Number(r.fouls ?? 0),
+          fouls_suffered: Number(r.fouls_suffered ?? 0),
+          yellow:         Number(r.yellow),
+          red:            Number(r.red),
         } as FieldRow;
       });
 
@@ -345,14 +351,14 @@ function PositionGroup({
 }) {
   const [open, setOpen] = useState(true);
 
-  const fieldHeaders = ["#", "Name", "Start", "Mins", "Goals", "Ast", "Tackles", "Y", "R"];
+  const fieldHeaders = ["#", "Name", "Start", "Mins", "Goals", "Ast", "Tackles", "OFF", "F", "FS", "Y", "R"];
   const gkHeaders    = ["#", "Name", "Start", "Mins", "GA", "Saves", "CS", "Y", "R"];
   const headers = isGK ? gkHeaders : fieldHeaders;
 
   // Grid template: number col, name col, then stat cols
   const gridCols = isGK
     ? "48px 1fr 60px 72px 60px 60px 60px 52px 52px"
-    : "48px 1fr 60px 72px 60px 60px 72px 52px 52px";
+    : "48px 1fr 60px 72px 60px 60px 72px 56px 56px 56px 52px 52px";
 
   return (
     <div className="mb-4 rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.07)" }}>
@@ -480,11 +486,14 @@ function PositionGroup({
                   </>
                 ) : !isGKRow(row) ? (
                   <>
-                    <StatInput value={row.goals}   onChange={(v) => updateStat(p.id, "goals", v)} />
-                    <StatInput value={row.assists}  onChange={(v) => updateStat(p.id, "assists", v)} />
-                    <StatInput value={row.tackles}  onChange={(v) => updateStat(p.id, "tackles", v)} />
-                    <StatInput value={row.yellow}   onChange={(v) => updateStat(p.id, "yellow", v)} />
-                    <StatInput value={row.red}      onChange={(v) => updateStat(p.id, "red", v)} />
+                    <StatInput value={row.goals}          onChange={(v) => updateStat(p.id, "goals", v)} />
+                    <StatInput value={row.assists}         onChange={(v) => updateStat(p.id, "assists", v)} />
+                    <StatInput value={row.tackles}         onChange={(v) => updateStat(p.id, "tackles", v)} />
+                    <StatInput value={row.offsides}        onChange={(v) => updateStat(p.id, "offsides", v)} />
+                    <StatInput value={row.fouls}           onChange={(v) => updateStat(p.id, "fouls", v)} />
+                    <StatInput value={row.fouls_suffered}  onChange={(v) => updateStat(p.id, "fouls_suffered", v)} />
+                    <StatInput value={row.yellow}          onChange={(v) => updateStat(p.id, "yellow", v)} />
+                    <StatInput value={row.red}             onChange={(v) => updateStat(p.id, "red", v)} />
                   </>
                 ) : null}
               </div>

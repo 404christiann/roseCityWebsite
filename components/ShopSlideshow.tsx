@@ -42,29 +42,13 @@ export default function ShopSlideshow({ images }: Props) {
             src={src}
             alt={`Shop image ${i + 1}`}
             fill
-            className="object-cover object-top md:object-contain md:object-center"
+            className="object-contain object-center"
             sizes="(max-width: 768px) 100vw, 60vw"
             priority={i === 0}
           />
         </div>
       ))}
 
-      {/* Gradient overlays */}
-      <div
-        className="absolute inset-0 pointer-events-none hidden md:block"
-        style={{
-          background: "linear-gradient(to right, transparent 60%, var(--color-black) 100%)",
-          zIndex: 2,
-        }}
-      />
-      <div
-        className="absolute inset-x-0 bottom-0 pointer-events-none md:hidden"
-        style={{
-          height: "28%",
-          background: "linear-gradient(to bottom, rgba(10,10,10,0) 0%, rgba(10,10,10,0.82) 100%)",
-          zIndex: 2,
-        }}
-      />
 
       {/* Prev / Next arrows */}
       <button

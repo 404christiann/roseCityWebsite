@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import FixtureRow from "@/components/FixtureRow";
@@ -9,16 +9,36 @@ import { Fixture } from "@/lib/data";
 
 gsap.registerPlugin(ScrollTrigger);
 
-function fixtureDate(fixture: Fixture): Date {
-  // Parse "YYYY-MM-DD" safely as local midnight — avoids NaN from non-standard
-  // date strings like "2026-05-02 8:00 PM" which break on some environments.
+/**
+ * Returns the UTC Date of the fixture's kickoff, treating the game time
+ * as America/Los_Angeles (PST/PDT). A game is only "past" once it has
+ * actually started in LA time.
+ */
+function fixtureDateTime(fixture: Fixture): Date {
   const [year, month, day] = fixture.date.split("-").map(Number);
-  return new Date(year, month - 1, day);
+
+  // Parse "8:00 PM" → 24h hours + minutes
+  const timeMatch = fixture.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  let hours = 0, minutes = 0;
+  if (timeMatch) {
+    hours = parseInt(timeMatch[1]);
+    minutes = parseInt(timeMatch[2]);
+    if (timeMatch[3].toUpperCase() === "PM" && hours !== 12) hours += 12;
+    if (timeMatch[3].toUpperCase() === "AM" && hours === 12) hours = 0;
+  }
+
+  // Build a UTC Date as if the hours/minutes are in UTC, then shift by the
+  // actual LA→UTC offset at that moment (handles PST −8 and PDT −7 correctly).
+  const approxUTC = new Date(Date.UTC(year, month - 1, day, hours, minutes));
+  const utcStr = approxUTC.toLocaleString("en-US", { timeZone: "UTC" });
+  const laStr  = approxUTC.toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
+  const offsetMs = new Date(utcStr).getTime() - new Date(laStr).getTime();
+
+  return new Date(Date.UTC(year, month - 1, day, hours, minutes) + offsetMs);
 }
 
-function getNextMatchIndex(fixtures: Fixture[]): number {
-  const now = new Date();
-  const idx = fixtures.findIndex((f) => fixtureDate(f) >= now);
+function getNextMatchIndex(fixtures: Fixture[], now: Date): number {
+  const idx = fixtures.findIndex((f) => fixtureDateTime(f) > now);
   return idx === -1 ? fixtures.length : idx;
 }
 
@@ -29,6 +49,13 @@ export default function SchedulePage() {
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
+  const [now, setNow]           = useState(() => new Date());
+
+  // Tick every 30 seconds so past/next status updates live
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     fetchSchedule()
@@ -58,7 +85,10 @@ export default function SchedulePage() {
     return () => ctx.revert();
   }, [loading]);
 
-  const nextMatchIdx = getNextMatchIndex(fixtures);
+  const nextMatchIdx = useMemo(
+    () => getNextMatchIndex(fixtures, now),
+    [fixtures, now]
+  );
 
   return (
     <div style={{ backgroundColor: "var(--color-white)" }}>

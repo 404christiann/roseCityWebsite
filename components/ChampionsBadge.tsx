@@ -91,7 +91,7 @@ export default function ChampionsBadge() {
             className="font-display font-bold tracking-widest uppercase mb-4"
             style={{ color: "var(--color-red)", fontSize: "clamp(1rem, 2vw, 1.4rem)" }}
           >
-            UPSL Southwest Conference
+            UPSL SoCal North Conference
           </p>
 
           <h2
@@ -112,7 +112,7 @@ export default function ChampionsBadge() {
             className="font-body text-white/70 mt-6 max-w-md leading-relaxed"
             style={{ fontSize: "1.0625rem" }}
           >
-            Rose City Futbol Club captured the 2024 UPSL Southwest Conference
+            Rose City Futbol Club captured the 2024 UPSL SoCal North Conference
             Championship, cementing our place as Pasadena&apos;s premier club.
             The journey continues — and the best is still ahead.
           </p>

@@ -39,7 +39,7 @@ export default function JerseySection() {
     <section
       ref={sectionRef}
       className="relative w-full overflow-hidden"
-      style={{ backgroundColor: "var(--color-black)" }}
+      style={{ backgroundColor: "var(--color-white)" }}
     >
       <div className="flex flex-col md:flex-row">
 
@@ -47,25 +47,28 @@ export default function JerseySection() {
         <div
           ref={imageRef}
           className="relative w-full md:w-1/2"
-          style={{ height: "60vw", minHeight: "320px", maxHeight: "700px", opacity: 0 }}
+          style={{ opacity: 0 }}
         >
-          <Image
-            src="/images/shop/rosecityshirt2.jpeg"
-            alt="Rose City Thorn Edition 2026 Match Home Jersey"
-            fill
-            className="object-cover object-top"
-            sizes="(max-width: 768px) 100vw, 50vw"
-          />
-          {/* Mobile: fade bottom into black */}
-          <div
-            className="absolute bottom-0 left-0 right-0 h-32 md:hidden"
-            style={{ background: "linear-gradient(to top, var(--color-black), transparent)" }}
-          />
-          {/* Desktop: fade right into black */}
-          <div
-            className="absolute inset-y-0 right-0 w-24 hidden md:block"
-            style={{ background: "linear-gradient(to right, transparent, var(--color-black))" }}
-          />
+          {/* Mobile: aspect ratio so full image shows */}
+          <div className="relative w-full md:hidden" style={{ aspectRatio: "3/4" }}>
+            <Image
+              src="/images/shop/rosecityshirt2.jpeg"
+              alt="Rose City Thorn Edition 2026 Match Home Jersey"
+              fill
+              className="object-contain object-center"
+              sizes="100vw"
+            />
+          </div>
+          {/* Desktop: fill the flex-stretch height from the text column */}
+          <div className="absolute inset-0 hidden md:block">
+            <Image
+              src="/images/shop/rosecityshirt2.jpeg"
+              alt="Rose City Thorn Edition 2026 Match Home Jersey"
+              fill
+              className="object-contain object-center"
+              sizes="50vw"
+            />
+          </div>
         </div>
 
         {/* ── Product details ── */}
@@ -84,8 +87,8 @@ export default function JerseySection() {
 
           {/* Title */}
           <h2
-            className="font-display font-black uppercase text-white leading-none mb-6"
-            style={{ fontSize: "clamp(2.8rem, 6vw, 5rem)" }}
+            className="font-display font-black uppercase leading-none mb-6"
+            style={{ fontSize: "clamp(2.8rem, 6vw, 5rem)", color: "var(--color-black)" }}
           >
             Thorn<br />Edition<br />2026
           </h2>
@@ -101,7 +104,7 @@ export default function JerseySection() {
                   className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                   style={{ backgroundColor: "var(--color-red)" }}
                 />
-                <span className="font-body text-sm" style={{ color: "rgba(255,255,255,0.65)" }}>
+                <span className="font-body text-sm" style={{ color: "rgba(0,0,0,0.6)" }}>
                   {item}
                 </span>
               </li>
@@ -112,7 +115,7 @@ export default function JerseySection() {
                   className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                   style={{ backgroundColor: "var(--color-red)" }}
                 />
-                <span className="font-body text-sm" style={{ color: "rgba(255,255,255,0.65)" }}>
+                <span className="font-body text-sm" style={{ color: "rgba(0,0,0,0.6)" }}>
                   {shopProduct.addOn}
                 </span>
               </li>
@@ -120,7 +123,7 @@ export default function JerseySection() {
           </ul>
 
           {/* Store note */}
-          <p className="font-body text-xs mb-8" style={{ color: "rgba(255,255,255,0.3)" }}>
+          <p className="font-body text-xs mb-8" style={{ color: "rgba(0,0,0,0.4)" }}>
             Sold exclusively at Niky&apos;s Sports<br />
             {shopProduct.storeAddress}
           </p>

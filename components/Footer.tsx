@@ -88,7 +88,7 @@ export default function Footer() {
             className="font-body text-xs"
             style={{ color: "var(--color-gray-mid)" }}
           >
-            Pasadena, CA · UPSL
+            Pasadena, CA
           </p>
         </div>
 
