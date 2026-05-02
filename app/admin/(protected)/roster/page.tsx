@@ -6,44 +6,86 @@ import { createClient } from "@/lib/supabase-browser";
 // ── Nationalities ─────────────────────────────
 
 const NATIONALITIES = [
+  // Americas
   { flag: "🇺🇸", label: "American" },
   { flag: "🇦🇷", label: "Argentine" },
+  { flag: "🇧🇿", label: "Belizean" },
   { flag: "🇧🇴", label: "Bolivian" },
   { flag: "🇧🇷", label: "Brazilian" },
-  { flag: "🇬🇧", label: "British" },
-  { flag: "🇨🇲", label: "Cameroonian" },
   { flag: "🇨🇦", label: "Canadian" },
   { flag: "🇨🇱", label: "Chilean" },
   { flag: "🇨🇴", label: "Colombian" },
-  { flag: "🇨🇩", label: "Congolese" },
   { flag: "🇨🇷", label: "Costa Rican" },
-  { flag: "🇳🇱", label: "Dutch" },
+  { flag: "🇨🇺", label: "Cuban" },
+  { flag: "🇩🇴", label: "Dominican" },
   { flag: "🇪🇨", label: "Ecuadorian" },
-  { flag: "🇸🇻", label: "Salvadoran" },
-  { flag: "🇪🇹", label: "Ethiopian" },
-  { flag: "🇵🇭", label: "Filipino" },
-  { flag: "🇫🇷", label: "French" },
-  { flag: "🇩🇪", label: "German" },
-  { flag: "🇬🇭", label: "Ghanaian" },
   { flag: "🇬🇹", label: "Guatemalan" },
+  { flag: "🇭🇹", label: "Haitian" },
   { flag: "🇭🇳", label: "Honduran" },
-  { flag: "🇮🇹", label: "Italian" },
-  { flag: "🇨🇮", label: "Ivorian" },
   { flag: "🇯🇲", label: "Jamaican" },
-  { flag: "🇰🇪", label: "Kenyan" },
   { flag: "🇲🇽", label: "Mexican" },
   { flag: "🇳🇮", label: "Nicaraguan" },
-  { flag: "🇳🇬", label: "Nigerian" },
   { flag: "🇵🇦", label: "Panamanian" },
   { flag: "🇵🇾", label: "Paraguayan" },
   { flag: "🇵🇪", label: "Peruvian" },
-  { flag: "🇵🇹", label: "Portuguese" },
-  { flag: "🇸🇳", label: "Senegalese" },
-  { flag: "🇪🇸", label: "Spanish" },
+  { flag: "🇵🇷", label: "Puerto Rican" },
+  { flag: "🇸🇻", label: "Salvadoran" },
   { flag: "🇹🇹", label: "Trinidadian" },
-  { flag: "🇹🇷", label: "Turkish" },
   { flag: "🇺🇾", label: "Uruguayan" },
   { flag: "🇻🇪", label: "Venezuelan" },
+  // Africa
+  { flag: "🇩🇿", label: "Algerian" },
+  { flag: "🇦🇴", label: "Angolan" },
+  { flag: "🇨🇲", label: "Cameroonian" },
+  { flag: "🇨🇩", label: "Congolese" },
+  { flag: "🇪🇬", label: "Egyptian" },
+  { flag: "🇪🇹", label: "Ethiopian" },
+  { flag: "🇬🇭", label: "Ghanaian" },
+  { flag: "🇬🇳", label: "Guinean" },
+  { flag: "🇨🇮", label: "Ivorian" },
+  { flag: "🇰🇪", label: "Kenyan" },
+  { flag: "🇱🇷", label: "Liberian" },
+  { flag: "🇲🇱", label: "Malian" },
+  { flag: "🇲🇦", label: "Moroccan" },
+  { flag: "🇳🇬", label: "Nigerian" },
+  { flag: "🇷🇼", label: "Rwandan" },
+  { flag: "🇸🇳", label: "Senegalese" },
+  { flag: "🇸🇱", label: "Sierra Leonean" },
+  { flag: "🇿🇦", label: "South African" },
+  { flag: "🇹🇿", label: "Tanzanian" },
+  { flag: "🇹🇬", label: "Togolese" },
+  { flag: "🇺🇬", label: "Ugandan" },
+  { flag: "🇿🇼", label: "Zimbabwean" },
+  // Europe
+  { flag: "🇦🇹", label: "Austrian" },
+  { flag: "🇧🇪", label: "Belgian" },
+  { flag: "🇬🇧", label: "British" },
+  { flag: "🇭🇷", label: "Croatian" },
+  { flag: "🇩🇰", label: "Danish" },
+  { flag: "🇳🇱", label: "Dutch" },
+  { flag: "🇫🇷", label: "French" },
+  { flag: "🇩🇪", label: "German" },
+  { flag: "🇬🇷", label: "Greek" },
+  { flag: "🇮🇪", label: "Irish" },
+  { flag: "🇮🇹", label: "Italian" },
+  { flag: "🇳🇴", label: "Norwegian" },
+  { flag: "🇵🇱", label: "Polish" },
+  { flag: "🇵🇹", label: "Portuguese" },
+  { flag: "🇷🇴", label: "Romanian" },
+  { flag: "🇷🇸", label: "Serbian" },
+  { flag: "🇪🇸", label: "Spanish" },
+  { flag: "🇸🇪", label: "Swedish" },
+  { flag: "🇨🇭", label: "Swiss" },
+  { flag: "🇹🇷", label: "Turkish" },
+  { flag: "🇺🇦", label: "Ukrainian" },
+  // Asia / Pacific
+  { flag: "🇦🇺", label: "Australian" },
+  { flag: "🇨🇳", label: "Chinese" },
+  { flag: "🇵🇭", label: "Filipino" },
+  { flag: "🇮🇳", label: "Indian" },
+  { flag: "🇮🇩", label: "Indonesian" },
+  { flag: "🇯🇵", label: "Japanese" },
+  { flag: "🇰🇷", label: "South Korean" },
 ].sort((a, b) => a.label.localeCompare(b.label));
 
 // ── Types ─────────────────────────────────────
@@ -65,6 +107,9 @@ type Player = {
   previous_club: string | null;
   photo_url: string;
   active: boolean;
+  bio: string | null;
+  pronunciation: string | null;
+  foot: string | null;
 };
 
 type Staff = {
@@ -73,22 +118,25 @@ type Staff = {
   name: string;
   role: string;
   hometown: string;
+  nationality: string;
+  bio: string | null;
   photo_url: string;
   active: boolean;
 };
 
 type PlayerForm = Omit<Player, "id" | "active">;
-type StaffForm  = Omit<Staff,  "id" | "active">;
+type StaffForm  = Omit<Staff,  "id" | "active"> & { nationality: string; bio: string };
 
 function emptyPlayer(): PlayerForm {
   return {
     number: 0, name: "", caption: "", nationality: "", position: "Midfielder",
     height: "", weight: "", hometown: "", age: 0,
     school: "", previous_club: "", photo_url: "",
+    bio: "", pronunciation: "", foot: "",
   };
 }
 function emptyStaff(): StaffForm {
-  return { initials: "", name: "", role: "", hometown: "", photo_url: "" };
+  return { initials: "", name: "", role: "", hometown: "", nationality: "", bio: "", photo_url: "" };
 }
 
 const POSITIONS: Position[] = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
@@ -209,6 +257,9 @@ function PlayersTab() {
         caption:       addForm.caption?.trim()       || null,
         school:        addForm.school?.trim()        || null,
         previous_club: addForm.previous_club?.trim() || null,
+        bio:           addForm.bio?.trim()           || null,
+        pronunciation: addForm.pronunciation?.trim() || null,
+        foot:          addForm.foot?.trim()          || null,
         active: true,
       }]);
       if (e) { setError(e.message); setSaving(false); return; }
@@ -229,6 +280,7 @@ function PlayersTab() {
       height: p.height, weight: p.weight, hometown: p.hometown,
       age: p.age, school: p.school ?? "", previous_club: p.previous_club ?? "",
       photo_url: p.photo_url,
+      bio: p.bio ?? "", pronunciation: p.pronunciation ?? "", foot: p.foot ?? "",
     });
   }
 
@@ -248,6 +300,9 @@ function PlayersTab() {
         caption:       editForm.caption?.trim()       || null,
         school:        editForm.school?.trim()        || null,
         previous_club: editForm.previous_club?.trim() || null,
+        bio:           editForm.bio?.trim()           || null,
+        pronunciation: editForm.pronunciation?.trim() || null,
+        foot:          editForm.foot?.trim()          || null,
       }).eq("id", editingId);
       if (e) { setError(e.message); setSaving(false); return; }
       setEditingId(null); setEditPhoto(null);
@@ -507,7 +562,7 @@ function StaffTab() {
   function startEdit(s: Staff) {
     setEditingId(s.id);
     setEditPhoto(null);
-    setEditForm({ initials: s.initials, name: s.name, role: s.role, hometown: s.hometown, photo_url: s.photo_url });
+    setEditForm({ initials: s.initials, name: s.name, role: s.role, hometown: s.hometown, nationality: s.nationality ?? "", bio: s.bio ?? "", photo_url: s.photo_url });
   }
 
   async function handleSaveEdit() {
@@ -734,11 +789,32 @@ function PlayerFormFields({
           <input type="text" placeholder="e.g. Portland FC" value={form.previous_club ?? ""}
             onChange={(e) => set("previous_club", e.target.value)} style={inputStyle} />
         </Field>
-        <Field label="Caption (optional)" >
-          <input type="text" placeholder="Short bio or tagline" value={form.caption ?? ""}
+        <Field label="Caption (optional)">
+          <input type="text" placeholder='e.g. "(C)"' value={form.caption ?? ""}
             onChange={(e) => set("caption", e.target.value)} style={inputStyle} />
         </Field>
+        <Field label="Pronunciation (optional)">
+          <input type="text" placeholder='e.g. "duh-MORE-ee-uh"' value={form.pronunciation ?? ""}
+            onChange={(e) => set("pronunciation", e.target.value)} style={inputStyle} />
+        </Field>
+        <Field label="Preferred Foot (optional)">
+          <select value={form.foot ?? ""} onChange={(e) => set("foot", e.target.value)} style={inputStyle}>
+            <option value="">— Select —</option>
+            <option value="Right">Right</option>
+            <option value="Left">Left</option>
+            <option value="Both">Both</option>
+          </select>
+        </Field>
       </div>
+      <Field label="Bio (optional)">
+        <textarea
+          placeholder="Short player bio…"
+          value={form.bio ?? ""}
+          onChange={(e) => set("bio", e.target.value)}
+          rows={3}
+          style={{ ...inputStyle, resize: "vertical" }}
+        />
+      </Field>
     </div>
   );
 }
@@ -805,7 +881,19 @@ function StaffFormFields({
           <input type="text" placeholder="e.g. Portland, OR" value={form.hometown}
             onChange={(e) => set("hometown", e.target.value)} style={inputStyle} />
         </Field>
+        <Field label="Nationality">
+          <NationalitySelect value={form.nationality} onChange={(v) => set("nationality", v)} />
+        </Field>
       </div>
+      <Field label="Bio (optional)">
+        <textarea
+          placeholder="Short bio about this staff member…"
+          value={form.bio}
+          onChange={(e) => set("bio", e.target.value)}
+          rows={3}
+          style={{ ...inputStyle, resize: "vertical" }}
+        />
+      </Field>
     </div>
   );
 }

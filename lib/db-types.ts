@@ -19,6 +19,9 @@ export type DBPlayer = {
   previous_club: string | null;
   photo_url: string;
   active: boolean;
+  bio: string | null;
+  pronunciation: string | null;
+  foot: string | null;
 };
 
 export type DBStaff = {
@@ -27,6 +30,8 @@ export type DBStaff = {
   name: string;
   role: string;
   hometown: string;
+  nationality: string;
+  bio: string | null;
   photo_url: string;
   active: boolean;
 };

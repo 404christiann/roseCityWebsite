@@ -20,6 +20,9 @@ export type FieldStats = {
   yellow: number;
   red: number;
   mins: number;
+  offsides: number;
+  fouls: number;
+  foulsSuffered: number;
 };
 
 export type Player = {
@@ -36,6 +39,9 @@ export type Player = {
   previousClub?: string;
   image: string;
   stats: GoalkeeperStats | FieldStats;
+  bio?: string;
+  pronunciation?: string;
+  foot?: string;
 };
 
 export type Staff = {
@@ -43,6 +49,8 @@ export type Staff = {
   name: string;
   role: string;
   hometown: string;
+  nationality: string;
+  bio: string | null;
   image: string;
 };
 
@@ -124,7 +132,7 @@ export const defenders: Player[] = [
     age: 21,
     previousClub: "Pumas",
     image: "/images/roster/players/defender1.webp",
-    stats: { goals: 0, assists: 0, tackles: 0, starts: 3, yellow: 0, red: 0, mins: 138 },
+    stats: { goals: 0, assists: 0, tackles: 0, starts: 3, yellow: 0, red: 0, mins: 138, offsides: 0, fouls: 0, foulsSuffered: 0},
   },
   {
     number: 3,
@@ -136,7 +144,7 @@ export const defenders: Player[] = [
     hometown: "Los Angeles, CA",
     age: 26,
     image: "/images/roster/players/defender2.webp",
-    stats: { goals: 0, assists: 0, tackles: 0, starts: 4, yellow: 0, red: 0, mins: 185 },
+    stats: { goals: 0, assists: 0, tackles: 0, starts: 4, yellow: 0, red: 0, mins: 185, offsides: 0, fouls: 0, foulsSuffered: 0},
   },
   {
     number: 14,
@@ -148,7 +156,7 @@ export const defenders: Player[] = [
     hometown: "Gardena, CA",
     age: 28,
     image: "/images/roster/players/defender3.webp",
-    stats: { goals: 0, assists: 0, tackles: 0, starts: 0, yellow: 0, red: 0, mins: 93 },
+    stats: { goals: 0, assists: 0, tackles: 0, starts: 0, yellow: 0, red: 0, mins: 93, offsides: 0, fouls: 0, foulsSuffered: 0},
   },
 ];
 
@@ -166,7 +174,7 @@ export const midfielders: Player[] = [
     school: "Cal State LA",
     previousClub: "Michigan Stars",
     image: "/images/roster/players/mid1.webp",
-    stats: { goals: 0, assists: 1, tackles: 2, starts: 2, yellow: 0, red: 0, mins: 187 },
+    stats: { goals: 0, assists: 1, tackles: 2, starts: 2, yellow: 0, red: 0, mins: 187, offsides: 0, fouls: 0, foulsSuffered: 0},
   },
   {
     number: 6,
@@ -179,7 +187,7 @@ export const midfielders: Player[] = [
     age: 21,
     school: "Cal State Fullerton",
     image: "/images/roster/players/mid2.webp",
-    stats: { goals: 1, assists: 0, tackles: 0, starts: 1, yellow: 0, red: 0, mins: 93 },
+    stats: { goals: 1, assists: 0, tackles: 0, starts: 1, yellow: 0, red: 0, mins: 93, offsides: 0, fouls: 0, foulsSuffered: 0},
   },
   {
     number: 24,
@@ -193,7 +201,7 @@ export const midfielders: Player[] = [
     school: "Cal State San Bernardino",
     previousClub: "LA Galaxy ACD",
     image: "/images/roster/players/mid3.webp",
-    stats: { goals: 0, assists: 0, tackles: 0, starts: 0, yellow: 0, red: 0, mins: 0 },
+    stats: { goals: 0, assists: 0, tackles: 0, starts: 0, yellow: 0, red: 0, mins: 0, offsides: 0, fouls: 0, foulsSuffered: 0},
   },
 ];
 
@@ -210,7 +218,7 @@ export const forwards: Player[] = [
     age: 33,
     previousClub: "Thunder Bay",
     image: "/images/roster/players/forward1.webp",
-    stats: { goals: 2, assists: 0, tackles: 1, starts: 5, yellow: 0, red: 0, mins: 280 },
+    stats: { goals: 2, assists: 0, tackles: 1, starts: 5, yellow: 0, red: 0, mins: 280, offsides: 0, fouls: 0, foulsSuffered: 0},
   },
   {
     number: 11,
@@ -223,7 +231,7 @@ export const forwards: Player[] = [
     age: 24,
     school: "Cal State Fullerton",
     image: "/images/roster/players/forward2.webp",
-    stats: { goals: 0, assists: 0, tackles: 0, starts: 1, yellow: 0, red: 0, mins: 93 },
+    stats: { goals: 0, assists: 0, tackles: 0, starts: 1, yellow: 0, red: 0, mins: 93, offsides: 0, fouls: 0, foulsSuffered: 0 },
   },
   {
     number: 9,
@@ -237,7 +245,7 @@ export const forwards: Player[] = [
     school: "CBU",
     previousClub: "Charleston Battery",
     image: "/images/roster/players/forward3.webp",
-    stats: { goals: 1, assists: 0, tackles: 0, starts: 1, yellow: 0, red: 0, mins: 93 },
+    stats: { goals: 1, assists: 0, tackles: 0, starts: 1, yellow: 0, red: 0, mins: 93, offsides: 0, fouls: 0, foulsSuffered: 0},
   },
 ];
 
@@ -247,6 +255,8 @@ export const staff: Staff[] = [
     name: "Samuel Whitworth",
     role: "General Manager",
     hometown: "Pasadena, CA",
+    nationality: "",
+    bio: null,
     image: "/images/roster/staff/staff1.webp",
   },
   {
@@ -254,6 +264,8 @@ export const staff: Staff[] = [
     name: "Edgardo Artero",
     role: "Head Coach",
     hometown: "Pasadena, CA",
+    nationality: "",
+    bio: null,
     image: "/images/roster/staff/staff2.webp",
   },
   {
@@ -261,6 +273,8 @@ export const staff: Staff[] = [
     name: "James Alewine III",
     role: "Assistant Coach",
     hometown: "Monrovia, CA",
+    nationality: "",
+    bio: null,
     image: "/images/roster/staff/staff3.webp",
   },
 ];

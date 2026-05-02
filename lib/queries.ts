@@ -25,7 +25,7 @@ function defaultGKStats(): GoalkeeperStats {
 }
 
 function defaultFieldStats(): FieldStats {
-  return { goals: 0, assists: 0, tackles: 0, starts: 0, yellow: 0, red: 0, mins: 0 };
+  return { goals: 0, assists: 0, tackles: 0, starts: 0, yellow: 0, red: 0, mins: 0, offsides: 0, fouls: 0, foulsSuffered: 0 };
 }
 
 function mapPlayer(row: DBPlayer, stats: GoalkeeperStats | FieldStats): Player {
@@ -43,6 +43,9 @@ function mapPlayer(row: DBPlayer, stats: GoalkeeperStats | FieldStats): Player {
     previousClub: row.previous_club ?? undefined,
     image: row.photo_url,
     stats,
+    bio: row.bio ?? undefined,
+    pronunciation: row.pronunciation ?? undefined,
+    foot: row.foot ?? undefined,
   };
 }
 
@@ -52,6 +55,8 @@ function mapStaff(row: DBStaff): Staff {
     name: row.name,
     role: row.role,
     hometown: row.hometown,
+    nationality: row.nationality ?? "",
+    bio: row.bio ?? null,
     image: row.photo_url,
   };
 }
@@ -111,6 +116,7 @@ export async function fetchRoster(): Promise<{
     fieldStatsByPlayer.set(r.player_id as unknown as string, {
       goals: r.goals, assists: r.assists, tackles: r.tackles,
       starts: r.starts, yellow: r.yellow, red: r.red, mins: r.mins,
+      offsides: r.offsides ?? 0, fouls: r.fouls ?? 0, foulsSuffered: r.fouls_suffered ?? 0,
     });
   });
 

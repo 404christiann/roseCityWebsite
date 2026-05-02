@@ -9,16 +9,31 @@ function isGK(stats: GoalkeeperStats | FieldStats): stats is GoalkeeperStats {
 }
 
 const FLAG_CODES: Record<string, string> = {
-  "American": "us", "Mexican": "mx", "Argentine": "ar", "Bolivian": "bo",
-  "Brazilian": "br", "British": "gb", "Cameroonian": "cm", "Canadian": "ca",
-  "Chilean": "cl", "Colombian": "co", "Congolese": "cd", "Costa Rican": "cr",
-  "Dutch": "nl", "Ecuadorian": "ec", "Salvadoran": "sv", "Ethiopian": "et",
-  "Filipino": "ph", "French": "fr", "German": "de", "Ghanaian": "gh",
-  "Guatemalan": "gt", "Honduran": "hn", "Italian": "it", "Ivorian": "ci",
-  "Jamaican": "jm", "Kenyan": "ke", "Nicaraguan": "ni", "Nigerian": "ng",
-  "Panamanian": "pa", "Paraguayan": "py", "Peruvian": "pe", "Portuguese": "pt",
-  "Senegalese": "sn", "Spanish": "es", "Trinidadian": "tt", "Turkish": "tr",
+  // Americas
+  "American": "us", "Argentine": "ar", "Belizean": "bz", "Bolivian": "bo",
+  "Brazilian": "br", "Canadian": "ca", "Chilean": "cl", "Colombian": "co",
+  "Costa Rican": "cr", "Cuban": "cu", "Dominican": "do", "Ecuadorian": "ec",
+  "Guatemalan": "gt", "Haitian": "ht", "Honduran": "hn", "Jamaican": "jm",
+  "Mexican": "mx", "Nicaraguan": "ni", "Panamanian": "pa", "Paraguayan": "py",
+  "Peruvian": "pe", "Puerto Rican": "pr", "Salvadoran": "sv", "Trinidadian": "tt",
   "Uruguayan": "uy", "Venezuelan": "ve",
+  // Africa
+  "Algerian": "dz", "Angolan": "ao", "Cameroonian": "cm", "Congolese": "cd",
+  "Egyptian": "eg", "Ethiopian": "et", "Ghanaian": "gh", "Guinean": "gn",
+  "Ivorian": "ci", "Kenyan": "ke", "Liberian": "lr", "Malian": "ml",
+  "Moroccan": "ma", "Nigerian": "ng", "Rwandan": "rw", "Senegalese": "sn",
+  "Sierra Leonean": "sl", "South African": "za", "Tanzanian": "tz",
+  "Togolese": "tg", "Ugandan": "ug", "Zimbabwean": "zw",
+  // Europe
+  "Austrian": "at", "Belgian": "be", "British": "gb", "Croatian": "hr",
+  "Danish": "dk", "Dutch": "nl", "French": "fr", "German": "de",
+  "Greek": "gr", "Irish": "ie", "Italian": "it", "Norwegian": "no",
+  "Polish": "pl", "Portuguese": "pt", "Romanian": "ro", "Serbian": "rs",
+  "Spanish": "es", "Swedish": "se", "Swiss": "ch", "Turkish": "tr",
+  "Ukrainian": "ua",
+  // Asia / Pacific
+  "Australian": "au", "Chinese": "cn", "Filipino": "ph", "Indian": "in",
+  "Indonesian": "id", "Japanese": "jp", "South Korean": "kr",
 };
 
 interface Props {
@@ -26,10 +41,22 @@ interface Props {
   onClose: () => void;
 }
 
+function getSeasonLabel(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1; // 1-based
+  // UPSL spring season runs Jan–Aug: season started previous year
+  // UPSL fall season runs Sep–Dec: season started this year
+  const startYear = month <= 8 ? year - 1 : year;
+  const endYear = startYear + 1;
+  return `${startYear}–${String(endYear).slice(2)} Season`;
+}
+
 export default function PlayerModal({ player, onClose }: Props) {
   const stats = player.stats;
   const gk = isGK(stats);
   const flagCode = player.nationality ? FLAG_CODES[player.nationality] : null;
+  const seasonLabel = getSeasonLabel();
 
   return (
     <Dialog open={true} onClose={onClose} className="relative z-[100]">
@@ -138,29 +165,47 @@ export default function PlayerModal({ player, onClose }: Props) {
 
             {/* Position */}
             <p
-              className="font-display text-xs tracking-widest uppercase mb-4"
+              className="font-display text-xs tracking-widest uppercase mb-1"
               style={{ color: "var(--color-red)" }}
             >
               {player.position}
             </p>
 
+            {/* Pronunciation */}
+            {player.pronunciation && (
+              <p className="font-body text-xs italic mb-3" style={{ color: "rgba(255,255,255,0.4)" }}>
+                {player.pronunciation}
+              </p>
+            )}
+
             <div className="mb-4" style={{ height: 1, backgroundColor: "rgba(255,255,255,0.07)" }} />
 
-            {/* Bio */}
+            {/* Meta grid */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-4">
               <MetaRow label="Height"   value={player.height} />
               <MetaRow label="Weight"   value={player.weight} />
               <MetaRow label="Age"      value={`${player.age} yrs`} />
               <MetaRow label="Hometown" value={player.hometown} />
+              {player.foot         && <MetaRow label="Foot"       value={player.foot} />}
               {player.school       && <MetaRow label="School"     value={player.school} />}
               {player.previousClub && <MetaRow label="Prev. Club" value={player.previousClub} />}
             </div>
+
+            {/* Bio */}
+            {player.bio && (
+              <>
+                <div className="mb-3" style={{ height: 1, backgroundColor: "rgba(255,255,255,0.07)" }} />
+                <p className="font-body text-sm leading-relaxed mb-4" style={{ color: "rgba(255,255,255,0.55)" }}>
+                  {player.bio}
+                </p>
+              </>
+            )}
 
             <div className="mb-4" style={{ height: 1, backgroundColor: "rgba(255,255,255,0.07)" }} />
 
             {/* Stats */}
             <p className="font-display text-xs tracking-widest uppercase mb-2" style={{ color: "var(--color-gray-mid)" }}>
-              2024–25 Season
+              {seasonLabel}
             </p>
 
             <div className="flex flex-col">
@@ -176,13 +221,16 @@ export default function PlayerModal({ player, onClose }: Props) {
                 </>
               ) : (
                 <>
-                  <StatRow label="Goals"        value={stats.goals} />
-                  <StatRow label="Assists"      value={stats.assists} />
-                  <StatRow label="Tackles"      value={stats.tackles} />
-                  <StatRow label="Starts"       value={stats.starts} />
-                  <StatRow label="Yellow Cards" value={stats.yellow} />
-                  <StatRow label="Red Cards"    value={stats.red} />
-                  <StatRow label="Minutes"      value={stats.mins} />
+                  <StatRow label="Goals"          value={stats.goals} />
+                  <StatRow label="Assists"        value={stats.assists} />
+                  <StatRow label="Tackles"        value={stats.tackles} />
+                  <StatRow label="Offsides"       value={stats.offsides} />
+                  <StatRow label="Fouls"          value={stats.fouls} />
+                  <StatRow label="Fouls Suffered" value={stats.foulsSuffered} />
+                  <StatRow label="Starts"         value={stats.starts} />
+                  <StatRow label="Yellow Cards"   value={stats.yellow} />
+                  <StatRow label="Red Cards"      value={stats.red} />
+                  <StatRow label="Minutes"        value={stats.mins} />
                 </>
               )}
             </div>
