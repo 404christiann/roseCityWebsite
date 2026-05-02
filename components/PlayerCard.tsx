@@ -4,23 +4,12 @@ import { useState } from "react";
 import Image from "next/image";
 import { Player, GoalkeeperStats, FieldStats } from "@/lib/data";
 import PlayerModal from "@/components/PlayerModal";
+import { FLAG_CODES } from "@/lib/flags";
 
 function isGK(stats: GoalkeeperStats | FieldStats): stats is GoalkeeperStats {
   return "saves" in stats;
 }
 
-const FLAG_CODES: Record<string, string> = {
-  "American": "us", "Mexican": "mx", "Argentine": "ar", "Bolivian": "bo",
-  "Brazilian": "br", "British": "gb", "Cameroonian": "cm", "Canadian": "ca",
-  "Chilean": "cl", "Colombian": "co", "Congolese": "cd", "Costa Rican": "cr",
-  "Dutch": "nl", "Ecuadorian": "ec", "Salvadoran": "sv", "Ethiopian": "et",
-  "Filipino": "ph", "French": "fr", "German": "de", "Ghanaian": "gh",
-  "Guatemalan": "gt", "Honduran": "hn", "Italian": "it", "Ivorian": "ci",
-  "Jamaican": "jm", "Kenyan": "ke", "Nicaraguan": "ni", "Nigerian": "ng",
-  "Panamanian": "pa", "Paraguayan": "py", "Peruvian": "pe", "Portuguese": "pt",
-  "Senegalese": "sn", "Spanish": "es", "Trinidadian": "tt", "Turkish": "tr",
-  "Uruguayan": "uy", "Venezuelan": "ve",
-};
 
 export default function PlayerCard({ player }: { player: Player }) {
   const [hovered, setHovered] = useState(false);

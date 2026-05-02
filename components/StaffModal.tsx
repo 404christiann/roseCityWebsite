@@ -3,34 +3,8 @@
 import { Dialog, DialogPanel, DialogBackdrop } from "@headlessui/react";
 import Image from "next/image";
 import { Staff } from "@/lib/data";
+import { FLAG_CODES } from "@/lib/flags";
 
-const FLAG_CODES: Record<string, string> = {
-  // Americas
-  "American": "us", "Argentine": "ar", "Belizean": "bz", "Bolivian": "bo",
-  "Brazilian": "br", "Canadian": "ca", "Chilean": "cl", "Colombian": "co",
-  "Costa Rican": "cr", "Cuban": "cu", "Dominican": "do", "Ecuadorian": "ec",
-  "Guatemalan": "gt", "Haitian": "ht", "Honduran": "hn", "Jamaican": "jm",
-  "Mexican": "mx", "Nicaraguan": "ni", "Panamanian": "pa", "Paraguayan": "py",
-  "Peruvian": "pe", "Puerto Rican": "pr", "Salvadoran": "sv", "Trinidadian": "tt",
-  "Uruguayan": "uy", "Venezuelan": "ve",
-  // Africa
-  "Algerian": "dz", "Angolan": "ao", "Cameroonian": "cm", "Congolese": "cd",
-  "Egyptian": "eg", "Ethiopian": "et", "Ghanaian": "gh", "Guinean": "gn",
-  "Ivorian": "ci", "Kenyan": "ke", "Liberian": "lr", "Malian": "ml",
-  "Moroccan": "ma", "Nigerian": "ng", "Rwandan": "rw", "Senegalese": "sn",
-  "Sierra Leonean": "sl", "South African": "za", "Tanzanian": "tz",
-  "Togolese": "tg", "Ugandan": "ug", "Zimbabwean": "zw",
-  // Europe
-  "Austrian": "at", "Belgian": "be", "British": "gb", "Croatian": "hr",
-  "Danish": "dk", "Dutch": "nl", "French": "fr", "German": "de",
-  "Greek": "gr", "Irish": "ie", "Italian": "it", "Norwegian": "no",
-  "Polish": "pl", "Portuguese": "pt", "Romanian": "ro", "Serbian": "rs",
-  "Spanish": "es", "Swedish": "se", "Swiss": "ch", "Turkish": "tr",
-  "Ukrainian": "ua",
-  // Asia / Pacific
-  "Australian": "au", "Chinese": "cn", "Filipino": "ph", "Indian": "in",
-  "Indonesian": "id", "Japanese": "jp", "South Korean": "kr",
-};
 
 interface Props {
   member: Staff;
