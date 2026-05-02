@@ -51,7 +51,8 @@ function isGK(s: FieldStats | GKStats): s is GKStats {
 
 export default function SeasonStatsPage() {
   const [players, setPlayers] = useState<Player[]>([]);
-  const [stats, setStats]     = useState<StatsMap>({});
+  const [stats, setStats]         = useState<StatsMap>({});
+  const [hasChanges, setHasChanges] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
   const [saved, setSaved]     = useState(false);
@@ -99,12 +100,14 @@ export default function SeasonStatsPage() {
       });
 
       setStats(map);
+      setHasChanges(false);
       setLoading(false);
     }
     load();
   }, []);
 
   function updateStat(playerId: string, field: string, value: number) {
+    setHasChanges(true);
     setStats((prev) => ({
       ...prev,
       [playerId]: { ...prev[playerId], [field]: Math.max(0, value) },
@@ -112,6 +115,7 @@ export default function SeasonStatsPage() {
   }
 
   async function handleSave() {
+    if (!hasChanges) return;
     setSaving(true);
     setError(null);
     const supabase = createClient();
@@ -141,6 +145,7 @@ export default function SeasonStatsPage() {
     if (fe || ge) {
       setError(fe?.message ?? ge?.message ?? "Unknown error");
     } else {
+      setHasChanges(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     }
@@ -171,9 +176,9 @@ export default function SeasonStatsPage() {
           )}
           <button
             onClick={handleSave}
-            disabled={saving || loading}
+            disabled={saving || loading || !hasChanges}
             className="px-6 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white"
-            style={{ fontSize: "1.1rem", backgroundColor: "#dc2626", opacity: saving ? 0.6 : 1, cursor: saving ? "not-allowed" : "pointer" }}
+            style={{ fontSize: "1.1rem", backgroundColor: "#dc2626", opacity: saving || !hasChanges ? 0.4 : 1, cursor: saving || !hasChanges ? "not-allowed" : "pointer" }}
           >
             {saving ? "Saving…" : "Save All"}
           </button>

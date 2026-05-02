@@ -66,6 +66,7 @@ export default function StatsPage() {
   const [players, setPlayers]     = useState<Player[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [stats, setStats]         = useState<StatsMap>({});
+  const [hasChanges, setHasChanges] = useState(false);
   const [loading, setLoading]     = useState(false);
   const [saving, setSaving]       = useState(false);
   const [saved, setSaved]         = useState(false);
@@ -88,6 +89,7 @@ export default function StatsPage() {
     if (!selectedMatch || players.length === 0) return;
     setLoading(true);
     setSaved(false);
+    setHasChanges(false);
     setError(null);
 
     const supabase = createClient();
@@ -139,6 +141,7 @@ export default function StatsPage() {
     field: string,
     value: number | boolean
   ) {
+    setHasChanges(true);
     setStats((prev) => ({
       ...prev,
       [playerId]: { ...prev[playerId], [field]: value },
@@ -147,7 +150,7 @@ export default function StatsPage() {
 
   // Save all stats
   async function handleSave() {
-    if (!selectedMatch) return;
+    if (!selectedMatch || !hasChanges) return;
     setSaving(true);
     setError(null);
 
@@ -177,6 +180,7 @@ export default function StatsPage() {
     if (fe || ge) {
       setError(fe?.message ?? ge?.message ?? "Unknown error");
     } else {
+      setHasChanges(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     }
@@ -287,13 +291,13 @@ export default function StatsPage() {
           <div className="flex items-center gap-4 mt-6">
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || !hasChanges}
               className="px-8 py-3 rounded-lg font-display font-black uppercase tracking-widest text-white transition-opacity duration-200"
               style={{
                 fontSize: "1.1rem",
                 backgroundColor: "#dc2626",
-                opacity: saving ? 0.6 : 1,
-                cursor: saving ? "not-allowed" : "pointer",
+                opacity: saving || !hasChanges ? 0.4 : 1,
+                cursor: saving || !hasChanges ? "not-allowed" : "pointer",
               }}
             >
               {saving ? "Saving…" : "Save All Stats"}

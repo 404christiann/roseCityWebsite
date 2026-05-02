@@ -48,9 +48,9 @@ export default function PlayerCard({ player }: { player: Player }) {
 
         {/* Always-visible gradient + info at bottom */}
         <div
-          className="absolute inset-x-0 bottom-0 pt-16 pb-4 px-4"
+          className="absolute inset-x-0 bottom-0 pt-6 md:pt-16 pb-4 px-4"
           style={{
-            background: "linear-gradient(to top, rgba(0,0,0,0.95) 30%, rgba(0,0,0,0.5) 60%, transparent 100%)",
+            background: "linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 50%, transparent 100%)",
             zIndex: 2,
           }}
         >

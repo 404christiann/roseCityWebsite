@@ -56,24 +56,37 @@ export default function PlayerModal({ player, onClose }: Props) {
           "
           style={{ maxHeight: "90vh" }}
         >
-          {/* Drag handle — mobile only */}
-          <div className="md:hidden flex justify-center pt-3 pb-1 flex-shrink-0">
-            <div className="w-9 h-1 rounded-full bg-white/20" />
-          </div>
-
-          {/* Photo */}
-          <div className="relative flex-shrink-0 w-full md:w-52" style={{ height: 240, minHeight: 240 }}>
+          {/* Photo — drag handle overlaid on top for mobile */}
+          <div
+            className="relative flex-shrink-0 w-full md:w-52 h-[340px] md:h-[240px] rounded-t-2xl md:rounded-none overflow-hidden"
+            style={{ WebkitTransform: "translateZ(0)" }}
+          >
             <Image
               src={player.image}
               alt={player.name}
               fill
-              className="object-cover object-center"
+              className="object-cover object-top"
               sizes="(max-width: 768px) 100vw, 208px"
             />
             <div
               className="absolute inset-0"
               style={{ background: "linear-gradient(to top, rgba(14,14,14,0.95) 0%, transparent 55%)" }}
             />
+            {/* Drag handle overlaid at top of photo — mobile only */}
+            <div className="md:hidden absolute top-0 left-0 right-0 flex justify-center pt-3">
+              <div className="w-9 h-1 rounded-full bg-white/30" />
+            </div>
+            {/* Close button — top right, mobile only */}
+            <button
+              onClick={onClose}
+              className="md:hidden absolute top-3 right-4 flex items-center justify-center"
+              style={{ color: "#000000" }}
+              aria-label="Close"
+            >
+              <svg width="14" height="14" viewBox="0 0 10 10" fill="none">
+                <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            </button>
             <span
               className="absolute bottom-3 left-4 font-display font-black leading-none select-none"
               style={{ fontSize: "5rem", color: "var(--color-red)", lineHeight: 1, opacity: 0.9 }}
@@ -88,7 +101,7 @@ export default function PlayerModal({ player, onClose }: Props) {
             {/* Close button */}
             <button
               onClick={onClose}
-              className="self-end flex items-center gap-1.5 mb-3 font-display text-xs tracking-widest uppercase transition-opacity duration-200 opacity-40 hover:opacity-100"
+              className="hidden md:flex self-end items-center gap-1.5 mb-3 font-display text-xs tracking-widest uppercase transition-opacity duration-200 opacity-40 hover:opacity-100"
               style={{ color: "white" }}
               aria-label="Close"
             >

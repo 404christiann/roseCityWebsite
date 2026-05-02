@@ -10,7 +10,10 @@ import { Fixture } from "@/lib/data";
 gsap.registerPlugin(ScrollTrigger);
 
 function fixtureDate(fixture: Fixture): Date {
-  return new Date(`${fixture.date} ${fixture.time}`);
+  // Parse "YYYY-MM-DD" safely as local midnight — avoids NaN from non-standard
+  // date strings like "2026-05-02 8:00 PM" which break on some environments.
+  const [year, month, day] = fixture.date.split("-").map(Number);
+  return new Date(year, month - 1, day);
 }
 
 function getNextMatchIndex(fixtures: Fixture[]): number {
