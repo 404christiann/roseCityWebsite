@@ -42,6 +42,7 @@ export type Player = {
   bio?: string;
   pronunciation?: string;
   foot?: string;
+  actionPhotos?: string[];
 };
 
 export type Staff = {

@@ -28,7 +28,7 @@ function defaultFieldStats(): FieldStats {
   return { goals: 0, assists: 0, tackles: 0, starts: 0, yellow: 0, red: 0, mins: 0, offsides: 0, fouls: 0, foulsSuffered: 0 };
 }
 
-function mapPlayer(row: DBPlayer, stats: GoalkeeperStats | FieldStats): Player {
+function mapPlayer(row: DBPlayer, stats: GoalkeeperStats | FieldStats, actionPhotos: string[] = []): Player {
   return {
     number: row.number,
     name: row.name,
@@ -46,6 +46,7 @@ function mapPlayer(row: DBPlayer, stats: GoalkeeperStats | FieldStats): Player {
     bio: row.bio ?? undefined,
     pronunciation: row.pronunciation ?? undefined,
     foot: row.foot ?? undefined,
+    actionPhotos: actionPhotos.length > 0 ? actionPhotos : undefined,
   };
 }
 
@@ -128,12 +129,27 @@ export async function fetchRoster(): Promise<{
     });
   });
 
-  // 3. Map each player to the UI type with season stats
+  // 3. Fetch action photos
+  const { data: photoRows } = await supabase
+    .from("player_photos")
+    .select("player_id, url, sort_order")
+    .in("player_id", playerIds)
+    .order("sort_order", { ascending: true });
+
+  const photosByPlayer = new Map<string, string[]>();
+  (photoRows ?? []).forEach((r: { player_id: string; url: string; sort_order: number }) => {
+    const arr = photosByPlayer.get(r.player_id) ?? [];
+    arr.push(r.url);
+    photosByPlayer.set(r.player_id, arr);
+  });
+
+  // 4. Map each player to the UI type with season stats + action photos
   const mapped = players.map((row) => {
+    const photos = photosByPlayer.get(row.id) ?? [];
     if (row.position === "Goalkeeper") {
-      return mapPlayer(row, gkStatsByPlayer.get(row.id) ?? defaultGKStats());
+      return mapPlayer(row, gkStatsByPlayer.get(row.id) ?? defaultGKStats(), photos);
     } else {
-      return mapPlayer(row, fieldStatsByPlayer.get(row.id) ?? defaultFieldStats());
+      return mapPlayer(row, fieldStatsByPlayer.get(row.id) ?? defaultFieldStats(), photos);
     }
   });
 

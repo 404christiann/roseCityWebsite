@@ -2,6 +2,7 @@
 
 import { Dialog, DialogPanel, DialogBackdrop } from "@headlessui/react";
 import Image from "next/image";
+import { useState } from "react";
 import { Player, GoalkeeperStats, FieldStats } from "@/lib/data";
 import { FLAG_CODES } from "@/lib/flags";
 
@@ -28,9 +29,16 @@ function getSeasonLabel(): string {
 
 export default function PlayerModal({ player, onClose }: Props) {
   const stats = player.stats;
-  const gk = isGK(stats);
   const flagCode = player.nationality ? FLAG_CODES[player.nationality] : null;
   const seasonLabel = getSeasonLabel();
+
+  // Build the full photo array: profile photo first, then action photos
+  const allPhotos = [player.image, ...(player.actionPhotos ?? [])];
+  const [photoIdx, setPhotoIdx] = useState(0);
+  const hasMultiple = allPhotos.length > 1;
+
+  function prev() { setPhotoIdx((i) => (i - 1 + allPhotos.length) % allPhotos.length); }
+  function next() { setPhotoIdx((i) => (i + 1) % allPhotos.length); }
 
   return (
     <Dialog open={true} onClose={onClose} className="relative z-[100]">
@@ -57,26 +65,30 @@ export default function PlayerModal({ player, onClose }: Props) {
           "
           style={{ maxHeight: "90vh" }}
         >
-          {/* Photo — drag handle overlaid on top for mobile */}
+          {/* Photo carousel */}
           <div
-            className="relative flex-shrink-0 w-full md:w-52 h-[340px] md:h-[240px] rounded-t-2xl md:rounded-none overflow-hidden"
+            className="relative flex-shrink-0 w-full md:w-52 h-[340px] md:h-auto rounded-t-2xl md:rounded-none overflow-hidden"
             style={{ WebkitTransform: "translateZ(0)" }}
           >
+            {/* Current photo */}
             <Image
-              src={player.image}
+              key={allPhotos[photoIdx]}
+              src={allPhotos[photoIdx]}
               alt={player.name}
               fill
-              className="object-cover object-top"
+              className="object-cover object-top transition-opacity duration-300"
               sizes="(max-width: 768px) 100vw, 208px"
             />
             <div
               className="absolute inset-0"
               style={{ background: "linear-gradient(to top, rgba(14,14,14,0.95) 0%, transparent 55%)" }}
             />
-            {/* Drag handle overlaid at top of photo — mobile only */}
+
+            {/* Drag handle — mobile only */}
             <div className="md:hidden absolute top-0 left-0 right-0 flex justify-center pt-3">
               <div className="w-9 h-1 rounded-full bg-white/30" />
             </div>
+
             {/* Close button — top right, mobile only */}
             <button
               onClick={onClose}
@@ -88,18 +100,67 @@ export default function PlayerModal({ player, onClose }: Props) {
                 <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
               </svg>
             </button>
+
+            {/* Jersey number */}
             <span
               className="absolute bottom-3 left-4 font-display font-black leading-none select-none"
               style={{ fontSize: "5rem", color: "var(--color-red)", lineHeight: 1, opacity: 0.9 }}
             >
               {player.number}
             </span>
+
+            {/* Prev / Next arrows — only when multiple photos */}
+            {hasMultiple && (
+              <>
+                <button
+                  onClick={prev}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full"
+                  style={{ backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+                  aria-label="Previous photo"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M15 18l-6-6 6-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+                <button
+                  onClick={next}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full"
+                  style={{ backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+                  aria-label="Next photo"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 18l6-6-6-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+
+                {/* Dot indicators */}
+                <div className="absolute bottom-3 right-4 flex gap-1.5 items-center">
+                  {allPhotos.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setPhotoIdx(i)}
+                      aria-label={`Photo ${i + 1}`}
+                      style={{
+                        width: i === photoIdx ? 16 : 6,
+                        height: 6,
+                        borderRadius: 3,
+                        backgroundColor: i === photoIdx ? "var(--color-red)" : "rgba(255,255,255,0.35)",
+                        transition: "width 0.2s ease, background-color 0.2s ease",
+                        border: "none",
+                        padding: 0,
+                        cursor: "pointer",
+                      }}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Details */}
           <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col">
 
-            {/* Close button */}
+            {/* Close button — desktop */}
             <button
               onClick={onClose}
               className="hidden md:flex self-end items-center gap-1.5 mb-3 font-display text-xs tracking-widest uppercase transition-opacity duration-200 opacity-40 hover:opacity-100"

@@ -46,6 +46,14 @@ export type DBMatch = {
   address: string | null;
 };
 
+export type DBPlayerPhoto = {
+  id: string;
+  player_id: string;
+  url: string;
+  sort_order: number;
+  created_at: string;
+};
+
 export type DBPlayerMatchStats = {
   id: string;
   player_id: string;

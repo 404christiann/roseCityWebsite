@@ -438,7 +438,7 @@ function PlayerPositionGroup({
                   style={{ borderTop: "1px solid rgba(255,255,255,0.04)", ...(isEditing ? { border: "1px solid rgba(220,38,38,0.3)" } : {}) }}>
                   {isEditing ? (
                     <div className="p-5" style={{ backgroundColor: "#161616" }}>
-                      <PlayerFormFields form={editForm} onChange={setEditForm} photoFile={editPhoto} onPhotoChange={setEditPhoto} />
+                      <PlayerFormFields form={editForm} onChange={setEditForm} photoFile={editPhoto} onPhotoChange={setEditPhoto} playerId={p.id} />
                       <div className="mt-4 flex gap-3">
                         <button onClick={handleSaveEdit} disabled={saving}
                           className="px-6 py-2 rounded-lg font-display font-black uppercase tracking-widest text-white text-xs"
@@ -705,15 +705,142 @@ function StaffTab() {
   );
 }
 
+// ── Action Photos Panel ───────────────────────
+
+type ActionPhoto = { id: string; url: string; sort_order: number };
+
+function ActionPhotosPanel({ playerId }: { playerId: string }) {
+  const [photos, setPhotos]     = useState<ActionPhoto[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+  const fileRef                 = useRef<HTMLInputElement>(null);
+
+  async function loadPhotos() {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("player_photos")
+      .select("id, url, sort_order")
+      .eq("player_id", playerId)
+      .order("sort_order", { ascending: true });
+    setPhotos((data ?? []) as ActionPhoto[]);
+  }
+
+  useEffect(() => { loadPhotos(); }, [playerId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleUpload(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true); setError(null);
+    try {
+      const supabase = createClient();
+      const nextOrder = photos.length > 0 ? Math.max(...photos.map(p => p.sort_order)) + 1 : 0;
+      for (let i = 0; i < files.length; i++) {
+        const url = await uploadPhoto(files[i], "player-action-photos");
+        const { error: e } = await supabase.from("player_photos").insert([{
+          player_id: playerId,
+          url,
+          sort_order: nextOrder + i,
+        }]);
+        if (e) throw new Error(e.message);
+      }
+      await loadPhotos();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    }
+    setUploading(false);
+  }
+
+  async function handleDelete(photoId: string) {
+    const supabase = createClient();
+    await supabase.from("player_photos").delete().eq("id", photoId);
+    await loadPhotos();
+  }
+
+  return (
+    <div>
+      <div className="mb-3" style={{ height: 1, backgroundColor: "rgba(255,255,255,0.07)" }} />
+      <label className="block font-display text-xs tracking-widest uppercase mb-3" style={{ color: "rgba(255,255,255,0.35)" }}>
+        Action Photos
+      </label>
+
+      {error && <p className="font-body text-xs mb-2" style={{ color: "#dc2626" }}>{error}</p>}
+
+      <div className="flex flex-wrap gap-2 mb-3">
+        {photos.map((photo) => (
+          <div key={photo.id} className="relative group" style={{ width: 72, height: 72 }}>
+            <img
+              src={photo.url}
+              alt="Action photo"
+              className="w-full h-full object-cover rounded-lg"
+              style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+            />
+            <button
+              type="button"
+              onClick={() => handleDelete(photo.id)}
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ backgroundColor: "#dc2626" }}
+              aria-label="Delete photo"
+            >
+              <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
+                <path d="M1 1L9 9M9 1L1 9" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+        ))}
+
+        {/* Upload button */}
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          className="flex flex-col items-center justify-center rounded-lg transition-colors"
+          style={{
+            width: 72, height: 72,
+            border: "1px dashed rgba(255,255,255,0.15)",
+            backgroundColor: uploading ? "rgba(255,255,255,0.03)" : "transparent",
+            color: "rgba(255,255,255,0.3)",
+            cursor: uploading ? "not-allowed" : "pointer",
+          }}
+          aria-label="Add action photo"
+        >
+          {uploading ? (
+            <span className="font-display text-xs tracking-widest uppercase" style={{ fontSize: "0.6rem" }}>…</span>
+          ) : (
+            <>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 4 }}>
+                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              <span className="font-display uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.08em" }}>Add</span>
+            </>
+          )}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => handleUpload(e.target.files)}
+        />
+      </div>
+      {photos.length === 0 && !uploading && (
+        <p className="font-body text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>
+          No action photos yet. Click + to upload.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Player form fields ────────────────────────
 
 function PlayerFormFields({
-  form, onChange, photoFile, onPhotoChange,
+  form, onChange, photoFile, onPhotoChange, playerId,
 }: {
   form: PlayerForm;
   onChange: (f: PlayerForm) => void;
   photoFile: File | null;
   onPhotoChange: (f: File | null) => void;
+  playerId?: string;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const preview = photoFile ? URL.createObjectURL(photoFile) : (form.photo_url || DEFAULT_PLAYER_PHOTO);
@@ -840,6 +967,9 @@ function PlayerFormFields({
           style={{ ...inputStyle, resize: "vertical" }}
         />
       </Field>
+
+      {/* Action photos — only shown when editing an existing player */}
+      {playerId && <ActionPhotosPanel playerId={playerId} />}
     </div>
   );
 }
