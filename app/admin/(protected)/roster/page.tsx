@@ -716,11 +716,12 @@ function StaffTab() {
 // ── Seasons Tab ───────────────────────────────
 
 function SeasonsTab() {
-  const [seasons, setSeasons]   = useState<Season[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [saving, setSaving]     = useState(false);
-  const [error, setError]       = useState<string | null>(null);
-  const [saved, setSaved]       = useState(false);
+  const [seasons, setSeasons]         = useState<Season[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [saving, setSaving]           = useState(false);
+  const [error, setError]             = useState<string | null>(null);
+  const [saved, setSaved]             = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   async function load() {
     const supabase = createClient();
@@ -795,6 +796,15 @@ function SeasonsTab() {
     await load(); flash(); setSaving(false);
   }
 
+  async function handleDelete(seasonId: string) {
+    setSaving(true); setError(null);
+    const supabase = createClient();
+    const { error: e } = await supabase.from("seasons").delete().eq("id", seasonId);
+    if (e) { setError(e.message); } else { await load(); }
+    setConfirmDeleteId(null);
+    setSaving(false);
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -839,25 +849,60 @@ function SeasonsTab() {
                 {s.active ? (
                   <span
                     className="font-display text-xs tracking-widest uppercase px-3 py-1 rounded-full"
-                    style={{ backgroundColor: "rgba(220,38,38,0.15)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.3)" }}
+                    style={{ backgroundColor: "rgba(34,197,94,0.15)", color: "rgba(34,197,94,0.9)", border: "1px solid rgba(34,197,94,0.3)" }}
                   >
                     Active
                   </span>
                 ) : (
-                  <button
-                    onClick={() => handleSetActive(s.id)}
-                    disabled={saving}
-                    className="px-4 py-2 rounded-lg font-display font-black uppercase tracking-widest"
-                    style={{
-                      fontSize: "0.85rem",
-                      backgroundColor: "rgba(34,197,94,0.1)",
-                      border: "1px solid rgba(34,197,94,0.2)",
-                      color: "rgba(34,197,94,0.8)",
-                      opacity: saving ? 0.6 : 1,
-                    }}
-                  >
-                    Set Active
-                  </button>
+                  <>
+                    <button
+                      onClick={() => handleSetActive(s.id)}
+                      disabled={saving}
+                      className="px-4 py-2 rounded-lg font-display font-black uppercase tracking-widest"
+                      style={{
+                        fontSize: "0.85rem",
+                        backgroundColor: "rgba(34,197,94,0.1)",
+                        border: "1px solid rgba(34,197,94,0.2)",
+                        color: "rgba(34,197,94,0.8)",
+                        opacity: saving ? 0.6 : 1,
+                      }}
+                    >
+                      Set Active
+                    </button>
+
+                    {/* Two-click delete */}
+                    {confirmDeleteId === s.id ? (
+                      <button
+                        onClick={() => handleDelete(s.id)}
+                        disabled={saving}
+                        className="px-4 py-2 rounded-lg font-display font-black uppercase tracking-widest"
+                        style={{
+                          fontSize: "0.85rem",
+                          backgroundColor: "rgba(220,38,38,0.2)",
+                          border: "1px solid rgba(220,38,38,0.5)",
+                          color: "#dc2626",
+                          opacity: saving ? 0.6 : 1,
+                        }}
+                      >
+                        Confirm?
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(s.id)}
+                        disabled={saving}
+                        className="px-4 py-2 rounded-lg font-display font-black uppercase tracking-widest"
+                        style={{
+                          fontSize: "0.85rem",
+                          backgroundColor: "transparent",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          color: "rgba(255,255,255,0.3)",
+                          opacity: saving ? 0.6 : 1,
+                        }}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
