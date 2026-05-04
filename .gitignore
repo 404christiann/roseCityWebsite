@@ -1,4 +1,7 @@
 node_modules/
 .next/
 .DS_Store
+**/.DS_Store
 .env.local
+tsconfig.tsbuildinfo
+*.swp
