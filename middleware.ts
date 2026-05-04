@@ -33,7 +33,7 @@ export async function middleware(request: NextRequest) {
   const isCallbackRoute = request.nextUrl.pathname === "/admin/auth/callback";
 
   // Allowlist — only these emails can access the admin panel
-  const ALLOWED_EMAILS = ["christianjavieralcala@gmail.com", "info@rosecityfutbolclub.com", "calcala1@berkeley.edu"];
+  const ALLOWED_EMAILS = (process.env.ADMIN_ALLOWED_EMAILS ?? "").split(",").map((e) => e.trim()).filter(Boolean);
   const isAllowed = user && ALLOWED_EMAILS.includes(user.email ?? "");
 
   // Not logged in and trying to access admin → redirect to login
