@@ -197,6 +197,38 @@ export async function fetchStaff(): Promise<Staff[]> {
   return (data as DBStaff[]).map(mapStaff);
 }
 
+// Month name → 0-based index, used for cross-browser date parsing
+const MONTH_INDEX: Record<string, number> = {
+  January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
+  July: 6, August: 7, September: 8, October: 9, November: 10, December: 11,
+};
+
+/**
+ * Parses "May 8, 2026" + "7:00 PM" into a timestamp.
+ * Uses the Date(year, month, day, h, m) constructor which is reliable on all
+ * browsers (including mobile Safari), unlike Date.parse on locale strings.
+ */
+function parseFixtureTimestamp(dateStr: string, timeStr: string): number {
+  // dateStr: "May 8, 2026"
+  const parts = dateStr.replace(",", "").split(" "); // ["May", "8", "2026"]
+  const month = MONTH_INDEX[parts[0]] ?? 0;
+  const day   = parseInt(parts[1], 10);
+  const year  = parseInt(parts[2], 10);
+
+  // timeStr: "7:00 PM" or "TBD"
+  let hours = 0, minutes = 0;
+  const timeMatch = timeStr.match(/^(\d+):(\d+)\s*(AM|PM)$/i);
+  if (timeMatch) {
+    hours   = parseInt(timeMatch[1], 10);
+    minutes = parseInt(timeMatch[2], 10);
+    const ampm = timeMatch[3].toUpperCase();
+    if (ampm === "PM" && hours !== 12) hours += 12;
+    if (ampm === "AM" && hours === 12) hours = 0;
+  }
+
+  return new Date(year, month, day, hours, minutes).getTime();
+}
+
 /**
  * Fetches all matches ordered by date ascending.
  */
@@ -207,11 +239,12 @@ export async function fetchSchedule(): Promise<Fixture[]> {
 
   if (error) throw new Error(`fetchSchedule: ${error.message}`);
 
-  // Sort chronologically — date is stored as "May 2, 2026" so parse it
   const fixtures = (data as DBMatch[]).map(mapFixture);
+
+  // Sort chronologically using a cross-browser-safe parser
   return fixtures.sort(
     (a, b) =>
-      new Date(`${a.date} ${a.time}`).getTime() -
-      new Date(`${b.date} ${b.time}`).getTime()
+      parseFixtureTimestamp(a.date, a.time) -
+      parseFixtureTimestamp(b.date, b.time)
   );
 }
