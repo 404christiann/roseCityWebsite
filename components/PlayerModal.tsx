@@ -2,7 +2,7 @@
 
 import { Dialog, DialogPanel, DialogBackdrop } from "@headlessui/react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Player, GoalkeeperStats, FieldStats } from "@/lib/data";
 import { FLAG_CODES } from "@/lib/flags";
 
@@ -23,8 +23,17 @@ export default function PlayerModal({ player, onClose, seasonLabel = "Current Se
 
   // Build the full photo array: profile photo first, then action photos
   const allPhotos = [player.image, ...(player.actionPhotos ?? [])];
-  const [photoIdx, setPhotoIdx] = useState(0);
+  // Open on the first action photo if one exists, otherwise the profile shot
+  const [photoIdx, setPhotoIdx] = useState(player.actionPhotos?.length ? 1 : 0);
   const hasMultiple = allPhotos.length > 1;
+
+  // Preload all photos as soon as the modal mounts so navigation is instant
+  useEffect(() => {
+    allPhotos.forEach((src) => {
+      const img = new window.Image();
+      img.src = src;
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function prev() { setPhotoIdx((i) => (i - 1 + allPhotos.length) % allPhotos.length); }
   function next() { setPhotoIdx((i) => (i + 1) % allPhotos.length); }

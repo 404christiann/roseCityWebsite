@@ -21,11 +21,15 @@ export default function Hero() {
 
   return (
     <section className="relative w-full h-screen min-h-[600px] overflow-hidden">
-      {/* Vimeo background video */}
+      {/* Background video */}
       <div className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
-        <iframe
-          src="https://player.vimeo.com/video/1181276496?background=1&autoplay=1&muted=1&loop=1&title=0&byline=0&portrait=0"
-          allow="autoplay; fullscreen"
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          poster="/images/hero-poster.jpg"
           style={{
             position: "absolute",
             top: "50%",
@@ -35,11 +39,15 @@ export default function Hero() {
             minWidth: "100%",
             minHeight: "100%",
             transform: "translate(-50%, -50%)",
-            border: "none",
+            objectFit: "cover",
             pointerEvents: "none",
           }}
-          title="Rose City FC"
-        />
+        >
+          <source
+            src="https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/videos/Pan_Bench_Land_ready.mp4"
+            type="video/mp4"
+          />
+        </video>
       </div>
 
       {/* Dark overlay */}
