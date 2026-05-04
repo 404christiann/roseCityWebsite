@@ -122,9 +122,11 @@ export default function SchedulePage() {
 
   // ── Render ───────────────────────────────────
 
-  const sorted = [...matches].sort(
-    (a, b) => new Date(`${a.date} ${a.time}`).getTime() - new Date(`${b.date} ${b.time}`).getTime()
-  );
+  const sorted = [...matches].sort((a, b) => {
+    const keyA = `${a.date}T${a.time ?? "00:00"}`;
+    const keyB = `${b.date}T${b.time ?? "00:00"}`;
+    return keyA < keyB ? -1 : keyA > keyB ? 1 : 0;
+  });
 
   return (
     <div className="max-w-4xl mx-auto">

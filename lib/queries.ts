@@ -197,40 +197,15 @@ export async function fetchStaff(): Promise<Staff[]> {
   return (data as DBStaff[]).map(mapStaff);
 }
 
-// Month name → 0-based index, used for cross-browser date parsing
-const MONTH_INDEX: Record<string, number> = {
-  January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
-  July: 6, August: 7, September: 8, October: 9, November: 10, December: 11,
-};
-
-/**
- * Parses "May 8, 2026" + "7:00 PM" into a timestamp.
- * Uses the Date(year, month, day, h, m) constructor which is reliable on all
- * browsers (including mobile Safari), unlike Date.parse on locale strings.
- */
-function parseFixtureTimestamp(dateStr: string, timeStr: string): number {
-  // dateStr: "May 8, 2026"
-  const parts = dateStr.replace(",", "").split(" "); // ["May", "8", "2026"]
-  const month = MONTH_INDEX[parts[0]] ?? 0;
-  const day   = parseInt(parts[1], 10);
-  const year  = parseInt(parts[2], 10);
-
-  // timeStr: "7:00 PM" or "TBD"
-  let hours = 0, minutes = 0;
-  const timeMatch = timeStr.match(/^(\d+):(\d+)\s*(AM|PM)$/i);
-  if (timeMatch) {
-    hours   = parseInt(timeMatch[1], 10);
-    minutes = parseInt(timeMatch[2], 10);
-    const ampm = timeMatch[3].toUpperCase();
-    if (ampm === "PM" && hours !== 12) hours += 12;
-    if (ampm === "AM" && hours === 12) hours = 0;
-  }
-
-  return new Date(year, month, day, hours, minutes).getTime();
-}
-
 /**
  * Fetches all matches ordered by date ascending.
+ *
+ * Dates are stored as "YYYY-MM-DD" and times as "HH:MM" (24h) from the
+ * admin's <input type="date"> / <input type="time">.
+ * Concatenating them as "YYYY-MM-DDTHH:MM" produces a valid ISO 8601 string
+ * that new Date() parses correctly on every browser, including mobile Safari.
+ * As a bonus, ISO date strings also sort correctly as plain strings, so we
+ * use string comparison as the primary key (no Date object needed).
  */
 export async function fetchSchedule(): Promise<Fixture[]> {
   const { data, error } = await supabase
@@ -241,10 +216,10 @@ export async function fetchSchedule(): Promise<Fixture[]> {
 
   const fixtures = (data as DBMatch[]).map(mapFixture);
 
-  // Sort chronologically using a cross-browser-safe parser
-  return fixtures.sort(
-    (a, b) =>
-      parseFixtureTimestamp(a.date, a.time) -
-      parseFixtureTimestamp(b.date, b.time)
-  );
+  // "YYYY-MM-DD" + "HH:MM" sorts lexicographically = chronologically
+  return fixtures.sort((a, b) => {
+    const keyA = `${a.date}T${a.time ?? "00:00"}`;
+    const keyB = `${b.date}T${b.time ?? "00:00"}`;
+    return keyA < keyB ? -1 : keyA > keyB ? 1 : 0;
+  });
 }
