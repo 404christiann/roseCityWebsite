@@ -46,6 +46,15 @@ export type DBMatch = {
   address: string | null;
 };
 
+export type DBSeason = {
+  id: string;
+  label: string;
+  start_year: number;
+  end_year: number;
+  active: boolean;
+  created_at: string;
+};
+
 export type DBPlayerPhoto = {
   id: string;
   player_id: string;

@@ -92,6 +92,14 @@ const NATIONALITIES = [
 
 type Position = "Goalkeeper" | "Defender" | "Midfielder" | "Forward";
 
+type Season = {
+  id: string;
+  label: string;
+  start_year: number;
+  end_year: number;
+  active: boolean;
+};
+
 type Player = {
   id: string;
   number: number;
@@ -160,7 +168,7 @@ async function uploadPhoto(file: File, bucket: string): Promise<string> {
 // ── Main component ────────────────────────────
 
 export default function RosterPage() {
-  const [tab, setTab] = useState<"players" | "staff">("players");
+  const [tab, setTab] = useState<"players" | "staff" | "seasons">("players");
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -173,13 +181,13 @@ export default function RosterPage() {
           Roster
         </h1>
         <p className="font-body text-sm mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
-          Manage players and technical staff.
+          Manage players, staff, and seasons.
         </p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-8">
-        {(["players", "staff"] as const).map((t) => (
+        {(["players", "staff", "seasons"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -196,7 +204,7 @@ export default function RosterPage() {
         ))}
       </div>
 
-      {tab === "players" ? <PlayersTab /> : <StaffTab />}
+      {tab === "players" ? <PlayersTab /> : tab === "staff" ? <StaffTab /> : <SeasonsTab />}
     </div>
   );
 }
@@ -705,6 +713,317 @@ function StaffTab() {
   );
 }
 
+// ── Seasons Tab ───────────────────────────────
+
+function SeasonsTab() {
+  const [seasons, setSeasons]   = useState<Season[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+  const [saved, setSaved]       = useState(false);
+
+  async function load() {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("seasons")
+      .select("*")
+      .order("start_year", { ascending: false });
+    setSeasons((data ?? []) as Season[]);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  function flash() { setSaved(true); setTimeout(() => setSaved(false), 3000); }
+
+  async function handleSetActive(seasonId: string) {
+    setSaving(true); setError(null);
+    const supabase = createClient();
+    // Deactivate all, then activate chosen
+    const { error: e1 } = await supabase.from("seasons").update({ active: false }).neq("id", "00000000-0000-0000-0000-000000000000");
+    if (e1) { setError(e1.message); setSaving(false); return; }
+    const { error: e2 } = await supabase.from("seasons").update({ active: true }).eq("id", seasonId);
+    if (e2) { setError(e2.message); setSaving(false); return; }
+    await load(); flash(); setSaving(false);
+  }
+
+  async function handleCreateNextSeason() {
+    if (seasons.length === 0) return;
+    setSaving(true); setError(null);
+    const supabase = createClient();
+
+    // Compute next season from the latest one
+    const latest = seasons[0]; // already ordered desc
+    const nextStart = latest.start_year + 1;
+    const nextEnd   = latest.end_year + 1;
+    const nextLabel = `${nextStart}–${String(nextEnd).slice(2)}`;
+
+    // Insert new season
+    const { data: newSeason, error: e1 } = await supabase
+      .from("seasons")
+      .insert([{ label: nextLabel, start_year: nextStart, end_year: nextEnd, active: false }])
+      .select()
+      .single();
+    if (e1 || !newSeason) { setError(e1?.message ?? "Failed to create season"); setSaving(false); return; }
+
+    // Seed zero stats for all active players
+    const { data: players } = await supabase.from("players").select("id, position").eq("active", true);
+    if (players && players.length > 0) {
+      const fieldPlayers = players.filter((p: { id: string; position: string }) => p.position !== "Goalkeeper");
+      const gkPlayers    = players.filter((p: { id: string; position: string }) => p.position === "Goalkeeper");
+
+      if (fieldPlayers.length > 0) {
+        await supabase.from("player_season_stats").insert(
+          fieldPlayers.map((p: { id: string }) => ({
+            player_id: p.id, season_id: newSeason.id,
+            goals: 0, assists: 0, tackles: 0, starts: 0,
+            yellow: 0, red: 0, mins: 0, offsides: 0, fouls: 0, fouls_suffered: 0,
+          }))
+        );
+      }
+      if (gkPlayers.length > 0) {
+        await supabase.from("goalkeeper_season_stats").insert(
+          gkPlayers.map((p: { id: string }) => ({
+            player_id: p.id, season_id: newSeason.id,
+            goals_against: 0, saves: 0, clean_sheets: 0,
+            starts: 0, yellow: 0, red: 0, mins: 0,
+          }))
+        );
+      }
+    }
+
+    await load(); flash(); setSaving(false);
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <p className="font-body text-sm" style={{ color: "rgba(255,255,255,0.35)" }}>
+          {seasons.length} season{seasons.length !== 1 ? "s" : ""}
+        </p>
+        <button
+          onClick={handleCreateNextSeason}
+          disabled={saving || seasons.length === 0}
+          className="px-6 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white"
+          style={{ backgroundColor: "#dc2626", fontSize: "1.1rem", opacity: saving ? 0.6 : 1 }}
+        >
+          {saving ? "Creating…" : "+ Create Next Season"}
+        </button>
+      </div>
+
+      {saved  && <p className="font-display text-sm tracking-widest uppercase mb-4" style={{ color: "rgba(34,197,94,0.9)" }}>✓ Saved</p>}
+      {error  && <p className="font-body text-sm mb-4" style={{ color: "#dc2626" }}>Error: {error}</p>}
+
+      {loading ? (
+        <p className="font-display text-sm tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.3)" }}>Loading…</p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {seasons.map((s) => (
+            <div
+              key={s.id}
+              className="flex items-center justify-between px-5 py-4 rounded-xl"
+              style={{
+                backgroundColor: s.active ? "#161616" : "#111111",
+                border: `1px solid ${s.active ? "rgba(220,38,38,0.3)" : "rgba(255,255,255,0.07)"}`,
+              }}
+            >
+              <div>
+                <p className="font-display font-black text-white" style={{ fontSize: "1.25rem" }}>
+                  {s.label} Season
+                </p>
+                <p className="font-body text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>
+                  {s.start_year} – {s.end_year}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {s.active ? (
+                  <span
+                    className="font-display text-xs tracking-widest uppercase px-3 py-1 rounded-full"
+                    style={{ backgroundColor: "rgba(220,38,38,0.15)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.3)" }}
+                  >
+                    Active
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => handleSetActive(s.id)}
+                    disabled={saving}
+                    className="px-4 py-2 rounded-lg font-display font-black uppercase tracking-widest"
+                    style={{
+                      fontSize: "0.85rem",
+                      backgroundColor: "rgba(34,197,94,0.1)",
+                      border: "1px solid rgba(34,197,94,0.2)",
+                      color: "rgba(34,197,94,0.8)",
+                      opacity: saving ? 0.6 : 1,
+                    }}
+                  >
+                    Set Active
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Season Stats Panel ────────────────────────
+
+function SeasonStatsPanel({ playerId, position }: { playerId: string; position: Position }) {
+  const isGK = position === "Goalkeeper";
+
+  const [seasons, setSeasons]         = useState<Season[]>([]);
+  const [selectedId, setSelectedId]   = useState<string>("");
+  const [stats, setStats]             = useState<Record<string, number>>({});
+  const [loading, setLoading]         = useState(true);
+  const [saving, setSaving]           = useState(false);
+  const [saved, setSaved]             = useState(false);
+  const [error, setError]             = useState<string | null>(null);
+
+  const defaultStats = isGK
+    ? { goals_against: 0, saves: 0, clean_sheets: 0, starts: 0, yellow: 0, red: 0, mins: 0 }
+    : { goals: 0, assists: 0, tackles: 0, starts: 0, yellow: 0, red: 0, mins: 0, offsides: 0, fouls: 0, fouls_suffered: 0 };
+
+  async function loadSeasons() {
+    const supabase = createClient();
+    const { data } = await supabase.from("seasons").select("*").order("start_year", { ascending: false });
+    const list = (data ?? []) as Season[];
+    setSeasons(list);
+    const active = list.find((s) => s.active) ?? list[0];
+    if (active) { setSelectedId(active.id); await loadStats(active.id); }
+    setLoading(false);
+  }
+
+  async function loadStats(seasonId: string) {
+    const supabase = createClient();
+    const table = isGK ? "goalkeeper_season_stats" : "player_season_stats";
+    const { data } = await supabase
+      .from(table)
+      .select("*")
+      .eq("player_id", playerId)
+      .eq("season_id", seasonId)
+      .single();
+    setStats(data ? { ...data } : { ...defaultStats });
+  }
+
+  useEffect(() => { loadSeasons(); }, [playerId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleSeasonChange(seasonId: string) {
+    setSelectedId(seasonId);
+    setLoading(true);
+    await loadStats(seasonId);
+    setLoading(false);
+  }
+
+  function setStat(key: string, value: number) {
+    setStats((s) => ({ ...s, [key]: value }));
+  }
+
+  async function handleSave() {
+    setSaving(true); setError(null);
+    const supabase = createClient();
+    const table = isGK ? "goalkeeper_season_stats" : "player_season_stats";
+    const payload = { ...stats, player_id: playerId, season_id: selectedId };
+    const { error: e } = await supabase.from(table).upsert([payload], { onConflict: "player_id,season_id" });
+    if (e) { setError(e.message); } else { setSaved(true); setTimeout(() => setSaved(false), 3000); }
+    setSaving(false);
+  }
+
+  return (
+    <div>
+      <div className="mb-3" style={{ height: 1, backgroundColor: "rgba(255,255,255,0.07)" }} />
+      <div className="flex items-center justify-between mb-3">
+        <label className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>
+          Season Stats
+        </label>
+        {/* Season picker */}
+        <select
+          value={selectedId}
+          onChange={(e) => handleSeasonChange(e.target.value)}
+          style={{ ...inputStyle, width: "auto", fontSize: "0.75rem", padding: "4px 8px" }}
+        >
+          {seasons.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.label}{s.active ? " (Active)" : ""}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {error && <p className="font-body text-xs mb-2" style={{ color: "#dc2626" }}>{error}</p>}
+
+      {loading ? (
+        <p className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.3)" }}>Loading…</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+            {isGK ? (
+              <>
+                <StatField label="Goals Against" field="goals_against" stats={stats} onChange={setStat} />
+                <StatField label="Saves"         field="saves"         stats={stats} onChange={setStat} />
+                <StatField label="Clean Sheets"  field="clean_sheets"  stats={stats} onChange={setStat} />
+                <StatField label="Starts"        field="starts"        stats={stats} onChange={setStat} />
+                <StatField label="Yellow Cards"  field="yellow"        stats={stats} onChange={setStat} />
+                <StatField label="Red Cards"     field="red"           stats={stats} onChange={setStat} />
+                <StatField label="Minutes"       field="mins"          stats={stats} onChange={setStat} />
+              </>
+            ) : (
+              <>
+                <StatField label="Goals"          field="goals"          stats={stats} onChange={setStat} />
+                <StatField label="Assists"        field="assists"        stats={stats} onChange={setStat} />
+                <StatField label="Tackles"        field="tackles"        stats={stats} onChange={setStat} />
+                <StatField label="Offsides"       field="offsides"       stats={stats} onChange={setStat} />
+                <StatField label="Fouls"          field="fouls"          stats={stats} onChange={setStat} />
+                <StatField label="Fouls Suffered" field="fouls_suffered" stats={stats} onChange={setStat} />
+                <StatField label="Starts"         field="starts"         stats={stats} onChange={setStat} />
+                <StatField label="Yellow Cards"   field="yellow"         stats={stats} onChange={setStat} />
+                <StatField label="Red Cards"      field="red"            stats={stats} onChange={setStat} />
+                <StatField label="Minutes"        field="mins"           stats={stats} onChange={setStat} />
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-5 py-2 rounded-lg font-display font-black uppercase tracking-widest text-white text-xs"
+              style={{ backgroundColor: "#dc2626", opacity: saving ? 0.6 : 1 }}
+            >
+              {saving ? "Saving…" : "Save Stats"}
+            </button>
+            {saved && <span className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(34,197,94,0.9)" }}>✓ Saved</span>}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function StatField({
+  label, field, stats, onChange,
+}: {
+  label: string;
+  field: string;
+  stats: Record<string, number>;
+  onChange: (key: string, value: number) => void;
+}) {
+  return (
+    <div>
+      <label className="block font-display text-xs tracking-widest uppercase mb-1" style={{ color: "rgba(255,255,255,0.25)", fontSize: "0.6rem" }}>
+        {label}
+      </label>
+      <input
+        type="number"
+        min={0}
+        value={stats[field] ?? 0}
+        onChange={(e) => onChange(field, Number(e.target.value))}
+        style={{ ...inputStyle, padding: "6px 10px" }}
+      />
+    </div>
+  );
+}
+
 // ── Action Photos Panel ───────────────────────
 
 type ActionPhoto = { id: string; url: string; sort_order: number };
@@ -841,6 +1160,7 @@ function PlayerFormFields({
   photoFile: File | null;
   onPhotoChange: (f: File | null) => void;
   playerId?: string;
+  position?: Position;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const preview = photoFile ? URL.createObjectURL(photoFile) : (form.photo_url || DEFAULT_PLAYER_PHOTO);
@@ -967,6 +1287,9 @@ function PlayerFormFields({
           style={{ ...inputStyle, resize: "vertical" }}
         />
       </Field>
+
+      {/* Season stats — only shown when editing an existing player */}
+      {playerId && <SeasonStatsPanel playerId={playerId} position={form.position} />}
 
       {/* Action photos — only shown when editing an existing player */}
       {playerId && <ActionPhotosPanel playerId={playerId} />}

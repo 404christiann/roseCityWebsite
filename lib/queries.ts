@@ -16,6 +16,7 @@ import {
   DBPlayer,
   DBStaff,
   DBMatch,
+  DBSeason,
 } from "@/lib/db-types";
 
 // ── Helpers ───────────────────────────────────
@@ -78,15 +79,27 @@ function mapFixture(row: DBMatch): Fixture {
 
 /**
  * Fetches all active players grouped by position,
- * with season-aggregate stats joined in.
+ * with season-aggregate stats joined in for the active season.
  */
 export async function fetchRoster(): Promise<{
   goalkeepers: Player[];
   defenders: Player[];
   midfielders: Player[];
   forwards: Player[];
+  seasonLabel: string;
 }> {
-  // 1. Fetch all active players
+  // 1. Fetch active season
+  const { data: seasonData } = await supabase
+    .from("seasons")
+    .select("*")
+    .eq("active", true)
+    .limit(1)
+    .single();
+
+  const activeSeason = seasonData as DBSeason | null;
+  const seasonLabel = activeSeason?.label ?? "Current Season";
+
+  // 2. Fetch all active players
   const { data: rows, error } = await supabase
     .from("players")
     .select("*")
@@ -95,22 +108,30 @@ export async function fetchRoster(): Promise<{
 
   if (error) throw new Error(`fetchRoster players: ${error.message}`);
   if (!rows || rows.length === 0) {
-    return { goalkeepers: [], defenders: [], midfielders: [], forwards: [] };
+    return { goalkeepers: [], defenders: [], midfielders: [], forwards: [], seasonLabel };
   }
 
   const players = rows as DBPlayer[];
   const playerIds = players.map((p) => p.id);
 
-  // 2. Fetch season stats from direct-edit tables
-  const { data: fieldSeasonRows } = await supabase
+  // 3. Fetch season stats filtered by active season
+  const fieldQuery = supabase
     .from("player_season_stats")
     .select("*")
     .in("player_id", playerIds);
 
-  const { data: gkSeasonRows } = await supabase
+  const gkQuery = supabase
     .from("goalkeeper_season_stats")
     .select("*")
     .in("player_id", playerIds);
+
+  if (activeSeason) {
+    fieldQuery.eq("season_id", activeSeason.id);
+    gkQuery.eq("season_id", activeSeason.id);
+  }
+
+  const { data: fieldSeasonRows } = await fieldQuery;
+  const { data: gkSeasonRows } = await gkQuery;
 
   const fieldStatsByPlayer = new Map<string, FieldStats>();
   (fieldSeasonRows ?? []).forEach((r: Record<string, number>) => {
@@ -158,6 +179,7 @@ export async function fetchRoster(): Promise<{
     defenders:   mapped.filter((p) => p.position === "Defender"),
     midfielders: mapped.filter((p) => p.position === "Midfielder"),
     forwards:    mapped.filter((p) => p.position === "Forward"),
+    seasonLabel,
   };
 }
 

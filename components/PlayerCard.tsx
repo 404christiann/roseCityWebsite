@@ -11,7 +11,7 @@ function isGK(stats: GoalkeeperStats | FieldStats): stats is GoalkeeperStats {
 }
 
 
-export default function PlayerCard({ player }: { player: Player }) {
+export default function PlayerCard({ player, seasonLabel }: { player: Player; seasonLabel?: string }) {
   const [hovered, setHovered] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const stats = player.stats;
@@ -128,7 +128,7 @@ export default function PlayerCard({ player }: { player: Player }) {
 
       {/* Full profile modal */}
       {modalOpen && (
-        <PlayerModal player={player} onClose={() => setModalOpen(false)} />
+        <PlayerModal player={player} seasonLabel={seasonLabel} onClose={() => setModalOpen(false)} />
       )}
     </>
   );

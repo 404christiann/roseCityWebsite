@@ -15,9 +15,10 @@ type RosterData = {
   defenders: Player[];
   midfielders: Player[];
   forwards: Player[];
+  seasonLabel: string;
 };
 
-function RosterGroup({ label, players }: { label: string; players: Player[] }) {
+function RosterGroup({ label, players, seasonLabel }: { label: string; players: Player[]; seasonLabel: string }) {
   const groupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,7 +55,7 @@ function RosterGroup({ label, players }: { label: string; players: Player[] }) {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
         {players.map((player) => (
-          <PlayerCard key={player.number} player={player} />
+          <PlayerCard key={player.number} player={player} seasonLabel={seasonLabel} />
         ))}
       </div>
     </div>
@@ -110,6 +111,8 @@ export default function RosterPage() {
       ]
     : [];
 
+  const seasonLabel = roster?.seasonLabel ?? "";
+
   return (
     <div style={{ backgroundColor: "var(--color-white)" }}>
 
@@ -150,7 +153,7 @@ export default function RosterPage() {
               className="font-display font-bold tracking-widest uppercase mb-3"
               style={{ color: "var(--color-red)", fontSize: "clamp(0.85rem, 1.5vw, 1.1rem)" }}
             >
-              2025 – 2026 Season
+              {seasonLabel} Season
             </p>
             <h1
               className="font-display font-black uppercase leading-none"
@@ -164,7 +167,7 @@ export default function RosterPage() {
           {/* Player groups */}
           <div className="px-6 lg:px-10 max-w-7xl mx-auto pb-10">
             {groups.map((g) => (
-              <RosterGroup key={g.label} label={g.label} players={g.players} />
+              <RosterGroup key={g.label} label={g.label} players={g.players} seasonLabel={seasonLabel} />
             ))}
           </div>
 

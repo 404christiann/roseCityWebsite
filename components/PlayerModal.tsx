@@ -14,23 +14,12 @@ function isGK(stats: GoalkeeperStats | FieldStats): stats is GoalkeeperStats {
 interface Props {
   player: Player;
   onClose: () => void;
+  seasonLabel?: string;
 }
 
-function getSeasonLabel(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1; // 1-based
-  // UPSL spring season runs Jan–Aug: season started previous year
-  // UPSL fall season runs Sep–Dec: season started this year
-  const startYear = month <= 8 ? year - 1 : year;
-  const endYear = startYear + 1;
-  return `${startYear}–${String(endYear).slice(2)} Season`;
-}
-
-export default function PlayerModal({ player, onClose }: Props) {
+export default function PlayerModal({ player, onClose, seasonLabel = "Current Season" }: Props) {
   const stats = player.stats;
   const flagCode = player.nationality ? FLAG_CODES[player.nationality] : null;
-  const seasonLabel = getSeasonLabel();
 
   // Build the full photo array: profile photo first, then action photos
   const allPhotos = [player.image, ...(player.actionPhotos ?? [])];
@@ -54,7 +43,7 @@ export default function PlayerModal({ player, onClose }: Props) {
         <DialogPanel
           transition
           className="
-            w-full md:w-[680px] flex flex-col md:flex-row overflow-hidden
+            w-full md:w-[480px] flex flex-col overflow-hidden
             bg-[#0e0e0e]
             rounded-t-2xl md:rounded-2xl
             duration-300 ease-out
@@ -67,7 +56,7 @@ export default function PlayerModal({ player, onClose }: Props) {
         >
           {/* Photo carousel */}
           <div
-            className="relative flex-shrink-0 w-full md:w-52 h-[340px] md:h-auto rounded-t-2xl md:rounded-none overflow-hidden"
+            className="relative flex-shrink-0 w-full h-[340px] md:h-[400px] rounded-t-2xl overflow-hidden"
             style={{ WebkitTransform: "translateZ(0)" }}
           >
             {/* Current photo */}
@@ -77,7 +66,7 @@ export default function PlayerModal({ player, onClose }: Props) {
               alt={player.name}
               fill
               className="object-cover object-top transition-opacity duration-300"
-              sizes="(max-width: 768px) 100vw, 208px"
+              sizes="(max-width: 768px) 100vw, 480px"
             />
             <div
               className="absolute inset-0"
@@ -89,10 +78,10 @@ export default function PlayerModal({ player, onClose }: Props) {
               <div className="w-9 h-1 rounded-full bg-white/30" />
             </div>
 
-            {/* Close button — top right, mobile only */}
+            {/* Close button — top right always */}
             <button
               onClick={onClose}
-              className="md:hidden absolute top-3 right-4 flex items-center justify-center"
+              className="absolute top-3 right-4 flex items-center justify-center"
               style={{ color: "#000000" }}
               aria-label="Close"
             >
@@ -158,20 +147,7 @@ export default function PlayerModal({ player, onClose }: Props) {
           </div>
 
           {/* Details */}
-          <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col">
-
-            {/* Close button — desktop */}
-            <button
-              onClick={onClose}
-              className="hidden md:flex self-end items-center gap-1.5 mb-3 font-display text-xs tracking-widest uppercase transition-opacity duration-200 opacity-40 hover:opacity-100"
-              style={{ color: "white" }}
-              aria-label="Close"
-            >
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-              </svg>
-              Close
-            </button>
+          <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col" style={{ colorScheme: "dark" }}>
 
             {/* Name + flag */}
             <div className="flex items-start gap-3 mb-0.5">
@@ -226,49 +202,11 @@ export default function PlayerModal({ player, onClose }: Props) {
               {player.previousClub && <MetaRow label="Prev. Club" value={player.previousClub} />}
             </div>
 
-            {/* Bio */}
-            {player.bio && (
-              <>
-                <div className="mb-3" style={{ height: 1, backgroundColor: "rgba(255,255,255,0.07)" }} />
-                <p className="font-body text-sm leading-relaxed mb-4" style={{ color: "rgba(255,255,255,0.55)" }}>
-                  {player.bio}
-                </p>
-              </>
-            )}
+            {/* Bio — collapsible */}
+            {player.bio && <CollapsibleBio bio={player.bio} />}
 
-            <div className="mb-4" style={{ height: 1, backgroundColor: "rgba(255,255,255,0.07)" }} />
-
-            {/* Stats */}
-            <p className="font-display text-xs tracking-widest uppercase mb-2" style={{ color: "var(--color-gray-mid)" }}>
-              {seasonLabel}
-            </p>
-
-            <div className="flex flex-col">
-              {isGK(stats) ? (
-                <>
-                  <StatRow label="Goals Against" value={stats.goalsAgainst} />
-                  <StatRow label="Saves"         value={stats.saves} />
-                  <StatRow label="Clean Sheets"  value={stats.cleanSheets} />
-                  <StatRow label="Starts"        value={stats.starts} />
-                  <StatRow label="Yellow Cards"  value={stats.yellow} />
-                  <StatRow label="Red Cards"     value={stats.red} />
-                  <StatRow label="Minutes"       value={stats.mins} />
-                </>
-              ) : (
-                <>
-                  <StatRow label="Goals"          value={stats.goals} />
-                  <StatRow label="Assists"        value={stats.assists} />
-                  <StatRow label="Tackles"        value={stats.tackles} />
-                  <StatRow label="Offsides"       value={stats.offsides} />
-                  <StatRow label="Fouls"          value={stats.fouls} />
-                  <StatRow label="Fouls Suffered" value={stats.foulsSuffered} />
-                  <StatRow label="Starts"         value={stats.starts} />
-                  <StatRow label="Yellow Cards"   value={stats.yellow} />
-                  <StatRow label="Red Cards"      value={stats.red} />
-                  <StatRow label="Minutes"        value={stats.mins} />
-                </>
-              )}
-            </div>
+            {/* Stats — collapsible */}
+            <CollapsibleStats stats={stats} seasonLabel={seasonLabel} />
 
             <p
               className="font-display text-xs tracking-widest uppercase text-center mt-6 mb-1"
@@ -280,6 +218,128 @@ export default function PlayerModal({ player, onClose }: Props) {
         </DialogPanel>
       </div>
     </Dialog>
+  );
+}
+
+function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | FieldStats; seasonLabel: string }) {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <>
+      <div className="mb-3" style={{ height: 1, backgroundColor: "rgba(255,255,255,0.07)" }} />
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center justify-between w-full mb-2"
+      >
+        <span
+          className="font-display text-xs tracking-widest uppercase"
+          style={{ color: "var(--color-gray-mid)" }}
+        >
+          {seasonLabel}
+        </span>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          style={{
+            color: "rgba(255,255,255,0.3)",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.25s ease",
+            flexShrink: 0,
+          }}
+        >
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateRows: open ? "1fr" : "0fr",
+          transition: "grid-template-rows 0.25s ease",
+        }}
+      >
+        <div style={{ overflow: "hidden" }}>
+          <div className="flex flex-col">
+            {isGK(stats) ? (
+              <>
+                <StatRow label="Goals Against" value={stats.goalsAgainst} />
+                <StatRow label="Saves"         value={stats.saves} />
+                <StatRow label="Clean Sheets"  value={stats.cleanSheets} />
+                <StatRow label="Starts"        value={stats.starts} />
+                <StatRow label="Yellow Cards"  value={stats.yellow} />
+                <StatRow label="Red Cards"     value={stats.red} />
+                <StatRow label="Minutes"       value={stats.mins} />
+              </>
+            ) : (
+              <>
+                <StatRow label="Goals"          value={(stats as FieldStats).goals} />
+                <StatRow label="Assists"        value={(stats as FieldStats).assists} />
+                <StatRow label="Tackles"        value={(stats as FieldStats).tackles} />
+                <StatRow label="Offsides"       value={(stats as FieldStats).offsides} />
+                <StatRow label="Fouls"          value={(stats as FieldStats).fouls} />
+                <StatRow label="Fouls Suffered" value={(stats as FieldStats).foulsSuffered} />
+                <StatRow label="Starts"         value={stats.starts} />
+                <StatRow label="Yellow Cards"   value={stats.yellow} />
+                <StatRow label="Red Cards"      value={stats.red} />
+                <StatRow label="Minutes"        value={stats.mins} />
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function CollapsibleBio({ bio }: { bio: string }) {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <>
+      <div className="mb-3" style={{ height: 1, backgroundColor: "rgba(255,255,255,0.07)" }} />
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center justify-between w-full mb-2 group"
+      >
+        <span
+          className="font-display text-xs tracking-widest uppercase"
+          style={{ color: "var(--color-gray-mid)" }}
+        >
+          Bio
+        </span>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          style={{
+            color: "rgba(255,255,255,0.3)",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.25s ease",
+            flexShrink: 0,
+          }}
+        >
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateRows: open ? "1fr" : "0fr",
+          transition: "grid-template-rows 0.25s ease",
+        }}
+      >
+        <div style={{ overflow: "hidden" }}>
+          <p
+            className="font-body text-sm leading-relaxed mb-4"
+            style={{ color: "rgba(255,255,255,0.55)" }}
+          >
+            {bio}
+          </p>
+        </div>
+      </div>
+    </>
   );
 }
 
