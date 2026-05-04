@@ -722,6 +722,7 @@ function SeasonsTab() {
   const [error, setError]             = useState<string | null>(null);
   const [saved, setSaved]             = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [showCreateConfirm, setShowCreateConfirm] = useState(false);
 
   async function load() {
     const supabase = createClient();
@@ -805,19 +806,70 @@ function SeasonsTab() {
     setSaving(false);
   }
 
+  const nextLabel = seasons.length > 0
+    ? `${seasons[0].start_year + 1}–${String(seasons[0].end_year + 1).slice(2)}`
+    : "";
+
   return (
     <div>
+      {/* Create Next Season confirmation modal */}
+      {showCreateConfirm && (
+        <div
+          className="fixed inset-0 flex items-center justify-center"
+          style={{ zIndex: 200, backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+          onClick={() => setShowCreateConfirm(false)}
+        >
+          <div
+            className="rounded-2xl p-8 max-w-sm w-full mx-4"
+            style={{ backgroundColor: "#161616", border: "1px solid rgba(255,255,255,0.1)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-display font-black uppercase text-white mb-2" style={{ fontSize: "1.4rem" }}>
+              Create {nextLabel} Season?
+            </h2>
+            <p className="font-body text-sm leading-relaxed mb-1" style={{ color: "rgba(255,255,255,0.55)" }}>
+              This will:
+            </p>
+            <ul className="font-body text-sm mb-5 space-y-1" style={{ color: "rgba(255,255,255,0.45)" }}>
+              <li>• Create the <strong style={{ color: "white" }}>{nextLabel}</strong> season</li>
+              <li>• Seed zero stats for all active players</li>
+              <li>• <strong style={{ color: "white" }}>Not</strong> set it as active — you control that separately</li>
+            </ul>
+            <p className="font-body text-xs mb-6" style={{ color: "rgba(255,255,255,0.3)" }}>
+              If you create it by mistake, use Delete to remove it and its seeded stats.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowCreateConfirm(false); handleCreateNextSeason(); }}
+                disabled={saving}
+                className="flex-1 px-5 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white text-xs"
+                style={{ backgroundColor: "#dc2626", opacity: saving ? 0.6 : 1 }}
+              >
+                {saving ? "Creating…" : "Create Season"}
+              </button>
+              <button
+                onClick={() => setShowCreateConfirm(false)}
+                className="flex-1 px-5 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-xs"
+                style={{ backgroundColor: "#222", color: "rgba(255,255,255,0.5)" }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <p className="font-body text-sm" style={{ color: "rgba(255,255,255,0.35)" }}>
           {seasons.length} season{seasons.length !== 1 ? "s" : ""}
         </p>
         <button
-          onClick={handleCreateNextSeason}
+          onClick={() => setShowCreateConfirm(true)}
           disabled={saving || seasons.length === 0}
           className="px-6 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white"
           style={{ backgroundColor: "#dc2626", fontSize: "1.1rem", opacity: saving ? 0.6 : 1 }}
         >
-          {saving ? "Creating…" : "+ Create Next Season"}
+          + Create Next Season
         </button>
       </div>
 
