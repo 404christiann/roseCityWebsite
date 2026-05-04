@@ -9,6 +9,27 @@ interface Props {
   index: number;
 }
 
+/** Formats "2026-05-08" → "May 8, 2026" and "19:00" → "7:00 PM" */
+function formatDate(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatTime(timeStr: string): string {
+  if (!timeStr || timeStr.toUpperCase() === "TBD") return "TBD";
+  const [hourStr, minStr] = timeStr.split(":");
+  let hours = parseInt(hourStr, 10);
+  const minutes = parseInt(minStr, 10);
+  const ampm = hours >= 12 ? "PM" : "AM";
+  if (hours > 12) hours -= 12;
+  if (hours === 0) hours = 12;
+  return `${hours}:${String(minutes).padStart(2, "0")} ${ampm}`;
+}
+
 export default function FixtureRow({ fixture, isNext, isPast, index }: Props) {
   const mapUrl = fixture.address
     ? `https://maps.google.com/?q=${encodeURIComponent(fixture.address)}`
@@ -45,7 +66,7 @@ export default function FixtureRow({ fixture, isNext, isPast, index }: Props) {
             letterSpacing: "0.05em",
           }}
         >
-          {fixture.date}
+          {formatDate(fixture.date)}
         </p>
         <p
           className="font-display font-bold mt-1"
@@ -54,7 +75,7 @@ export default function FixtureRow({ fixture, isNext, isPast, index }: Props) {
             color: isNext ? "rgba(255,255,255,0.6)" : "var(--color-gray-mid)",
           }}
         >
-          {fixture.time}
+          {formatTime(fixture.time)}
         </p>
       </div>
 
