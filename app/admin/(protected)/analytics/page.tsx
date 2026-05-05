@@ -9,29 +9,11 @@ Chart.register(...registerables);
 
 // ── Constants ──────────────────────────────────
 
-const POS_COLOR: Record<string, string> = {
-  Goalkeeper: "#7c3aed",
-  Defender:   "#185fa5",
-  Midfielder: "#d97706",
-  Forward:    "#dc2626",
-};
-
-const POS_BG: Record<string, string> = {
-  Goalkeeper: "rgba(124,58,237,0.12)",
-  Defender:   "rgba(24,95,165,0.12)",
-  Midfielder: "rgba(217,119,6,0.12)",
-  Forward:    "rgba(220,38,38,0.12)",
-};
-
 type PositionKey = "All" | "Goalkeeper" | "Defender" | "Midfielder" | "Forward";
+const POSITIONS: PositionKey[] = ["All", "Goalkeeper", "Defender", "Midfielder", "Forward"];
 
-const POSITION_FILTERS: { key: PositionKey; label: string }[] = [
-  { key: "All",        label: "All" },
-  { key: "Goalkeeper", label: "GK"  },
-  { key: "Defender",   label: "DEF" },
-  { key: "Midfielder", label: "MID" },
-  { key: "Forward",    label: "FWD" },
-];
+// Team accent colour — used everywhere
+const RED = "#dc2626";
 
 // ── Helpers ────────────────────────────────────
 
@@ -105,9 +87,9 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+    <div className="max-w-5xl mx-auto">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-8">
         <h1
           className="font-display font-black uppercase text-white leading-none"
           style={{ fontSize: "clamp(2.5rem, 5vw, 3.5rem)" }}
@@ -119,18 +101,116 @@ export default function AnalyticsPage() {
         </p>
       </div>
 
-      {/* Two-column layout: sidebar + main */}
-      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20, alignItems: "start" }}>
-        <PlayerSidebar
-          players={filtered}
-          allPlayers={allPlayers}
-          posFilter={posFilter}
-          onPosFilter={setPosFilter}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-        />
+      {/* Position filter tabs — old style, full names */}
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        {POSITIONS.map((pos) => (
+          <button
+            key={pos}
+            onClick={() => setPosFilter(pos)}
+            className="font-display font-black uppercase tracking-widest px-4 py-2 rounded-lg transition-all duration-150"
+            style={{
+              fontSize: "0.75rem",
+              backgroundColor: posFilter === pos ? RED : "#1a1a1a",
+              color: posFilter === pos ? "#fff" : "rgba(255,255,255,0.4)",
+              border: `1px solid ${posFilter === pos ? RED : "rgba(255,255,255,0.08)"}`,
+            }}
+          >
+            {pos}
+          </button>
+        ))}
+      </div>
 
-        <div>
+      {/* Responsive layout: stacked on mobile, sidebar+main on desktop */}
+      <div className="flex flex-col lg:flex-row gap-5" style={{ alignItems: "start" }}>
+
+        {/* Player list — horizontal scroll on mobile, vertical sidebar on desktop */}
+        <div className="w-full lg:w-52 flex-shrink-0">
+          {/* Mobile: horizontal scrollable strip */}
+          <div className="flex lg:hidden overflow-x-auto gap-2 pb-2" style={{ WebkitOverflowScrolling: "touch" }}>
+            {filtered.map((p) => {
+              const active = p.id === selectedId;
+              return (
+                <button
+                  key={p.id ?? p.name}
+                  onClick={() => p.id && setSelectedId(p.id)}
+                  className="flex-shrink-0 flex flex-col items-center gap-1 rounded-xl transition-all duration-150"
+                  style={{
+                    padding: "10px 14px",
+                    backgroundColor: active ? "rgba(220,38,38,0.12)" : "#1a1a1a",
+                    border: `1px solid ${active ? RED + "55" : "rgba(255,255,255,0.07)"}`,
+                    minWidth: 72,
+                  }}
+                >
+                  <div
+                    className="rounded-full flex items-center justify-center font-display font-black"
+                    style={{
+                      width: 34, height: 34,
+                      backgroundColor: active ? RED : "rgba(255,255,255,0.08)",
+                      color: active ? "#fff" : "rgba(255,255,255,0.45)",
+                      fontSize: "0.65rem",
+                    }}
+                  >
+                    {initials(p.name)}
+                  </div>
+                  <span
+                    className="font-display font-black uppercase"
+                    style={{ fontSize: "0.55rem", letterSpacing: "0.05em", color: active ? "#fff" : "rgba(255,255,255,0.4)", whiteSpace: "nowrap" }}
+                  >
+                    #{p.number}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Desktop: vertical pill list */}
+          <div className="hidden lg:flex flex-col gap-1.5">
+            {filtered.map((p) => {
+              const active = p.id === selectedId;
+              return (
+                <button
+                  key={p.id ?? p.name}
+                  onClick={() => p.id && setSelectedId(p.id)}
+                  className="flex items-center gap-3 w-full text-left rounded-xl transition-all duration-150"
+                  style={{
+                    padding: "10px 12px",
+                    backgroundColor: active ? "rgba(220,38,38,0.12)" : "transparent",
+                    border: `1px solid ${active ? RED + "55" : "rgba(255,255,255,0.06)"}`,
+                  }}
+                >
+                  <div
+                    className="flex-shrink-0 rounded-full flex items-center justify-center font-display font-black"
+                    style={{
+                      width: 36, height: 36,
+                      backgroundColor: active ? RED : "rgba(255,255,255,0.08)",
+                      color: active ? "#fff" : "rgba(255,255,255,0.45)",
+                      fontSize: "0.65rem",
+                    }}
+                  >
+                    {initials(p.name)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className="font-display font-black uppercase truncate leading-none"
+                      style={{ fontSize: "0.75rem", color: active ? "#fff" : "rgba(255,255,255,0.65)" }}
+                    >
+                      {p.name}
+                    </p>
+                    <p
+                      className="font-display mt-0.5"
+                      style={{ fontSize: "0.6rem", letterSpacing: "0.06em", color: active ? RED : "rgba(255,255,255,0.3)" }}
+                    >
+                      #{p.number} · {p.position.slice(0, 3).toUpperCase()}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Main dashboard */}
+        <div className="flex-1 min-w-0">
           {player ? (
             <PlayerDashboard
               key={player.id ?? player.name}
@@ -146,109 +226,7 @@ export default function AnalyticsPage() {
             </div>
           )}
         </div>
-      </div>
-    </div>
-  );
-}
 
-// ── Player Sidebar ─────────────────────────────
-
-function PlayerSidebar({
-  players,
-  allPlayers,
-  posFilter,
-  onPosFilter,
-  selectedId,
-  onSelect,
-}: {
-  players: Player[];
-  allPlayers: Player[];
-  posFilter: PositionKey;
-  onPosFilter: (p: PositionKey) => void;
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-3">
-      {/* Position filter pills */}
-      <div className="flex flex-wrap gap-1.5">
-        {POSITION_FILTERS.map(({ key, label }) => {
-          const count = key === "All"
-            ? allPlayers.length
-            : allPlayers.filter((p) => p.position === key).length;
-          const active = posFilter === key;
-          const color  = key === "All" ? "#dc2626" : POS_COLOR[key];
-          return (
-            <button
-              key={key}
-              onClick={() => onPosFilter(key)}
-              className="font-display font-black uppercase tracking-widest rounded-md transition-all duration-150"
-              style={{
-                fontSize: "0.6rem",
-                padding: "4px 10px",
-                backgroundColor: active ? color : "rgba(255,255,255,0.06)",
-                color: active ? "#fff" : "rgba(255,255,255,0.4)",
-                border: `1px solid ${active ? color : "rgba(255,255,255,0.08)"}`,
-              }}
-            >
-              {label}{" "}
-              <span style={{ opacity: 0.55 }}>{count}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Player list */}
-      <div className="flex flex-col gap-1.5">
-        {players.map((p) => {
-          const active = p.id === selectedId;
-          const color  = POS_COLOR[p.position] ?? "#dc2626";
-          const bg     = POS_BG[p.position]    ?? "rgba(220,38,38,0.12)";
-          return (
-            <button
-              key={p.id ?? p.name}
-              onClick={() => p.id && onSelect(p.id)}
-              className="flex items-center gap-3 w-full text-left rounded-xl transition-all duration-150"
-              style={{
-                padding: "10px 12px",
-                backgroundColor: active ? bg : "transparent",
-                border: `1px solid ${active ? color + "55" : "rgba(255,255,255,0.06)"}`,
-              }}
-            >
-              {/* Avatar */}
-              <div
-                className="flex-shrink-0 rounded-full flex items-center justify-center font-display font-black"
-                style={{
-                  width: 36, height: 36,
-                  backgroundColor: active ? color : "rgba(255,255,255,0.08)",
-                  color: active ? "#fff" : "rgba(255,255,255,0.45)",
-                  fontSize: "0.65rem",
-                }}
-              >
-                {initials(p.name)}
-              </div>
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <p
-                  className="font-display font-black uppercase truncate leading-none"
-                  style={{ fontSize: "0.75rem", color: active ? "#fff" : "rgba(255,255,255,0.65)" }}
-                >
-                  {p.name}
-                </p>
-                <p
-                  className="font-display mt-0.5"
-                  style={{
-                    fontSize: "0.6rem",
-                    letterSpacing: "0.06em",
-                    color: active ? color : "rgba(255,255,255,0.3)",
-                  }}
-                >
-                  #{p.number} · {p.position.slice(0, 3).toUpperCase()}
-                </p>
-              </div>
-            </button>
-          );
-        })}
       </div>
     </div>
   );
@@ -267,11 +245,9 @@ function PlayerDashboard({
 }) {
   const gk    = isGK(player.stats);
   const stats = player.stats;
-  const color = POS_COLOR[player.position] ?? "#dc2626";
-  const bg    = POS_BG[player.position]    ?? "rgba(220,38,38,0.12)";
 
   // Trend data
-  const [trend, setTrend]           = useState<PlayerMatchTrendPoint[]>([]);
+  const [trend, setTrend]               = useState<PlayerMatchTrendPoint[]>([]);
   const [trendLoading, setTrendLoading] = useState(true);
 
   useEffect(() => {
@@ -310,20 +286,19 @@ function PlayerDashboard({
     }
   }, [player, allPlayers, gk, stats]);
 
-  // ── Radar (player + position avg overlay) ─────
+  // ── Radar ──────────────────────────────────────
   const radarData = useMemo(() => {
     const norm = (val: number, max: number) =>
       Math.round(Math.min(100, (val / Math.max(max, 1)) * 100));
 
     if (gk) {
-      const s       = stats as GoalkeeperStats;
-      const peers   = allPlayers.filter((p) => isGK(p.stats)).map((p) => p.stats as GoalkeeperStats);
+      const s     = stats as GoalkeeperStats;
+      const peers = allPlayers.filter((p) => isGK(p.stats)).map((p) => p.stats as GoalkeeperStats);
       const mxSaves = Math.max(...peers.map((p) => p.saves), 1);
       const mxCS    = Math.max(...peers.map((p) => p.cleanSheets), 1);
       const mxMins  = Math.max(...peers.map((p) => p.mins), 1);
       const mxStart = Math.max(...peers.map((p) => p.starts), 1);
       const disc    = (p: GoalkeeperStats) => Math.max(0, 100 - p.yellow * 15 - p.red * 30);
-
       return {
         labels: ["Reflexes", "Clean Sheets", "Availability", "Discipline", "Starts"],
         player: [norm(s.saves, mxSaves), norm(s.cleanSheets, mxCS), norm(s.mins, mxMins), disc(s), norm(s.starts, mxStart)],
@@ -343,7 +318,6 @@ function PlayerDashboard({
       const mxT   = Math.max(...peers.map((p) => p.tackles), 1);
       const mxM   = Math.max(...peers.map((p) => p.mins), 1);
       const disc  = (p: FieldStats) => Math.max(0, 100 - p.yellow * 15 - p.red * 30);
-
       return {
         labels: ["Scoring", "Creativity", "Defending", "Stamina", "Discipline"],
         player: [norm(s.goals, mxG), norm(s.assists, mxA), norm(s.tackles, mxT), norm(s.mins, mxM), disc(s)],
@@ -391,7 +365,7 @@ function PlayerDashboard({
       >
         <div
           className="w-12 h-12 rounded-full flex items-center justify-center font-display font-black text-white flex-shrink-0"
-          style={{ backgroundColor: color, fontSize: "1rem" }}
+          style={{ backgroundColor: RED, fontSize: "1rem" }}
         >
           {initials(player.name)}
         </div>
@@ -403,12 +377,6 @@ function PlayerDashboard({
             {player.position} · #{player.number} · {seasonLabel}
           </p>
         </div>
-        <span
-          className="font-display font-black uppercase tracking-widest rounded-full flex-shrink-0"
-          style={{ fontSize: "0.6rem", padding: "4px 12px", backgroundColor: bg, color, border: `1px solid ${color}44` }}
-        >
-          {player.position}
-        </span>
         <span
           className="font-display font-black select-none flex-shrink-0"
           style={{ fontSize: "3.5rem", lineHeight: 1, color: "rgba(255,255,255,0.05)" }}
@@ -431,7 +399,7 @@ function PlayerDashboard({
             <p className="font-display text-xs tracking-widest uppercase mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>
               {k.label}
             </p>
-            <p className="font-body text-xs mt-2" style={{ color }}>
+            <p className="font-body text-xs mt-2" style={{ color: RED }}>
               {k.delta}
             </p>
           </div>
@@ -440,19 +408,14 @@ function PlayerDashboard({
 
       {/* Radar + bar chart */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <RadarCard
-          labels={radarData.labels}
-          playerVals={radarData.player}
-          avgVals={radarData.posAvg}
-          color={color}
-        />
-        <ComparisonBar data={comparisonData} color={color} />
+        <RadarCard labels={radarData.labels} playerVals={radarData.player} avgVals={radarData.posAvg} />
+        <ComparisonBar data={comparisonData} />
       </div>
 
-      {/* Trend line — full width */}
-      <TrendLine data={trend} loading={trendLoading} gk={gk} color={color} />
+      {/* Trend line */}
+      <TrendLine data={trend} loading={trendLoading} gk={gk} />
 
-      {/* Discipline compact row */}
+      {/* Discipline */}
       <div
         className="rounded-xl px-5 py-4"
         style={{ backgroundColor: "#141414", border: "1px solid rgba(255,255,255,0.07)" }}
@@ -467,7 +430,7 @@ function PlayerDashboard({
               fontSize: "0.6rem",
               padding: "3px 10px",
               backgroundColor: disciplineScore >= 85 ? "rgba(34,197,94,0.15)" : disciplineScore >= 60 ? "rgba(234,179,8,0.15)" : "rgba(220,38,38,0.15)",
-              color: disciplineScore >= 85 ? "#22c55e" : disciplineScore >= 60 ? "#eab308" : "#dc2626",
+              color: disciplineScore >= 85 ? "#22c55e" : disciplineScore >= 60 ? "#eab308" : RED,
             }}
           >
             {disciplineScore >= 85 ? "Clean" : disciplineScore >= 60 ? "Caution" : "High Risk"} · {disciplineScore}/100
@@ -480,19 +443,17 @@ function PlayerDashboard({
             <span style={{ fontSize: "0.6rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginLeft: 2 }}>Yellow</span>
           </div>
           <div className="flex items-center gap-2">
-            <span style={{ width: 12, height: 12, backgroundColor: "#dc2626", borderRadius: 2, display: "inline-block", flexShrink: 0 }} />
+            <span style={{ width: 12, height: 12, backgroundColor: RED, borderRadius: 2, display: "inline-block", flexShrink: 0 }} />
             <span className="font-display font-black text-white" style={{ fontSize: "1.4rem", lineHeight: 1 }}>{stats.red}</span>
             <span style={{ fontSize: "0.6rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginLeft: 2 }}>Red</span>
           </div>
           <div className="flex-1">
             <div style={{ height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.07)", overflow: "hidden" }}>
-              <div
-                style={{
-                  width: `${disciplineScore}%`, height: "100%", borderRadius: 2,
-                  backgroundColor: disciplineScore >= 85 ? "#22c55e" : disciplineScore >= 60 ? "#eab308" : "#dc2626",
-                  transition: "width 0.4s ease",
-                }}
-              />
+              <div style={{
+                width: `${disciplineScore}%`, height: "100%", borderRadius: 2,
+                backgroundColor: disciplineScore >= 85 ? "#22c55e" : disciplineScore >= 60 ? "#eab308" : RED,
+                transition: "width 0.4s ease",
+              }} />
             </div>
           </div>
         </div>
@@ -508,12 +469,10 @@ function RadarCard({
   labels,
   playerVals,
   avgVals,
-  color,
 }: {
   labels: string[];
   playerVals: number[];
   avgVals: number[];
-  color: string;
 }) {
   const cx = 110, cy = 110, r = 78, n = labels.length;
   const angle = (i: number) => (Math.PI * 2 * i) / n - Math.PI / 2;
@@ -526,7 +485,6 @@ function RadarCard({
 
   return (
     <div className="rounded-xl p-5" style={{ backgroundColor: "#141414", border: "1px solid rgba(255,255,255,0.07)" }}>
-      {/* Legend */}
       <div className="flex items-center justify-between mb-4">
         <p className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.4)" }}>
           Player profile
@@ -536,52 +494,28 @@ function RadarCard({
             <span style={{ width: 18, height: 1.5, backgroundColor: "rgba(255,255,255,0.3)", display: "inline-block", borderRadius: 1 }} />
             Pos avg
           </span>
-          <span className="flex items-center gap-1.5" style={{ fontSize: "0.6rem", letterSpacing: "0.06em", textTransform: "uppercase", color }}>
-            <span style={{ width: 18, height: 2, backgroundColor: color, display: "inline-block", borderRadius: 1 }} />
+          <span className="flex items-center gap-1.5" style={{ fontSize: "0.6rem", letterSpacing: "0.06em", textTransform: "uppercase", color: RED }}>
+            <span style={{ width: 18, height: 2, backgroundColor: RED, display: "inline-block", borderRadius: 1 }} />
             Player
           </span>
         </div>
       </div>
 
       <div className="flex items-center gap-4">
-        {/* SVG radar */}
         <svg viewBox="-10 -10 240 240" width="170" height="170" role="img" aria-label="Radar chart showing player profile vs position average">
-          {/* Grid rings */}
           {[0.25, 0.5, 0.75, 1].map((s) => (
-            <polygon
-              key={s}
-              points={labels.map((_, i) => pt(i, s).join(",")).join(" ")}
-              fill="none"
-              stroke="rgba(255,255,255,0.07)"
-              strokeWidth="0.5"
-            />
+            <polygon key={s} points={labels.map((_, i) => pt(i, s).join(",")).join(" ")} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" />
           ))}
-          {/* Spokes */}
           {labels.map((_, i) => {
             const [x, y] = pt(i, 1);
             return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" />;
           })}
-          {/* Position avg (dashed) */}
-          <polygon
-            points={poly(avgVals)}
-            fill="rgba(255,255,255,0.04)"
-            stroke="rgba(255,255,255,0.28)"
-            strokeWidth="1.5"
-            strokeDasharray="4,3"
-          />
-          {/* Player polygon */}
-          <polygon
-            points={poly(playerVals)}
-            fill={color + "28"}
-            stroke={color}
-            strokeWidth="2"
-          />
-          {/* Player dots */}
+          <polygon points={poly(avgVals)} fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.28)" strokeWidth="1.5" strokeDasharray="4,3" />
+          <polygon points={poly(playerVals)} fill={RED + "28"} stroke={RED} strokeWidth="2" />
           {playerVals.map((v, i) => {
             const [x, y] = pt(i, Math.max(v, 2) / 100);
-            return <circle key={i} cx={x} cy={y} r="3.5" fill={color} />;
+            return <circle key={i} cx={x} cy={y} r="3.5" fill={RED} />;
           })}
-          {/* Labels */}
           {labels.map((l, i) => {
             const [x, y] = pt(i, 1.36);
             return (
@@ -592,7 +526,6 @@ function RadarCard({
           })}
         </svg>
 
-        {/* Stat bars */}
         <div className="flex flex-col gap-2.5 flex-1">
           {labels.map((l, i) => (
             <div key={l} className="flex items-center gap-2">
@@ -600,16 +533,8 @@ function RadarCard({
                 {l}
               </span>
               <div style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.07)", overflow: "visible", position: "relative" }}>
-                {/* Avg marker */}
-                <div style={{
-                  position: "absolute", top: -1, bottom: -1,
-                  left: `${avgVals[i]}%`, width: 2,
-                  backgroundColor: "rgba(255,255,255,0.28)",
-                  transform: "translateX(-50%)",
-                  borderRadius: 1,
-                }} />
-                {/* Player bar */}
-                <div style={{ width: `${playerVals[i]}%`, height: "100%", borderRadius: 2, backgroundColor: color }} />
+                <div style={{ position: "absolute", top: -1, bottom: -1, left: `${avgVals[i]}%`, width: 2, backgroundColor: "rgba(255,255,255,0.28)", transform: "translateX(-50%)", borderRadius: 1 }} />
+                <div style={{ width: `${playerVals[i]}%`, height: "100%", borderRadius: 2, backgroundColor: RED }} />
               </div>
               <span className="font-display font-black text-white" style={{ fontSize: "0.68rem", width: 24, textAlign: "right", flexShrink: 0 }}>
                 {playerVals[i]}
@@ -624,13 +549,7 @@ function RadarCard({
 
 // ── Comparison Bar ─────────────────────────────
 
-function ComparisonBar({
-  data,
-  color,
-}: {
-  data: { labels: string[]; player: number[]; posAvg: number[] };
-  color: string;
-}) {
+function ComparisonBar({ data }: { data: { labels: string[]; player: number[]; posAvg: number[] } }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef  = useRef<Chart | null>(null);
 
@@ -642,7 +561,7 @@ function ComparisonBar({
       data: {
         labels: data.labels,
         datasets: [
-          { label: "Player",   data: data.player, backgroundColor: color + "cc", borderRadius: 4, barPercentage: 0.55 },
+          { label: "Player",   data: data.player, backgroundColor: RED + "cc", borderRadius: 4, barPercentage: 0.55 },
           { label: "Pos. avg", data: data.posAvg, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 4, barPercentage: 0.55 },
         ],
       },
@@ -657,7 +576,7 @@ function ComparisonBar({
       },
     });
     return () => { chartRef.current?.destroy(); };
-  }, [data, color]);
+  }, [data]);
 
   return (
     <div className="rounded-xl p-5" style={{ backgroundColor: "#141414", border: "1px solid rgba(255,255,255,0.07)" }}>
@@ -666,7 +585,7 @@ function ComparisonBar({
           vs position average
         </p>
         <div className="flex gap-3">
-          {[{ label: "Player", col: color + "cc" }, { label: "Pos avg", col: "rgba(255,255,255,0.2)" }].map((l) => (
+          {[{ label: "Player", col: RED + "cc" }, { label: "Pos avg", col: "rgba(255,255,255,0.2)" }].map((l) => (
             <span key={l.label} className="flex items-center gap-1.5" style={{ fontSize: "0.6rem", letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)" }}>
               <span style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: l.col, display: "inline-block" }} />
               {l.label}
@@ -689,12 +608,10 @@ function TrendLine({
   data,
   loading,
   gk,
-  color,
 }: {
   data: PlayerMatchTrendPoint[];
   loading: boolean;
   gk: boolean;
-  color: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef  = useRef<Chart | null>(null);
@@ -703,25 +620,22 @@ function TrendLine({
   useEffect(() => {
     if (loading || data.length < 2 || !canvasRef.current) return;
     if (chartRef.current) chartRef.current.destroy();
-
     chartRef.current = new Chart(canvasRef.current, {
       type: "line",
       data: {
         labels: data.map((d) => d.opponent),
-        datasets: [
-          {
-            label: metric,
-            data: data.map((d) => d.value),
-            borderColor: color,
-            backgroundColor: color + "18",
-            pointBackgroundColor: color,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            tension: 0.4,
-            fill: true,
-            borderWidth: 2,
-          },
-        ],
+        datasets: [{
+          label: metric,
+          data: data.map((d) => d.value),
+          borderColor: RED,
+          backgroundColor: RED + "18",
+          pointBackgroundColor: RED,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          tension: 0.4,
+          fill: true,
+          borderWidth: 2,
+        }],
       },
       options: {
         responsive: true,
@@ -736,22 +650,13 @@ function TrendLine({
           },
         },
         scales: {
-          x: {
-            ticks: { color: "rgba(255,255,255,0.4)", font: { size: 10 }, maxRotation: 30 },
-            grid: { display: false },
-            border: { display: false },
-          },
-          y: {
-            min: 0,
-            ticks: { color: "rgba(255,255,255,0.4)", font: { size: 10 }, stepSize: 1 },
-            grid: { color: "rgba(255,255,255,0.06)" },
-            border: { display: false },
-          },
+          x: { ticks: { color: "rgba(255,255,255,0.4)", font: { size: 10 }, maxRotation: 30 }, grid: { display: false }, border: { display: false } },
+          y: { min: 0, ticks: { color: "rgba(255,255,255,0.4)", font: { size: 10 }, stepSize: 1 }, grid: { color: "rgba(255,255,255,0.06)" }, border: { display: false } },
         },
       },
     });
     return () => { chartRef.current?.destroy(); };
-  }, [data, loading, color, metric]);
+  }, [data, loading, metric]);
 
   return (
     <div className="rounded-xl p-5" style={{ backgroundColor: "#141414", border: "1px solid rgba(255,255,255,0.07)" }}>
