@@ -20,32 +20,52 @@ export default function Hero() {
     );
   }, []);
 
-  // iOS Safari ignores the autoPlay attribute — call .play() imperatively.
-  // We retry on loadeddata + canplay (handles slow connections / refresh)
-  // and on visibilitychange (handles the "page just became active" case).
+  // iOS Safari autoplay: muted + playsInline is not enough on a cold page load
+  // because the browser hasn't seen a user gesture yet. Strategy:
+  //   1. Try .play() immediately — works on client-side navigation & most browsers.
+  //   2. If rejected, register a one-shot touchstart listener so the video
+  //      starts the instant the user first touches the screen (scroll, tap, anything).
+  //   3. Also retry on canplay/loadeddata for slow connections.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    video.muted = true; // must set via property, not just attribute, for iOS
+    video.muted = true;
 
-    const tryPlay = () => {
-      if (video.paused) {
-        video.play().catch(() => {});
-      }
+    let unlocked = false;
+
+    const playVideo = () => {
+      if (!video.paused) return;
+      video.play().catch(() => {});
     };
 
-    tryPlay();
-    video.addEventListener("loadeddata", tryPlay);
-    video.addEventListener("canplay", tryPlay);
+    const onFirstTouch = () => {
+      if (unlocked) return;
+      unlocked = true;
+      playVideo();
+      document.removeEventListener("touchstart", onFirstTouch);
+    };
 
-    const onVisibility = () => { if (!document.hidden) tryPlay(); };
+    const tryPlay = () => {
+      video.play().catch(() => {
+        // Autoplay blocked — wait for first user touch
+        document.addEventListener("touchstart", onFirstTouch, { once: true });
+      });
+    };
+
+    video.load();
+    tryPlay();
+    video.addEventListener("canplay", playVideo);
+    video.addEventListener("loadeddata", playVideo);
+
+    const onVisibility = () => { if (!document.hidden) playVideo(); };
     document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
-      video.removeEventListener("loadeddata", tryPlay);
-      video.removeEventListener("canplay", tryPlay);
+      video.removeEventListener("canplay", playVideo);
+      video.removeEventListener("loadeddata", playVideo);
       document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener("touchstart", onFirstTouch);
     };
   }, []);
 
@@ -61,6 +81,7 @@ export default function Hero() {
           playsInline
           preload="auto"
           poster="/images/hero-poster.jpg"
+          src="https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/videos/Pan_Bench_Land_ready.mp4"
           onCanPlay={() => { videoRef.current?.play().catch(() => {}); }}
           style={{
             position: "absolute",
@@ -74,12 +95,7 @@ export default function Hero() {
             objectFit: "cover",
             pointerEvents: "none",
           }}
-        >
-          <source
-            src="https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/videos/Pan_Bench_Land_ready.mp4"
-            type="video/mp4"
-          />
-        </video>
+        />
       </div>
 
       {/* Dark overlay */}
