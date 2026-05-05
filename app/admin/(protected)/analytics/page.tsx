@@ -107,9 +107,9 @@ export default function AnalyticsPage() {
           <button
             key={pos}
             onClick={() => setPosFilter(pos)}
-            className="font-display font-black uppercase tracking-widest px-4 py-2 rounded-lg transition-all duration-150"
+            className="font-display font-black uppercase tracking-widest px-5 py-2.5 rounded-lg transition-all duration-150"
             style={{
-              fontSize: "0.75rem",
+              fontSize: "0.9rem",
               backgroundColor: posFilter === pos ? RED : "#1a1a1a",
               color: posFilter === pos ? "#fff" : "rgba(255,255,255,0.4)",
               border: `1px solid ${posFilter === pos ? RED : "rgba(255,255,255,0.08)"}`,
@@ -141,11 +141,11 @@ export default function AnalyticsPage() {
                     minWidth: 72,
                   }}
                 >
-                  <div className="rounded-full overflow-hidden flex-shrink-0" style={{ width: 34, height: 34, border: `2px solid ${active ? RED : "transparent"}` }}>
+                  <div className="rounded-full overflow-hidden flex-shrink-0" style={{ width: 48, height: 48, border: `2px solid ${active ? RED : "transparent"}` }}>
                     {p.image ? (
                       <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center font-display font-black" style={{ backgroundColor: active ? RED : "rgba(255,255,255,0.08)", color: active ? "#fff" : "rgba(255,255,255,0.45)", fontSize: "0.65rem" }}>
+                      <div className="w-full h-full flex items-center justify-center font-display font-black" style={{ backgroundColor: active ? RED : "rgba(255,255,255,0.08)", color: active ? "#fff" : "rgba(255,255,255,0.45)", fontSize: "0.75rem" }}>
                         {initials(p.name)}
                       </div>
                     )}
@@ -176,11 +176,11 @@ export default function AnalyticsPage() {
                     border: `1px solid ${active ? RED + "55" : "rgba(255,255,255,0.06)"}`,
                   }}
                 >
-                  <div className="rounded-full overflow-hidden flex-shrink-0" style={{ width: 36, height: 36, border: `2px solid ${active ? RED : "rgba(255,255,255,0.08)"}` }}>
+                  <div className="rounded-full overflow-hidden flex-shrink-0" style={{ width: 48, height: 48, border: `2px solid ${active ? RED : "rgba(255,255,255,0.08)"}` }}>
                     {p.image ? (
                       <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center font-display font-black" style={{ backgroundColor: active ? RED : "rgba(255,255,255,0.08)", color: active ? "#fff" : "rgba(255,255,255,0.45)", fontSize: "0.65rem" }}>
+                      <div className="w-full h-full flex items-center justify-center font-display font-black" style={{ backgroundColor: active ? RED : "rgba(255,255,255,0.08)", color: active ? "#fff" : "rgba(255,255,255,0.45)", fontSize: "0.75rem" }}>
                         {initials(p.name)}
                       </div>
                     )}
@@ -188,7 +188,7 @@ export default function AnalyticsPage() {
                   <div className="flex-1 min-w-0">
                     <p
                       className="font-display font-black uppercase truncate leading-none"
-                      style={{ fontSize: "0.75rem", color: active ? "#fff" : "rgba(255,255,255,0.65)" }}
+                      style={{ fontSize: "0.9rem", color: active ? "#fff" : "rgba(255,255,255,0.65)" }}
                     >
                       {p.name}
                     </p>
