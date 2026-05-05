@@ -6,10 +6,20 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 const navLogos = [
-  { src: "/images/logo/rosecityLogo-Photoroom.png", alt: "Rose City FC",  size: 96, invertOnScroll: false },
-  { src: "/images/logo/us_new_image.png",            alt: "USA Soccer",    size: 28, invertOnScroll: false },
-  { src: "/images/logo/fifa_logo_white2.png",        alt: "FIFA",          size: 28, invertOnScroll: true  },
-  { src: "/images/logo/us_cup.png",                  alt: "U.S. Open Cup", size: 28, invertOnScroll: true  },
+  { src: "/images/logo/rosecityLogo-Photoroom.png", alt: "Rose City FC",  size: 96, scrolledSrc: null },
+  { src: "/images/logo/us_new_image.png",            alt: "USA Soccer",    size: 42, scrolledSrc: null },
+  {
+    src: "/images/logo/fifa_logo_white2.png",
+    alt: "FIFA",
+    size: 42,
+    scrolledSrc: "https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/logos/fifa_logo_transparent_v2.png",
+  },
+  {
+    src: "/images/logo/us_cup.png",
+    alt: "U.S. Open Cup",
+    size: 42,
+    scrolledSrc: "https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/logos/U.S._Open_Cup_logo_red_color%20(1).png",
+  },
 ];
 
 const navLinks = [
@@ -60,7 +70,7 @@ export default function Nav() {
         {/* Logo row */}
         <Link href="/" className="flex items-center gap-3 flex-shrink-0" aria-label="Rose City FC Home">
           {/* Rose City crest — primary */}
-          <div className="relative flex-shrink-0" style={{ width: 96, height: 96 }}>
+          <div className="relative flex-shrink-0" style={{ width: 116, height: 116 }}>
             <Image
               src="/images/logo/rosecityLogo-Photoroom.png"
               alt="Rose City FC"
@@ -78,18 +88,20 @@ export default function Nav() {
 
           {/* Affiliation logos — tighter cluster */}
           <div className="flex items-center gap-2">
-            {navLogos.slice(1).map((logo) => (
-              <div key={logo.alt} className="relative flex-shrink-0" style={{ width: logo.size, height: logo.size }}>
-                <Image
-                  src={logo.src}
-                  alt={logo.alt}
-                  fill
-                  className="object-contain transition-all duration-300"
-                  priority
-                  style={{ filter: !isHero && logo.invertOnScroll ? "invert(1)" : "none" }}
-                />
-              </div>
-            ))}
+            {navLogos.slice(1).map((logo) => {
+              const activeSrc = (!isHero && logo.scrolledSrc) ? logo.scrolledSrc : logo.src;
+              return (
+                <div key={logo.alt} className="relative flex-shrink-0" style={{ width: logo.size, height: logo.size }}>
+                  <Image
+                    src={activeSrc}
+                    alt={logo.alt}
+                    fill
+                    className="object-contain transition-all duration-300"
+                    priority
+                  />
+                </div>
+              );
+            })}
           </div>
         </Link>
 
