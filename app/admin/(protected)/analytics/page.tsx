@@ -359,20 +359,20 @@ function PlayerDashboard({
         className="flex items-center gap-4 rounded-xl px-5 py-4"
         style={{ backgroundColor: "#141414", border: "1px solid rgba(255,255,255,0.07)" }}
       >
-        <div className="rounded-full overflow-hidden flex-shrink-0" style={{ width: 48, height: 48, border: `2px solid ${RED}` }}>
+        <div className="rounded-xl overflow-hidden flex-shrink-0" style={{ width: 96, height: 96, border: `2px solid ${RED}` }}>
           {player.image ? (
             <img src={player.image} alt={player.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
           ) : (
-            <div className="w-full h-full flex items-center justify-center font-display font-black text-white" style={{ backgroundColor: RED, fontSize: "1rem" }}>
+            <div className="w-full h-full flex items-center justify-center font-display font-black text-white" style={{ backgroundColor: RED, fontSize: "1.5rem" }}>
               {initials(player.name)}
             </div>
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-display font-black uppercase text-white" style={{ fontSize: "1.2rem" }}>
+          <p className="font-display font-black uppercase text-white" style={{ fontSize: "1.6rem", lineHeight: 1.1 }}>
             {player.name}
           </p>
-          <p className="font-display text-xs tracking-widest uppercase mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
+          <p className="font-display tracking-widest uppercase mt-1" style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.35)" }}>
             {player.position} · #{player.number} · {seasonLabel}
           </p>
         </div>
