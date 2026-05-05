@@ -60,6 +60,16 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  {
+    label: "Analytics",
+    href: "/admin/analytics",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M21 21H4.6C4.04 21 3.76 21 3.55 20.89a1 1 0 01-.44-.44C3 20.24 3 19.96 3 19.4V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        <path d="M7 14l4-4 4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
 ];
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {

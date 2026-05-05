@@ -12,6 +12,7 @@
     "@headlessui/react": "^2.2.10",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.105.1",
+    "chart.js": "^4.5.1",
     "flag-icons": "^7.5.0",
     "gsap": "^3.12.5",
     "next": "14.2.3",
