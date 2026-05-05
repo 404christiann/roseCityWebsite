@@ -317,14 +317,14 @@ function PlayerDashboard({
 // ── Radar card ────────────────────────────────
 
 function RadarCard({ attrs, title }: { attrs: { l: string; v: number }[]; title: string }) {
-  const cx = 100, cy = 105, r = 72, n = attrs.length;
+  const cx = 110, cy = 110, r = 70, n = attrs.length;
   const angle = (i: number) => (Math.PI * 2 * i) / n - Math.PI / 2;
   const pt = (i: number, scale: number) => [
     cx + scale * r * Math.cos(angle(i)),
     cy + scale * r * Math.sin(angle(i)),
   ];
   const poly = (scale: number) => attrs.map((_, i) => pt(i, scale).join(",")).join(" ");
-  const dataPoly = attrs.map((a, i) => pt(i, a.v / 100).join(",")).join(" ");
+  const dataPoly = attrs.map((a, i) => pt(i, Math.max(a.v, 2) / 100).join(",")).join(" ");
 
   return (
     <div className="rounded-xl p-5" style={{ backgroundColor: "#141414", border: "1px solid rgba(255,255,255,0.07)" }}>
@@ -332,7 +332,7 @@ function RadarCard({ attrs, title }: { attrs: { l: string; v: number }[]; title:
         {title}
       </p>
       <div className="flex items-center gap-4">
-        <svg viewBox="0 0 200 210" width="180" height="190" role="img" aria-label="Radar chart showing player profile">
+        <svg viewBox="-10 -10 240 240" width="180" height="180" role="img" aria-label="Radar chart showing player profile">
           {[0.25, 0.5, 0.75, 1].map((s) => (
             <polygon key={s} points={poly(s)} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" />
           ))}
@@ -342,7 +342,7 @@ function RadarCard({ attrs, title }: { attrs: { l: string; v: number }[]; title:
           })}
           <polygon points={dataPoly} fill="rgba(220,38,38,0.15)" stroke="#dc2626" strokeWidth="1.5" />
           {attrs.map((a, i) => {
-            const [x, y] = pt(i, 1.22);
+            const [x, y] = pt(i, 1.32);
             return (
               <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,0.45)" fontSize="9">
                 {a.l}
