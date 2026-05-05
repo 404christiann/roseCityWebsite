@@ -5,7 +5,8 @@ import Link from "next/link";
 import { gsap } from "gsap";
 
 export default function Hero() {
-  const ctaRef = useRef<HTMLDivElement>(null);
+  const ctaRef  = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const hasAnimated = useRef(false);
 
   useEffect(() => {
@@ -19,11 +20,22 @@ export default function Hero() {
     );
   }, []);
 
+  // iOS Safari ignores the autoPlay attribute — call .play() imperatively
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = true; // must set muted via property for iOS
+    video.play().catch(() => {
+      // Autoplay blocked — poster image stays visible as fallback
+    });
+  }, []);
+
   return (
     <section className="relative w-full h-screen min-h-[600px] overflow-hidden">
       {/* Background video */}
       <div className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
         <video
+          ref={videoRef}
           autoPlay
           muted
           loop
