@@ -20,14 +20,33 @@ export default function Hero() {
     );
   }, []);
 
-  // iOS Safari ignores the autoPlay attribute — call .play() imperatively
+  // iOS Safari ignores the autoPlay attribute — call .play() imperatively.
+  // We retry on loadeddata + canplay (handles slow connections / refresh)
+  // and on visibilitychange (handles the "page just became active" case).
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    video.muted = true; // must set muted via property for iOS
-    video.play().catch(() => {
-      // Autoplay blocked — poster image stays visible as fallback
-    });
+
+    video.muted = true; // must set via property, not just attribute, for iOS
+
+    const tryPlay = () => {
+      if (video.paused) {
+        video.play().catch(() => {});
+      }
+    };
+
+    tryPlay();
+    video.addEventListener("loadeddata", tryPlay);
+    video.addEventListener("canplay", tryPlay);
+
+    const onVisibility = () => { if (!document.hidden) tryPlay(); };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      video.removeEventListener("loadeddata", tryPlay);
+      video.removeEventListener("canplay", tryPlay);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   return (
@@ -42,6 +61,7 @@ export default function Hero() {
           playsInline
           preload="auto"
           poster="/images/hero-poster.jpg"
+          onCanPlay={() => { videoRef.current?.play().catch(() => {}); }}
           style={{
             position: "absolute",
             top: "50%",
