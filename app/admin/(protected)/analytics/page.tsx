@@ -141,16 +141,14 @@ export default function AnalyticsPage() {
                     minWidth: 72,
                   }}
                 >
-                  <div
-                    className="rounded-full flex items-center justify-center font-display font-black"
-                    style={{
-                      width: 34, height: 34,
-                      backgroundColor: active ? RED : "rgba(255,255,255,0.08)",
-                      color: active ? "#fff" : "rgba(255,255,255,0.45)",
-                      fontSize: "0.65rem",
-                    }}
-                  >
-                    {initials(p.name)}
+                  <div className="rounded-full overflow-hidden flex-shrink-0" style={{ width: 34, height: 34, border: `2px solid ${active ? RED : "transparent"}` }}>
+                    {p.image ? (
+                      <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center font-display font-black" style={{ backgroundColor: active ? RED : "rgba(255,255,255,0.08)", color: active ? "#fff" : "rgba(255,255,255,0.45)", fontSize: "0.65rem" }}>
+                        {initials(p.name)}
+                      </div>
+                    )}
                   </div>
                   <span
                     className="font-display font-black uppercase"
@@ -178,16 +176,14 @@ export default function AnalyticsPage() {
                     border: `1px solid ${active ? RED + "55" : "rgba(255,255,255,0.06)"}`,
                   }}
                 >
-                  <div
-                    className="flex-shrink-0 rounded-full flex items-center justify-center font-display font-black"
-                    style={{
-                      width: 36, height: 36,
-                      backgroundColor: active ? RED : "rgba(255,255,255,0.08)",
-                      color: active ? "#fff" : "rgba(255,255,255,0.45)",
-                      fontSize: "0.65rem",
-                    }}
-                  >
-                    {initials(p.name)}
+                  <div className="rounded-full overflow-hidden flex-shrink-0" style={{ width: 36, height: 36, border: `2px solid ${active ? RED : "rgba(255,255,255,0.08)"}` }}>
+                    {p.image ? (
+                      <img src={p.image} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center font-display font-black" style={{ backgroundColor: active ? RED : "rgba(255,255,255,0.08)", color: active ? "#fff" : "rgba(255,255,255,0.45)", fontSize: "0.65rem" }}>
+                        {initials(p.name)}
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p
@@ -363,11 +359,14 @@ function PlayerDashboard({
         className="flex items-center gap-4 rounded-xl px-5 py-4"
         style={{ backgroundColor: "#141414", border: "1px solid rgba(255,255,255,0.07)" }}
       >
-        <div
-          className="w-12 h-12 rounded-full flex items-center justify-center font-display font-black text-white flex-shrink-0"
-          style={{ backgroundColor: RED, fontSize: "1rem" }}
-        >
-          {initials(player.name)}
+        <div className="rounded-full overflow-hidden flex-shrink-0" style={{ width: 48, height: 48, border: `2px solid ${RED}` }}>
+          {player.image ? (
+            <img src={player.image} alt={player.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center font-display font-black text-white" style={{ backgroundColor: RED, fontSize: "1rem" }}>
+              {initials(player.name)}
+            </div>
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-display font-black uppercase text-white" style={{ fontSize: "1.2rem" }}>
