@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { gsap } from "gsap";
 
 export default function Hero() {
-  const ctaRef  = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const ctaRef   = useRef<HTMLDivElement>(null);
+  const videoRef  = useRef<HTMLVideoElement>(null);
   const hasAnimated = useRef(false);
+  const [videoMounted, setVideoMounted] = useState(false);
+
+  // Render video only client-side — iOS Safari ignores autoplay on SSR-rendered video elements
+  useEffect(() => { setVideoMounted(true); }, []);
 
   useEffect(() => {
     if (hasAnimated.current) return;
@@ -67,35 +71,56 @@ export default function Hero() {
       document.removeEventListener("visibilitychange", onVisibility);
       document.removeEventListener("touchstart", onFirstTouch);
     };
-  }, []);
+  }, [videoMounted]);
 
   return (
     <section className="relative w-full h-screen min-h-[600px] overflow-hidden">
-      {/* Background video */}
+      {/* Background video — rendered client-side only so iOS Safari treats it as a
+          fresh element and respects the muted autoplay policy */}
       <div className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          poster="/images/hero-poster.jpg"
-          src="https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/videos/Pan_Bench_Land_ready.mp4"
-          onCanPlay={() => { videoRef.current?.play().catch(() => {}); }}
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            width: "177.78vh",
-            height: "56.25vw",
-            minWidth: "100%",
-            minHeight: "100%",
-            transform: "translate(-50%, -50%)",
-            objectFit: "cover",
-            pointerEvents: "none",
-          }}
-        />
+        {/* Poster shown until the video element is created client-side */}
+        {!videoMounted && (
+          <img
+            src="/images/hero-poster.jpg"
+            alt=""
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              width: "177.78vh",
+              height: "56.25vw",
+              minWidth: "100%",
+              minHeight: "100%",
+              transform: "translate(-50%, -50%)",
+              objectFit: "cover",
+            }}
+          />
+        )}
+        {videoMounted && (
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            poster="/images/hero-poster.jpg"
+            src="https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/videos/Pan_Bench_Land_ready.mp4"
+            onCanPlay={() => { videoRef.current?.play().catch(() => {}); }}
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              width: "177.78vh",
+              height: "56.25vw",
+              minWidth: "100%",
+              minHeight: "100%",
+              transform: "translate(-50%, -50%)",
+              objectFit: "cover",
+              pointerEvents: "none",
+            }}
+          />
+        )}
       </div>
 
       {/* Dark overlay */}
