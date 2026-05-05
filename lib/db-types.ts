@@ -67,24 +67,27 @@ export type DBPlayerMatchStats = {
   id: string;
   player_id: string;
   match_id: string;
+  starts: boolean;        // checkbox in the stats entry form
+  mins: number;
   goals: number;
   assists: number;
   tackles: number;
-  starts: number;
+  offsides: number;
+  fouls: number;
+  fouls_suffered: number;
   yellow: number;
   red: number;
-  mins: number;
 };
 
 export type DBGoalkeeperMatchStats = {
   id: string;
   player_id: string;
   match_id: string;
+  starts: boolean;        // checkbox in the stats entry form
+  mins: number;
   goals_against: number;
   saves: number;
   clean_sheets: number;
-  starts: number;
   yellow: number;
   red: number;
-  mins: number;
 };

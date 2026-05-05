@@ -26,6 +26,7 @@ export type FieldStats = {
 };
 
 export type Player = {
+  id?: string;          // Supabase UUID — present for DB-fetched players, undefined for static data
   number: number;
   name: string;
   caption?: string;

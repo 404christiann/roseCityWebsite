@@ -31,6 +31,7 @@ function defaultFieldStats(): FieldStats {
 
 function mapPlayer(row: DBPlayer, stats: GoalkeeperStats | FieldStats, actionPhotos: string[] = []): Player {
   return {
+    id: row.id,
     number: row.number,
     name: row.name,
     caption: row.caption ?? undefined,
@@ -195,6 +196,58 @@ export async function fetchStaff(): Promise<Staff[]> {
 
   if (error) throw new Error(`fetchStaff: ${error.message}`);
   return (data as DBStaff[]).map(mapStaff);
+}
+
+/**
+ * One data point in a player's match-by-match trend.
+ */
+export type PlayerMatchTrendPoint = {
+  date: string;
+  opponent: string;
+  value: number;   // goals+assists for field players, saves for GKs
+  mins: number;
+};
+
+/**
+ * Fetches per-match stats for a single player, joined with match metadata,
+ * sorted chronologically. Only matches where the player played (mins > 0)
+ * are included.
+ *
+ * Uses a client-side join (two queries + Map) to avoid relying on Supabase
+ * FK relationship names being set up correctly.
+ */
+export async function fetchPlayerMatchTrend(
+  playerId: string,
+  gk: boolean,
+): Promise<PlayerMatchTrendPoint[]> {
+  const table  = gk ? "goalkeeper_match_stats" : "player_match_stats";
+  const fields = gk ? "match_id, saves, mins" : "match_id, goals, assists, mins";
+
+  const [{ data: statsData }, { data: matchData }] = await Promise.all([
+    supabase.from(table).select(fields).eq("player_id", playerId).gt("mins", 0),
+    supabase.from("matches").select("id, date, opponent"),
+  ]);
+
+  const matchMap = new Map<string, { date: string; opponent: string }>(
+    (matchData ?? []).map((m: { id: string; date: string; opponent: string }) => [
+      m.id,
+      { date: m.date, opponent: m.opponent },
+    ]),
+  );
+
+  return ((statsData ?? []) as unknown as Record<string, unknown>[])
+    .map((r) => {
+      const match = matchMap.get(r.match_id as string);
+      if (!match) return null;
+      return {
+        date:     match.date,
+        opponent: match.opponent,
+        value:    gk ? Number(r.saves) : Number(r.goals) + Number(r.assists),
+        mins:     Number(r.mins),
+      };
+    })
+    .filter((r): r is PlayerMatchTrendPoint => r !== null)
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }
 
 /**

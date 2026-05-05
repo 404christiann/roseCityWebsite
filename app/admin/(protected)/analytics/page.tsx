@@ -2,12 +2,38 @@
 
 import { useEffect, useRef, useState, useMemo } from "react";
 import { Chart, registerables } from "chart.js";
-import { fetchRoster } from "@/lib/queries";
+import { fetchRoster, fetchPlayerMatchTrend, PlayerMatchTrendPoint } from "@/lib/queries";
 import { Player, GoalkeeperStats, FieldStats } from "@/lib/data";
 
 Chart.register(...registerables);
 
-// ── Helpers ───────────────────────────────────
+// ── Constants ──────────────────────────────────
+
+const POS_COLOR: Record<string, string> = {
+  Goalkeeper: "#7c3aed",
+  Defender:   "#185fa5",
+  Midfielder: "#d97706",
+  Forward:    "#dc2626",
+};
+
+const POS_BG: Record<string, string> = {
+  Goalkeeper: "rgba(124,58,237,0.12)",
+  Defender:   "rgba(24,95,165,0.12)",
+  Midfielder: "rgba(217,119,6,0.12)",
+  Forward:    "rgba(220,38,38,0.12)",
+};
+
+type PositionKey = "All" | "Goalkeeper" | "Defender" | "Midfielder" | "Forward";
+
+const POSITION_FILTERS: { key: PositionKey; label: string }[] = [
+  { key: "All",        label: "All" },
+  { key: "Goalkeeper", label: "GK"  },
+  { key: "Defender",   label: "DEF" },
+  { key: "Midfielder", label: "MID" },
+  { key: "Forward",    label: "FWD" },
+];
+
+// ── Helpers ────────────────────────────────────
 
 function isGK(stats: GoalkeeperStats | FieldStats): stats is GoalkeeperStats {
   return "saves" in stats;
@@ -22,21 +48,26 @@ function avg(nums: number[]) {
   return Math.round(nums.reduce((a, b) => a + b, 0) / nums.length);
 }
 
-type PositionKey = "All" | "Goalkeeper" | "Defender" | "Midfielder" | "Forward";
+function avgRaw(nums: number[]) {
+  if (!nums.length) return 0;
+  return nums.reduce((a, b) => a + b, 0) / nums.length;
+}
 
-// ── Main page ─────────────────────────────────
+// ── Main page ──────────────────────────────────
 
 export default function AnalyticsPage() {
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [seasonLabel, setSeasonLabel] = useState("2025–26");
   const [loading, setLoading] = useState(true);
   const [posFilter, setPosFilter] = useState<PositionKey>("All");
-  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRoster().then(({ goalkeepers, defenders, midfielders, forwards, seasonLabel: sl }) => {
-      setAllPlayers([...goalkeepers, ...defenders, ...midfielders, ...forwards]);
+      const all = [...goalkeepers, ...defenders, ...midfielders, ...forwards];
+      setAllPlayers(all);
       setSeasonLabel(sl);
+      if (all.length > 0) setSelectedId(all[0].id ?? null);
       setLoading(false);
     });
   }, []);
@@ -46,10 +77,12 @@ export default function AnalyticsPage() {
     return allPlayers.filter((p) => p.position === posFilter);
   }, [allPlayers, posFilter]);
 
-  // Reset selected player when filter changes
-  useEffect(() => { setSelectedIdx(0); }, [posFilter]);
+  // Auto-select first player when filter changes
+  useEffect(() => {
+    if (filtered.length > 0) setSelectedId(filtered[0].id ?? null);
+  }, [posFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const player = filtered[selectedIdx] ?? null;
+  const player = filtered.find((p) => p.id === selectedId) ?? filtered[0] ?? null;
 
   if (loading) {
     return (
@@ -72,9 +105,9 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div style={{ maxWidth: 1100, margin: "0 auto" }}>
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h1
           className="font-display font-black uppercase text-white leading-none"
           style={{ fontSize: "clamp(2.5rem, 5vw, 3.5rem)" }}
@@ -86,178 +119,279 @@ export default function AnalyticsPage() {
         </p>
       </div>
 
-      {/* Position filters + player select */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        {(["All", "Goalkeeper", "Defender", "Midfielder", "Forward"] as PositionKey[]).map((pos) => (
-          <button
-            key={pos}
-            onClick={() => setPosFilter(pos)}
-            className="font-display font-black uppercase tracking-widest px-4 py-2 rounded-lg transition-all duration-150"
-            style={{
-              fontSize: "0.75rem",
-              backgroundColor: posFilter === pos ? "#dc2626" : "#1a1a1a",
-              color: posFilter === pos ? "#fff" : "rgba(255,255,255,0.4)",
-              border: posFilter === pos ? "1px solid #dc2626" : "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            {pos}
-          </button>
-        ))}
-
-        <select
-          value={selectedIdx}
-          onChange={(e) => setSelectedIdx(Number(e.target.value))}
-          className="ml-auto rounded-lg px-3 py-2 font-display font-bold uppercase tracking-widest"
-          style={{
-            fontSize: "0.8rem",
-            backgroundColor: "#1a1a1a",
-            color: "#fff",
-            border: "1px solid rgba(255,255,255,0.12)",
-            outline: "none",
-          }}
-        >
-          {filtered.map((p, i) => (
-            <option key={i} value={i}>#{p.number} {p.name}</option>
-          ))}
-        </select>
-      </div>
-
-      {player && (
-        <PlayerDashboard
-          player={player}
+      {/* Two-column layout: sidebar + main */}
+      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20, alignItems: "start" }}>
+        <PlayerSidebar
+          players={filtered}
           allPlayers={allPlayers}
-          positionPeers={filtered}
-          seasonLabel={seasonLabel}
+          posFilter={posFilter}
+          onPosFilter={setPosFilter}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
         />
-      )}
+
+        <div>
+          {player ? (
+            <PlayerDashboard
+              key={player.id ?? player.name}
+              player={player}
+              allPlayers={allPlayers}
+              seasonLabel={seasonLabel}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-64">
+              <p className="font-display text-sm tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.3)" }}>
+                Select a player
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-// ── Player dashboard ───────────────────────────
+// ── Player Sidebar ─────────────────────────────
+
+function PlayerSidebar({
+  players,
+  allPlayers,
+  posFilter,
+  onPosFilter,
+  selectedId,
+  onSelect,
+}: {
+  players: Player[];
+  allPlayers: Player[];
+  posFilter: PositionKey;
+  onPosFilter: (p: PositionKey) => void;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Position filter pills */}
+      <div className="flex flex-wrap gap-1.5">
+        {POSITION_FILTERS.map(({ key, label }) => {
+          const count = key === "All"
+            ? allPlayers.length
+            : allPlayers.filter((p) => p.position === key).length;
+          const active = posFilter === key;
+          const color  = key === "All" ? "#dc2626" : POS_COLOR[key];
+          return (
+            <button
+              key={key}
+              onClick={() => onPosFilter(key)}
+              className="font-display font-black uppercase tracking-widest rounded-md transition-all duration-150"
+              style={{
+                fontSize: "0.6rem",
+                padding: "4px 10px",
+                backgroundColor: active ? color : "rgba(255,255,255,0.06)",
+                color: active ? "#fff" : "rgba(255,255,255,0.4)",
+                border: `1px solid ${active ? color : "rgba(255,255,255,0.08)"}`,
+              }}
+            >
+              {label}{" "}
+              <span style={{ opacity: 0.55 }}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Player list */}
+      <div className="flex flex-col gap-1.5">
+        {players.map((p) => {
+          const active = p.id === selectedId;
+          const color  = POS_COLOR[p.position] ?? "#dc2626";
+          const bg     = POS_BG[p.position]    ?? "rgba(220,38,38,0.12)";
+          return (
+            <button
+              key={p.id ?? p.name}
+              onClick={() => p.id && onSelect(p.id)}
+              className="flex items-center gap-3 w-full text-left rounded-xl transition-all duration-150"
+              style={{
+                padding: "10px 12px",
+                backgroundColor: active ? bg : "transparent",
+                border: `1px solid ${active ? color + "55" : "rgba(255,255,255,0.06)"}`,
+              }}
+            >
+              {/* Avatar */}
+              <div
+                className="flex-shrink-0 rounded-full flex items-center justify-center font-display font-black"
+                style={{
+                  width: 36, height: 36,
+                  backgroundColor: active ? color : "rgba(255,255,255,0.08)",
+                  color: active ? "#fff" : "rgba(255,255,255,0.45)",
+                  fontSize: "0.65rem",
+                }}
+              >
+                {initials(p.name)}
+              </div>
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p
+                  className="font-display font-black uppercase truncate leading-none"
+                  style={{ fontSize: "0.75rem", color: active ? "#fff" : "rgba(255,255,255,0.65)" }}
+                >
+                  {p.name}
+                </p>
+                <p
+                  className="font-display mt-0.5"
+                  style={{
+                    fontSize: "0.6rem",
+                    letterSpacing: "0.06em",
+                    color: active ? color : "rgba(255,255,255,0.3)",
+                  }}
+                >
+                  #{p.number} · {p.position.slice(0, 3).toUpperCase()}
+                </p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Player Dashboard ───────────────────────────
 
 function PlayerDashboard({
   player,
   allPlayers,
-  positionPeers,
   seasonLabel,
 }: {
   player: Player;
   allPlayers: Player[];
-  positionPeers: Player[];
   seasonLabel: string;
 }) {
-  const gk = isGK(player.stats);
+  const gk    = isGK(player.stats);
   const stats = player.stats;
+  const color = POS_COLOR[player.position] ?? "#dc2626";
+  const bg    = POS_BG[player.position]    ?? "rgba(220,38,38,0.12)";
 
-  // ── KPI data ─────────────────────────────────
+  // Trend data
+  const [trend, setTrend]           = useState<PlayerMatchTrendPoint[]>([]);
+  const [trendLoading, setTrendLoading] = useState(true);
+
+  useEffect(() => {
+    if (!player.id) { setTrend([]); setTrendLoading(false); return; }
+    setTrendLoading(true);
+    fetchPlayerMatchTrend(player.id, gk)
+      .then((data) => { setTrend(data); setTrendLoading(false); })
+      .catch(() => { setTrend([]); setTrendLoading(false); });
+  }, [player.id, gk]);
+
+  // ── KPIs ──────────────────────────────────────
   const kpis = useMemo(() => {
     if (gk) {
-      const s = stats as GoalkeeperStats;
-      const peers = positionPeers.filter((p) => isGK(p.stats)).map((p) => p.stats as GoalkeeperStats);
-      const avgSaves = avg(peers.map((p) => p.saves));
-      const avgCS = avg(peers.map((p) => p.cleanSheets));
-      return [
-        { label: "Saves",        value: s.saves,       delta: s.saves > avgSaves ? `+${s.saves - avgSaves} vs avg` : `Avg: ${avgSaves}` },
-        { label: "Clean Sheets", value: s.cleanSheets, delta: s.cleanSheets > avgCS ? `+${s.cleanSheets - avgCS} vs avg` : `Avg: ${avgCS}` },
-        { label: "Goals Against",value: s.goalsAgainst,delta: `${s.starts} starts` },
-        { label: "Minutes",      value: s.mins,        delta: s.starts > 0 ? `${Math.round(s.mins / s.starts)} min/game` : "—" },
-      ];
-    } else {
-      const s = stats as FieldStats;
-      const peers = positionPeers.filter((p) => !isGK(p.stats)).map((p) => p.stats as FieldStats);
-      const avgGoals = avg(peers.map((p) => p.goals));
-      const avgAssists = avg(peers.map((p) => p.assists));
-      const teamHighGoals = Math.max(...allPlayers.filter((p) => !isGK(p.stats)).map((p) => (p.stats as FieldStats).goals));
-      return [
-        { label: "Goals",   value: s.goals,   delta: s.goals === teamHighGoals ? "Team high" : `+${Math.max(0, s.goals - avgGoals)} vs avg` },
-        { label: "Assists", value: s.assists,  delta: s.assists > avgAssists ? `+${s.assists - avgAssists} vs avg` : `Avg: ${avgAssists}` },
-        { label: "Starts",  value: s.starts,   delta: `of ${Math.max(...allPlayers.map((p) => p.stats.starts))} games` },
-        { label: "Minutes", value: s.mins,     delta: s.starts > 0 ? `${Math.round(s.mins / s.starts)} min/game` : "—" },
-      ];
-    }
-  }, [player, positionPeers, allPlayers, gk, stats]);
-
-  // ── Radar attrs (normalized 0–100 vs position group) ─────────────
-  const radarAttrs = useMemo(() => {
-    if (gk) {
-      const s = stats as GoalkeeperStats;
+      const s     = stats as GoalkeeperStats;
       const peers = allPlayers.filter((p) => isGK(p.stats)).map((p) => p.stats as GoalkeeperStats);
-      const maxSaves = Math.max(...peers.map((p) => p.saves), 1);
-      const maxCS    = Math.max(...peers.map((p) => p.cleanSheets), 1);
-      const maxMins  = Math.max(...peers.map((p) => p.mins), 1);
+      const avgSaves = avg(peers.map((p) => p.saves));
+      const avgCS    = avg(peers.map((p) => p.cleanSheets));
       return [
-        { l: "Reflexes",     v: Math.round((s.saves / maxSaves) * 100) },
-        { l: "Clean Sheets", v: Math.round((s.cleanSheets / maxCS) * 100) },
-        { l: "Availability", v: Math.round((s.mins / maxMins) * 100) },
-        { l: "Discipline",   v: Math.max(0, 100 - s.yellow * 15 - s.red * 30) },
-        { l: "Starts",       v: Math.round((s.starts / Math.max(...peers.map((p) => p.starts), 1)) * 100) },
+        { label: "Saves",         value: s.saves,        delta: s.saves > avgSaves ? `+${s.saves - avgSaves} vs avg` : `Avg: ${avgSaves}` },
+        { label: "Clean Sheets",  value: s.cleanSheets,  delta: s.cleanSheets > avgCS ? `+${s.cleanSheets - avgCS} vs avg` : `Avg: ${avgCS}` },
+        { label: "Goals Against", value: s.goalsAgainst, delta: `${s.starts} starts` },
+        { label: "Minutes",       value: s.mins,         delta: s.starts > 0 ? `${Math.round(s.mins / s.starts)} min/game` : "—" },
       ];
     } else {
-      const s = stats as FieldStats;
+      const s     = stats as FieldStats;
       const peers = allPlayers.filter((p) => !isGK(p.stats)).map((p) => p.stats as FieldStats);
-      const maxG  = Math.max(...peers.map((p) => p.goals), 1);
-      const maxA  = Math.max(...peers.map((p) => p.assists), 1);
-      const maxT  = Math.max(...peers.map((p) => p.tackles), 1);
-      const maxM  = Math.max(...peers.map((p) => p.mins), 1);
+      const avgGoals   = avg(peers.map((p) => p.goals));
+      const avgAssists = avg(peers.map((p) => p.assists));
+      const teamMax    = Math.max(...peers.map((p) => p.goals), 1);
       return [
-        { l: "Scoring",    v: Math.round((s.goals / maxG) * 100) },
-        { l: "Creativity", v: Math.round((s.assists / maxA) * 100) },
-        { l: "Defending",  v: Math.round((s.tackles / maxT) * 100) },
-        { l: "Stamina",    v: Math.round((s.mins / maxM) * 100) },
-        { l: "Discipline", v: Math.max(0, 100 - s.yellow * 15 - s.red * 30) },
+        { label: "Goals",   value: s.goals,   delta: s.goals === teamMax ? "Team high" : s.goals > avgGoals ? `+${s.goals - avgGoals} vs avg` : `Avg: ${avgGoals}` },
+        { label: "Assists", value: s.assists,  delta: s.assists > avgAssists ? `+${s.assists - avgAssists} vs avg` : `Avg: ${avgAssists}` },
+        { label: "Starts",  value: s.starts,   delta: s.starts > 0 ? `${Math.round(s.mins / s.starts)} min/game` : "—" },
+        { label: "Minutes", value: s.mins,     delta: `${Math.round((s.starts / Math.max(...allPlayers.map((p) => p.stats.starts), 1)) * 100)}% availability` },
       ];
     }
   }, [player, allPlayers, gk, stats]);
 
-  // ── Comparison: player vs position avg ───────
-  const comparisonData = useMemo(() => {
+  // ── Radar (player + position avg overlay) ─────
+  const radarData = useMemo(() => {
+    const norm = (val: number, max: number) =>
+      Math.round(Math.min(100, (val / Math.max(max, 1)) * 100));
+
     if (gk) {
-      const s = stats as GoalkeeperStats;
-      const peers = allPlayers.filter((p) => isGK(p.stats)).map((p) => p.stats as GoalkeeperStats);
+      const s       = stats as GoalkeeperStats;
+      const peers   = allPlayers.filter((p) => isGK(p.stats)).map((p) => p.stats as GoalkeeperStats);
+      const mxSaves = Math.max(...peers.map((p) => p.saves), 1);
+      const mxCS    = Math.max(...peers.map((p) => p.cleanSheets), 1);
+      const mxMins  = Math.max(...peers.map((p) => p.mins), 1);
+      const mxStart = Math.max(...peers.map((p) => p.starts), 1);
+      const disc    = (p: GoalkeeperStats) => Math.max(0, 100 - p.yellow * 15 - p.red * 30);
+
       return {
-        labels: ["Saves", "Clean Sheets", "Starts", "Minutes / 10"],
-        player: [s.saves, s.cleanSheets, s.starts, Math.round(s.mins / 10)],
-        teamAvg: [
-          avg(peers.map((p) => p.saves)),
-          avg(peers.map((p) => p.cleanSheets)),
-          avg(peers.map((p) => p.starts)),
-          Math.round(avg(peers.map((p) => p.mins)) / 10),
+        labels: ["Reflexes", "Clean Sheets", "Availability", "Discipline", "Starts"],
+        player: [norm(s.saves, mxSaves), norm(s.cleanSheets, mxCS), norm(s.mins, mxMins), disc(s), norm(s.starts, mxStart)],
+        posAvg: [
+          norm(avgRaw(peers.map((p) => p.saves)), mxSaves),
+          norm(avgRaw(peers.map((p) => p.cleanSheets)), mxCS),
+          norm(avgRaw(peers.map((p) => p.mins)), mxMins),
+          Math.round(avgRaw(peers.map(disc))),
+          norm(avgRaw(peers.map((p) => p.starts)), mxStart),
         ],
       };
     } else {
-      const s = stats as FieldStats;
+      const s     = stats as FieldStats;
+      const peers = allPlayers.filter((p) => !isGK(p.stats)).map((p) => p.stats as FieldStats);
+      const mxG   = Math.max(...peers.map((p) => p.goals), 1);
+      const mxA   = Math.max(...peers.map((p) => p.assists), 1);
+      const mxT   = Math.max(...peers.map((p) => p.tackles), 1);
+      const mxM   = Math.max(...peers.map((p) => p.mins), 1);
+      const disc  = (p: FieldStats) => Math.max(0, 100 - p.yellow * 15 - p.red * 30);
+
+      return {
+        labels: ["Scoring", "Creativity", "Defending", "Stamina", "Discipline"],
+        player: [norm(s.goals, mxG), norm(s.assists, mxA), norm(s.tackles, mxT), norm(s.mins, mxM), disc(s)],
+        posAvg: [
+          norm(avgRaw(peers.map((p) => p.goals)), mxG),
+          norm(avgRaw(peers.map((p) => p.assists)), mxA),
+          norm(avgRaw(peers.map((p) => p.tackles)), mxT),
+          norm(avgRaw(peers.map((p) => p.mins)), mxM),
+          Math.round(avgRaw(peers.map(disc))),
+        ],
+      };
+    }
+  }, [player, allPlayers, gk, stats]);
+
+  // ── Comparison bar ─────────────────────────────
+  const comparisonData = useMemo(() => {
+    if (gk) {
+      const s     = stats as GoalkeeperStats;
+      const peers = allPlayers.filter((p) => isGK(p.stats)).map((p) => p.stats as GoalkeeperStats);
+      return {
+        labels: ["Saves", "Clean Sheets", "Starts", "Mins / 10"],
+        player: [s.saves, s.cleanSheets, s.starts, Math.round(s.mins / 10)],
+        posAvg: [avg(peers.map((p) => p.saves)), avg(peers.map((p) => p.cleanSheets)), avg(peers.map((p) => p.starts)), Math.round(avg(peers.map((p) => p.mins)) / 10)],
+      };
+    } else {
+      const s     = stats as FieldStats;
       const peers = allPlayers.filter((p) => !isGK(p.stats)).map((p) => p.stats as FieldStats);
       return {
         labels: ["Goals", "Assists", "Tackles", "Starts"],
         player: [s.goals, s.assists, s.tackles, s.starts],
-        teamAvg: [
-          avg(peers.map((p) => p.goals)),
-          avg(peers.map((p) => p.assists)),
-          avg(peers.map((p) => p.tackles)),
-          avg(peers.map((p) => p.starts)),
-        ],
+        posAvg: [avg(peers.map((p) => p.goals)), avg(peers.map((p) => p.assists)), avg(peers.map((p) => p.tackles)), avg(peers.map((p) => p.starts))],
       };
     }
   }, [player, allPlayers, gk, stats]);
 
-  const utilizationPct = useMemo(() => {
-    const maxStarts = Math.max(...allPlayers.map((p) => p.stats.starts), 1);
-    const maxMins = maxStarts * 90;
-    return Math.min(100, Math.round((player.stats.mins / maxMins) * 100));
-  }, [player, allPlayers]);
+  const disciplineScore = Math.max(0, 100 - stats.yellow * 15 - stats.red * 30);
 
   return (
     <div className="flex flex-col gap-4">
 
-      {/* Player header card */}
+      {/* Player header */}
       <div
         className="flex items-center gap-4 rounded-xl px-5 py-4"
         style={{ backgroundColor: "#141414", border: "1px solid rgba(255,255,255,0.07)" }}
       >
         <div
           className="w-12 h-12 rounded-full flex items-center justify-center font-display font-black text-white flex-shrink-0"
-          style={{ backgroundColor: "#dc2626", fontSize: "1rem" }}
+          style={{ backgroundColor: color, fontSize: "1rem" }}
         >
           {initials(player.name)}
         </div>
@@ -269,6 +403,12 @@ function PlayerDashboard({
             {player.position} · #{player.number} · {seasonLabel}
           </p>
         </div>
+        <span
+          className="font-display font-black uppercase tracking-widest rounded-full flex-shrink-0"
+          style={{ fontSize: "0.6rem", padding: "4px 12px", backgroundColor: bg, color, border: `1px solid ${color}44` }}
+        >
+          {player.position}
+        </span>
         <span
           className="font-display font-black select-none flex-shrink-0"
           style={{ fontSize: "3.5rem", lineHeight: 1, color: "rgba(255,255,255,0.05)" }}
@@ -291,76 +431,188 @@ function PlayerDashboard({
             <p className="font-display text-xs tracking-widest uppercase mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>
               {k.label}
             </p>
-            <p className="font-body text-xs mt-2" style={{ color: "#dc2626" }}>
+            <p className="font-body text-xs mt-2" style={{ color }}>
               {k.delta}
             </p>
           </div>
         ))}
       </div>
 
-      {/* Radar + comparison */}
+      {/* Radar + bar chart */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <RadarCard attrs={radarAttrs} title="Player profile" />
-        <ComparisonCard data={comparisonData} title="vs position average" />
+        <RadarCard
+          labels={radarData.labels}
+          playerVals={radarData.player}
+          avgVals={radarData.posAvg}
+          color={color}
+        />
+        <ComparisonBar data={comparisonData} color={color} />
       </div>
 
-      {/* Utilization + Discipline */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <UtilizationCard pct={utilizationPct} mins={player.stats.mins} starts={player.stats.starts} />
-        <DisciplineCard stats={player.stats} gk={gk} />
+      {/* Trend line — full width */}
+      <TrendLine data={trend} loading={trendLoading} gk={gk} color={color} />
+
+      {/* Discipline compact row */}
+      <div
+        className="rounded-xl px-5 py-4"
+        style={{ backgroundColor: "#141414", border: "1px solid rgba(255,255,255,0.07)" }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.4)" }}>
+            Discipline
+          </p>
+          <span
+            className="font-display font-black uppercase tracking-widest rounded-full"
+            style={{
+              fontSize: "0.6rem",
+              padding: "3px 10px",
+              backgroundColor: disciplineScore >= 85 ? "rgba(34,197,94,0.15)" : disciplineScore >= 60 ? "rgba(234,179,8,0.15)" : "rgba(220,38,38,0.15)",
+              color: disciplineScore >= 85 ? "#22c55e" : disciplineScore >= 60 ? "#eab308" : "#dc2626",
+            }}
+          >
+            {disciplineScore >= 85 ? "Clean" : disciplineScore >= 60 ? "Caution" : "High Risk"} · {disciplineScore}/100
+          </span>
+        </div>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <span style={{ width: 12, height: 12, backgroundColor: "#eab308", borderRadius: 2, display: "inline-block", flexShrink: 0 }} />
+            <span className="font-display font-black text-white" style={{ fontSize: "1.4rem", lineHeight: 1 }}>{stats.yellow}</span>
+            <span style={{ fontSize: "0.6rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginLeft: 2 }}>Yellow</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span style={{ width: 12, height: 12, backgroundColor: "#dc2626", borderRadius: 2, display: "inline-block", flexShrink: 0 }} />
+            <span className="font-display font-black text-white" style={{ fontSize: "1.4rem", lineHeight: 1 }}>{stats.red}</span>
+            <span style={{ fontSize: "0.6rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginLeft: 2 }}>Red</span>
+          </div>
+          <div className="flex-1">
+            <div style={{ height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.07)", overflow: "hidden" }}>
+              <div
+                style={{
+                  width: `${disciplineScore}%`, height: "100%", borderRadius: 2,
+                  backgroundColor: disciplineScore >= 85 ? "#22c55e" : disciplineScore >= 60 ? "#eab308" : "#dc2626",
+                  transition: "width 0.4s ease",
+                }}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>
   );
 }
 
-// ── Radar card ────────────────────────────────
+// ── Radar Card ─────────────────────────────────
 
-function RadarCard({ attrs, title }: { attrs: { l: string; v: number }[]; title: string }) {
-  const cx = 110, cy = 110, r = 70, n = attrs.length;
+function RadarCard({
+  labels,
+  playerVals,
+  avgVals,
+  color,
+}: {
+  labels: string[];
+  playerVals: number[];
+  avgVals: number[];
+  color: string;
+}) {
+  const cx = 110, cy = 110, r = 78, n = labels.length;
   const angle = (i: number) => (Math.PI * 2 * i) / n - Math.PI / 2;
-  const pt = (i: number, scale: number) => [
+  const pt    = (i: number, scale: number) => [
     cx + scale * r * Math.cos(angle(i)),
     cy + scale * r * Math.sin(angle(i)),
   ];
-  const poly = (scale: number) => attrs.map((_, i) => pt(i, scale).join(",")).join(" ");
-  const dataPoly = attrs.map((a, i) => pt(i, Math.max(a.v, 2) / 100).join(",")).join(" ");
+  const poly = (vals: number[]) =>
+    vals.map((v, i) => pt(i, Math.max(v, 2) / 100).join(",")).join(" ");
 
   return (
     <div className="rounded-xl p-5" style={{ backgroundColor: "#141414", border: "1px solid rgba(255,255,255,0.07)" }}>
-      <p className="font-display text-xs tracking-widest uppercase mb-4" style={{ color: "rgba(255,255,255,0.4)" }}>
-        {title}
-      </p>
+      {/* Legend */}
+      <div className="flex items-center justify-between mb-4">
+        <p className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.4)" }}>
+          Player profile
+        </p>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5" style={{ fontSize: "0.6rem", letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)" }}>
+            <span style={{ width: 18, height: 1.5, backgroundColor: "rgba(255,255,255,0.3)", display: "inline-block", borderRadius: 1 }} />
+            Pos avg
+          </span>
+          <span className="flex items-center gap-1.5" style={{ fontSize: "0.6rem", letterSpacing: "0.06em", textTransform: "uppercase", color }}>
+            <span style={{ width: 18, height: 2, backgroundColor: color, display: "inline-block", borderRadius: 1 }} />
+            Player
+          </span>
+        </div>
+      </div>
+
       <div className="flex items-center gap-4">
-        <svg viewBox="-10 -10 240 240" width="180" height="180" role="img" aria-label="Radar chart showing player profile">
+        {/* SVG radar */}
+        <svg viewBox="-10 -10 240 240" width="170" height="170" role="img" aria-label="Radar chart showing player profile vs position average">
+          {/* Grid rings */}
           {[0.25, 0.5, 0.75, 1].map((s) => (
-            <polygon key={s} points={poly(s)} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" />
+            <polygon
+              key={s}
+              points={labels.map((_, i) => pt(i, s).join(",")).join(" ")}
+              fill="none"
+              stroke="rgba(255,255,255,0.07)"
+              strokeWidth="0.5"
+            />
           ))}
-          {attrs.map((_, i) => {
+          {/* Spokes */}
+          {labels.map((_, i) => {
             const [x, y] = pt(i, 1);
             return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(255,255,255,0.07)" strokeWidth="0.5" />;
           })}
-          <polygon points={dataPoly} fill="rgba(220,38,38,0.15)" stroke="#dc2626" strokeWidth="1.5" />
-          {attrs.map((a, i) => {
-            const [x, y] = pt(i, 1.32);
+          {/* Position avg (dashed) */}
+          <polygon
+            points={poly(avgVals)}
+            fill="rgba(255,255,255,0.04)"
+            stroke="rgba(255,255,255,0.28)"
+            strokeWidth="1.5"
+            strokeDasharray="4,3"
+          />
+          {/* Player polygon */}
+          <polygon
+            points={poly(playerVals)}
+            fill={color + "28"}
+            stroke={color}
+            strokeWidth="2"
+          />
+          {/* Player dots */}
+          {playerVals.map((v, i) => {
+            const [x, y] = pt(i, Math.max(v, 2) / 100);
+            return <circle key={i} cx={x} cy={y} r="3.5" fill={color} />;
+          })}
+          {/* Labels */}
+          {labels.map((l, i) => {
+            const [x, y] = pt(i, 1.36);
             return (
-              <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,0.45)" fontSize="9">
-                {a.l}
+              <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,0.45)" fontSize="9" fontFamily="sans-serif">
+                {l}
               </text>
             );
           })}
         </svg>
-        <div className="flex flex-col gap-2 flex-1">
-          {attrs.map((a) => (
-            <div key={a.l} className="flex items-center gap-2">
-              <span style={{ fontSize: "0.65rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", width: 70, flexShrink: 0 }}>
-                {a.l}
+
+        {/* Stat bars */}
+        <div className="flex flex-col gap-2.5 flex-1">
+          {labels.map((l, i) => (
+            <div key={l} className="flex items-center gap-2">
+              <span style={{ fontSize: "0.58rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", width: 60, flexShrink: 0 }}>
+                {l}
               </span>
-              <div style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.07)", overflow: "hidden" }}>
-                <div style={{ width: `${a.v}%`, height: "100%", borderRadius: 2, backgroundColor: "#dc2626" }} />
+              <div style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.07)", overflow: "visible", position: "relative" }}>
+                {/* Avg marker */}
+                <div style={{
+                  position: "absolute", top: -1, bottom: -1,
+                  left: `${avgVals[i]}%`, width: 2,
+                  backgroundColor: "rgba(255,255,255,0.28)",
+                  transform: "translateX(-50%)",
+                  borderRadius: 1,
+                }} />
+                {/* Player bar */}
+                <div style={{ width: `${playerVals[i]}%`, height: "100%", borderRadius: 2, backgroundColor: color }} />
               </div>
-              <span className="font-display font-black text-white" style={{ fontSize: "0.75rem", width: 28, textAlign: "right", flexShrink: 0 }}>
-                {a.v}
+              <span className="font-display font-black text-white" style={{ fontSize: "0.68rem", width: 24, textAlign: "right", flexShrink: 0 }}>
+                {playerVals[i]}
               </span>
             </div>
           ))}
@@ -370,11 +622,17 @@ function RadarCard({ attrs, title }: { attrs: { l: string; v: number }[]; title:
   );
 }
 
-// ── Comparison bar chart ───────────────────────
+// ── Comparison Bar ─────────────────────────────
 
-function ComparisonCard({ data, title }: { data: { labels: string[]; player: number[]; teamAvg: number[] }; title: string }) {
+function ComparisonBar({
+  data,
+  color,
+}: {
+  data: { labels: string[]; player: number[]; posAvg: number[] };
+  color: string;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const chartRef = useRef<Chart | null>(null);
+  const chartRef  = useRef<Chart | null>(null);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -384,8 +642,8 @@ function ComparisonCard({ data, title }: { data: { labels: string[]; player: num
       data: {
         labels: data.labels,
         datasets: [
-          { label: "Player", data: data.player, backgroundColor: "#dc2626", borderRadius: 4, barPercentage: 0.55 },
-          { label: "Position avg", data: data.teamAvg, backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 4, barPercentage: 0.55 },
+          { label: "Player",   data: data.player, backgroundColor: color + "cc", borderRadius: 4, barPercentage: 0.55 },
+          { label: "Pos. avg", data: data.posAvg, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 4, barPercentage: 0.55 },
         ],
       },
       options: {
@@ -393,37 +651,31 @@ function ComparisonCard({ data, title }: { data: { labels: string[]; player: num
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: {
-            ticks: { color: "rgba(255,255,255,0.4)", font: { size: 10 } },
-            grid: { color: "rgba(255,255,255,0.04)" },
-            border: { display: false },
-          },
-          y: {
-            ticks: { color: "rgba(255,255,255,0.4)", font: { size: 10 } },
-            grid: { color: "rgba(255,255,255,0.06)" },
-            border: { display: false },
-          },
+          x: { ticks: { color: "rgba(255,255,255,0.4)", font: { size: 10 } }, grid: { display: false }, border: { display: false } },
+          y: { ticks: { color: "rgba(255,255,255,0.4)", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.06)" }, border: { display: false } },
         },
       },
     });
     return () => { chartRef.current?.destroy(); };
-  }, [data]);
+  }, [data, color]);
 
   return (
     <div className="rounded-xl p-5" style={{ backgroundColor: "#141414", border: "1px solid rgba(255,255,255,0.07)" }}>
-      <p className="font-display text-xs tracking-widest uppercase mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>
-        {title}
-      </p>
-      <div className="flex gap-4 mb-3">
-        {[{ label: "Player", color: "#dc2626" }, { label: "Position avg", color: "rgba(255,255,255,0.2)" }].map((l) => (
-          <span key={l.label} className="flex items-center gap-1.5" style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)" }}>
-            <span style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: l.color, display: "inline-block" }} />
-            {l.label}
-          </span>
-        ))}
+      <div className="flex items-center justify-between mb-3">
+        <p className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.4)" }}>
+          vs position average
+        </p>
+        <div className="flex gap-3">
+          {[{ label: "Player", col: color + "cc" }, { label: "Pos avg", col: "rgba(255,255,255,0.2)" }].map((l) => (
+            <span key={l.label} className="flex items-center gap-1.5" style={{ fontSize: "0.6rem", letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)" }}>
+              <span style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: l.col, display: "inline-block" }} />
+              {l.label}
+            </span>
+          ))}
+        </div>
       </div>
-      <div style={{ position: "relative", height: 160 }}>
-        <canvas ref={canvasRef} role="img" aria-label={`Bar chart comparing player stats vs position average`}>
+      <div style={{ position: "relative", height: 175 }}>
+        <canvas ref={canvasRef} role="img" aria-label="Bar chart comparing player stats vs position average">
           Player vs position average comparison.
         </canvas>
       </div>
@@ -431,133 +683,104 @@ function ComparisonCard({ data, title }: { data: { labels: string[]; player: num
   );
 }
 
-// ── Utilization donut ─────────────────────────
+// ── Trend Line ─────────────────────────────────
 
-function UtilizationCard({ pct, mins, starts }: { pct: number; mins: number; starts: number }) {
+function TrendLine({
+  data,
+  loading,
+  gk,
+  color,
+}: {
+  data: PlayerMatchTrendPoint[];
+  loading: boolean;
+  gk: boolean;
+  color: string;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const chartRef = useRef<Chart | null>(null);
+  const chartRef  = useRef<Chart | null>(null);
+  const metric    = gk ? "Saves" : "G+A";
 
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (loading || data.length < 2 || !canvasRef.current) return;
     if (chartRef.current) chartRef.current.destroy();
+
     chartRef.current = new Chart(canvasRef.current, {
-      type: "doughnut",
+      type: "line",
       data: {
-        datasets: [{
-          data: [pct, 100 - pct],
-          backgroundColor: ["#dc2626", "rgba(255,255,255,0.06)"],
-          borderWidth: 0,
-        }],
+        labels: data.map((d) => d.opponent),
+        datasets: [
+          {
+            label: metric,
+            data: data.map((d) => d.value),
+            borderColor: color,
+            backgroundColor: color + "18",
+            pointBackgroundColor: color,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            tension: 0.4,
+            fill: true,
+            borderWidth: 2,
+          },
+        ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: "75%",
-        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: (items) => data[items[0].dataIndex]?.opponent ?? "",
+              label: (ctx)   => ` ${metric}: ${ctx.parsed.y}  ·  ${data[ctx.dataIndex]?.mins ?? 0} min`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: "rgba(255,255,255,0.4)", font: { size: 10 }, maxRotation: 30 },
+            grid: { display: false },
+            border: { display: false },
+          },
+          y: {
+            min: 0,
+            ticks: { color: "rgba(255,255,255,0.4)", font: { size: 10 }, stepSize: 1 },
+            grid: { color: "rgba(255,255,255,0.06)" },
+            border: { display: false },
+          },
+        },
       },
     });
     return () => { chartRef.current?.destroy(); };
-  }, [pct]);
+  }, [data, loading, color, metric]);
 
   return (
     <div className="rounded-xl p-5" style={{ backgroundColor: "#141414", border: "1px solid rgba(255,255,255,0.07)" }}>
-      <p className="font-display text-xs tracking-widest uppercase mb-4" style={{ color: "rgba(255,255,255,0.4)" }}>
-        Minutes utilization
-      </p>
-      <div className="flex items-center gap-6">
-        <div style={{ position: "relative", width: 120, height: 120, flexShrink: 0 }}>
-          <canvas ref={canvasRef} role="img" aria-label={`Donut chart showing ${pct}% minutes utilization`}>
-            {pct}% minutes utilization.
-          </canvas>
-          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" }}>
-            <p className="font-display font-black text-white" style={{ fontSize: "1.4rem", lineHeight: 1 }}>{pct}%</p>
-            <p style={{ fontSize: "0.6rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginTop: 3 }}>used</p>
-          </div>
-        </div>
-        <div className="flex flex-col gap-3">
-          <div>
-            <p className="font-display font-black text-white" style={{ fontSize: "1.4rem", lineHeight: 1 }}>{mins.toLocaleString()}</p>
-            <p style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginTop: 3 }}>Minutes played</p>
-          </div>
-          <div>
-            <p className="font-display font-black text-white" style={{ fontSize: "1.4rem", lineHeight: 1 }}>{starts}</p>
-            <p style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginTop: 3 }}>Starts</p>
-          </div>
-          <div>
-            <p className="font-display font-black text-white" style={{ fontSize: "1.4rem", lineHeight: 1 }}>
-              {starts > 0 ? Math.round(mins / starts) : 0}
-            </p>
-            <p style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginTop: 3 }}>Avg min/game</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Discipline card ───────────────────────────
-
-function DisciplineCard({ stats, gk }: { stats: GoalkeeperStats | FieldStats; gk: boolean }) {
-  const items = gk
-    ? [
-        { label: "Yellow Cards",  value: stats.yellow },
-        { label: "Red Cards",     value: stats.red },
-        { label: "Goals Against", value: (stats as GoalkeeperStats).goalsAgainst },
-        { label: "Saves",         value: (stats as GoalkeeperStats).saves },
-      ]
-    : [
-        { label: "Yellow Cards",   value: stats.yellow },
-        { label: "Red Cards",      value: stats.red },
-        { label: "Fouls",          value: (stats as FieldStats).fouls },
-        { label: "Fouls Suffered", value: (stats as FieldStats).foulsSuffered },
-      ];
-
-  const disciplineScore = Math.max(0, 100 - stats.yellow * 15 - stats.red * 30);
-
-  return (
-    <div className="rounded-xl p-5" style={{ backgroundColor: "#141414", border: "1px solid rgba(255,255,255,0.07)" }}>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <p className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.4)" }}>
-          Discipline
+          {gk ? "Saves per match" : "Goal contributions per match"}
         </p>
-        <span
-          className="font-display font-black text-xs tracking-widest uppercase px-3 py-1 rounded-full"
-          style={{
-            backgroundColor: disciplineScore >= 85 ? "rgba(34,197,94,0.15)" : disciplineScore >= 60 ? "rgba(234,179,8,0.15)" : "rgba(220,38,38,0.15)",
-            color: disciplineScore >= 85 ? "#22c55e" : disciplineScore >= 60 ? "#eab308" : "#dc2626",
-            fontSize: "0.65rem",
-          }}
-        >
-          {disciplineScore >= 85 ? "Clean" : disciplineScore >= 60 ? "Caution" : "High Risk"}
-        </span>
+        {data.length > 0 && !loading && (
+          <span style={{ fontSize: "0.6rem", letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)" }}>
+            {data.length} match{data.length !== 1 ? "es" : ""}
+          </span>
+        )}
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        {items.map((item) => (
-          <div
-            key={item.label}
-            className="rounded-lg px-3 py-3 text-center"
-            style={{ backgroundColor: "#1a1a1a" }}
-          >
-            <p className="font-display font-black text-white" style={{ fontSize: "1.6rem", lineHeight: 1 }}>
-              {item.value}
-            </p>
-            <p style={{ fontSize: "0.6rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginTop: 4 }}>
-              {item.label}
+      <div style={{ position: "relative", height: 130 }}>
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.2)" }}>Loading…</p>
+          </div>
+        ) : data.length < 2 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.2)" }}>
+              {data.length === 0 ? "No match data yet" : "Need 2+ matches for trend"}
             </p>
           </div>
-        ))}
-      </div>
-      <div className="mt-4">
-        <div className="flex justify-between mb-1">
-          <span style={{ fontSize: "0.65rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)" }}>Discipline score</span>
-          <span className="font-display font-black text-white" style={{ fontSize: "0.75rem" }}>{disciplineScore}/100</span>
-        </div>
-        <div style={{ height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.07)", overflow: "hidden" }}>
-          <div style={{
-            width: `${disciplineScore}%`, height: "100%", borderRadius: 2,
-            backgroundColor: disciplineScore >= 85 ? "#22c55e" : disciplineScore >= 60 ? "#eab308" : "#dc2626",
-          }} />
-        </div>
+        ) : (
+          <canvas ref={canvasRef} role="img" aria-label={`Line chart showing ${metric} trend over matches`}>
+            {metric} trend over recent matches.
+          </canvas>
+        )}
       </div>
     </div>
   );
