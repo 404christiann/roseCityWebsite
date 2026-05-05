@@ -4,6 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-browser";
 
+function formatDate(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+    month: "long", day: "numeric", year: "numeric",
+  });
+}
+
 type Stats = {
   players: number;
   staff: number;
@@ -32,8 +39,8 @@ export default function AdminDashboard() {
       // Find next upcoming match
       const now = new Date();
       const upcoming = (matches ?? [])
-        .filter((m) => new Date(`${m.date} ${m.time}`) >= now)
-        .sort((a, b) => new Date(`${a.date} ${a.time}`).getTime() - new Date(`${b.date} ${b.time}`).getTime());
+        .filter((m) => new Date(`${m.date}T${m.time ?? "00:00"}`) >= now)
+        .sort((a, b) => `${a.date}T${a.time ?? "00:00"}` < `${b.date}T${b.time ?? "00:00"}` ? -1 : 1);
 
       setStats({
         players: players ?? 0,
@@ -75,7 +82,7 @@ export default function AdminDashboard() {
         <StatCard label="Matches" value={loading ? "—" : String(stats?.matches ?? 0)} />
         <StatCard
           label="Next Match"
-          value={loading ? "—" : stats?.nextMatch ? stats.nextMatch.date : "TBD"}
+          value={loading ? "—" : stats?.nextMatch ? formatDate(stats.nextMatch.date) : "TBD"}
           sub={!loading && stats?.nextMatch ? `vs ${stats.nextMatch.opponent}` : undefined}
           accent
         />
