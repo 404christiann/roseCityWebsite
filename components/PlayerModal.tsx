@@ -232,27 +232,54 @@ export default function PlayerModal({ player, onClose, seasonLabel = "Current Se
 
 function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | FieldStats; seasonLabel: string }) {
   const [open, setOpen] = useState(true);
+  const gk = isGK(stats);
+
+  const gridStats = gk
+    ? [
+        { label: "Saves",        value: (stats as GoalkeeperStats).saves },
+        { label: "Clean Sheets", value: (stats as GoalkeeperStats).cleanSheets },
+        { label: "Goals Against",value: (stats as GoalkeeperStats).goalsAgainst },
+        { label: "Starts",       value: stats.starts },
+        { label: "Minutes",      value: stats.mins },
+        { label: "Yellows",      value: stats.yellow },
+      ]
+    : [
+        { label: "Goals",   value: (stats as FieldStats).goals },
+        { label: "Assists", value: (stats as FieldStats).assists },
+        { label: "Tackles", value: (stats as FieldStats).tackles },
+        { label: "Starts",  value: stats.starts },
+        { label: "Minutes", value: stats.mins },
+        { label: "Yellows", value: stats.yellow },
+      ];
+
+  const bars = gk
+    ? [
+        { label: "Saves",         value: (stats as GoalkeeperStats).saves,      max: 60 },
+        { label: "Clean Sheets",  value: (stats as GoalkeeperStats).cleanSheets, max: 15 },
+        { label: "Goals Against", value: (stats as GoalkeeperStats).goalsAgainst,max: 20 },
+        { label: "Minutes",       value: stats.mins,                             max: 2000 },
+      ]
+    : [
+        { label: "Goals",   value: (stats as FieldStats).goals,   max: 20 },
+        { label: "Assists", value: (stats as FieldStats).assists,  max: 15 },
+        { label: "Tackles", value: (stats as FieldStats).tackles,  max: 50 },
+        { label: "Minutes", value: stats.mins,                     max: 2000 },
+      ];
 
   return (
     <>
       <div className="mb-3" style={{ height: 1, backgroundColor: "rgba(255,255,255,0.07)" }} />
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center justify-between w-full mb-2"
+        className="flex items-center justify-between w-full mb-3"
       >
-        <span
-          className="font-display text-xs tracking-widest uppercase"
-          style={{ color: "var(--color-gray-mid)" }}
-        >
-          {seasonLabel}
+        <span className="font-display text-xs tracking-widest uppercase" style={{ color: "var(--color-gray-mid)" }}>
+          Season Stats · {seasonLabel}
         </span>
         <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
+          width="14" height="14" viewBox="0 0 24 24" fill="none"
           style={{
-            color: "rgba(255,255,255,0.3)",
+            color: "rgba(255,255,255,0.6)",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.25s ease",
             flexShrink: 0,
@@ -261,40 +288,146 @@ function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | Fie
           <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateRows: open ? "1fr" : "0fr",
-          transition: "grid-template-rows 0.25s ease",
-        }}
-      >
+
+      <div style={{ display: "grid", gridTemplateRows: open ? "1fr" : "0fr", transition: "grid-template-rows 0.25s ease" }}>
         <div style={{ overflow: "hidden" }}>
-          <div className="flex flex-col">
-            {isGK(stats) ? (
-              <>
-                <StatRow label="Goals Against" value={stats.goalsAgainst} />
-                <StatRow label="Saves"         value={stats.saves} />
-                <StatRow label="Clean Sheets"  value={stats.cleanSheets} />
-                <StatRow label="Starts"        value={stats.starts} />
-                <StatRow label="Yellow Cards"  value={stats.yellow} />
-                <StatRow label="Red Cards"     value={stats.red} />
-                <StatRow label="Minutes"       value={stats.mins} />
-              </>
-            ) : (
-              <>
-                <StatRow label="Goals"          value={(stats as FieldStats).goals} />
-                <StatRow label="Assists"        value={(stats as FieldStats).assists} />
-                <StatRow label="Tackles"        value={(stats as FieldStats).tackles} />
-                <StatRow label="Offsides"       value={(stats as FieldStats).offsides} />
-                <StatRow label="Fouls"          value={(stats as FieldStats).fouls} />
-                <StatRow label="Fouls Suffered" value={(stats as FieldStats).foulsSuffered} />
-                <StatRow label="Starts"         value={stats.starts} />
-                <StatRow label="Yellow Cards"   value={stats.yellow} />
-                <StatRow label="Red Cards"      value={stats.red} />
-                <StatRow label="Minutes"        value={stats.mins} />
-              </>
+
+          {/* ── Dark premium card ── */}
+          <div
+            className="rounded-xl mb-4 relative overflow-hidden"
+            style={{ backgroundColor: "#161616", border: "1px solid rgba(255,255,255,0.08)" }}
+          >
+
+            {/* Metric grid — 2 rows × 3 cols */}
+            <div
+              className="px-4 pt-3 pb-1"
+              style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+            >
+              <p className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.6)" }}>
+                Key stats
+              </p>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)" }}>
+              {gridStats.map((s, i) => {
+                const isLastRow = i >= 3;
+                const colPos = i % 3;
+                return (
+                  <div
+                    key={s.label}
+                    className="flex flex-col items-center justify-center py-4"
+                    style={{
+                      borderRight: colPos < 2 ? "1px solid rgba(255,255,255,0.06)" : "none",
+                      borderBottom: !isLastRow ? "1px solid rgba(255,255,255,0.06)" : "none",
+                    }}
+                  >
+                    <span
+                      className="font-display font-black text-white"
+                      style={{ fontSize: "1.75rem", lineHeight: 1 }}
+                    >
+                      {s.value.toLocaleString()}
+                    </span>
+                    <span
+                      className="font-display text-center"
+                      style={{ fontSize: "0.6rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.6)", marginTop: 5 }}
+                    >
+                      {s.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bar section */}
+            <div
+              className="px-4 pt-3 pb-1"
+              style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+            >
+              <p className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.6)" }}>
+                Performance
+              </p>
+            </div>
+            <div
+              className="px-4 pt-2 pb-4 flex flex-col gap-3"
+            >
+              {bars.map((b) => {
+                const pct = Math.min(100, b.max > 0 ? Math.round((b.value / b.max) * 100) : 0);
+                return (
+                  <div key={b.label} className="flex items-center gap-3">
+                    <span
+                      className="font-display"
+                      style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.6)", width: 72, flexShrink: 0 }}
+                    >
+                      {b.label}
+                    </span>
+                    <div style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.07)", overflow: "hidden" }}>
+                      <div
+                        style={{
+                          width: `${pct}%`,
+                          height: "100%",
+                          borderRadius: 2,
+                          backgroundColor: "#dc2626",
+                          transition: "width 0.6s ease",
+                        }}
+                      />
+                    </div>
+                    <span
+                      className="font-display font-black text-white"
+                      style={{ fontSize: "0.85rem", width: 32, textAlign: "right", flexShrink: 0 }}
+                    >
+                      {b.value.toLocaleString()}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Extra stats row — fouls / offsides / red for field, red for GK */}
+            {!gk && (
+              <div
+                className="px-4 pt-3 pb-3"
+                style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+              >
+                <p className="font-display text-xs tracking-widest uppercase mb-3" style={{ color: "rgba(255,255,255,0.6)" }}>
+                  Discipline
+                </p>
+              <div className="flex justify-around">
+                {[
+                  { label: "Fouls",          value: (stats as FieldStats).fouls },
+                  { label: "Fouls Suffered", value: (stats as FieldStats).foulsSuffered },
+                  { label: "Offsides",       value: (stats as FieldStats).offsides },
+                  { label: "Red Cards",      value: stats.red },
+                ].map((s) => (
+                  <div key={s.label} className="flex flex-col items-center">
+                    <span className="font-display font-black text-white" style={{ fontSize: "1rem" }}>{s.value}</span>
+                    <span className="font-display text-center" style={{ fontSize: "0.58rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginTop: 3 }}>{s.label}</span>
+                  </div>
+                ))}
+              </div>
+              </div>
+            )}
+            {gk && (
+              <div
+                className="px-4 pt-3 pb-3"
+                style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+              >
+                <p className="font-display text-xs tracking-widest uppercase mb-3" style={{ color: "rgba(255,255,255,0.6)" }}>
+                  Discipline
+                </p>
+                <div className="flex justify-around">
+                {[
+                  { label: "Yellow Cards", value: stats.yellow },
+                  { label: "Red Cards",    value: stats.red },
+                ].map((s) => (
+                  <div key={s.label} className="flex flex-col items-center">
+                    <span className="font-display font-black text-white" style={{ fontSize: "1rem" }}>{s.value}</span>
+                    <span className="font-display text-center" style={{ fontSize: "0.58rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginTop: 3 }}>{s.label}</span>
+                  </div>
+                ))}
+                </div>
+              </div>
             )}
           </div>
+
         </div>
       </div>
     </>
@@ -323,7 +456,7 @@ function CollapsibleBio({ bio }: { bio: string }) {
           viewBox="0 0 24 24"
           fill="none"
           style={{
-            color: "rgba(255,255,255,0.3)",
+            color: "rgba(255,255,255,0.6)",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.25s ease",
             flexShrink: 0,
