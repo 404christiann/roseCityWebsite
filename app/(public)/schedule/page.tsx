@@ -17,18 +17,25 @@ gsap.registerPlugin(ScrollTrigger);
 function fixtureDateTime(fixture: Fixture): Date {
   const [year, month, day] = fixture.date.split("-").map(Number);
 
-  // Parse "8:00 PM" → 24h hours + minutes
-  const timeMatch = fixture.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
   let hours = 0, minutes = 0;
-  if (timeMatch) {
-    hours = parseInt(timeMatch[1]);
-    minutes = parseInt(timeMatch[2]);
-    if (timeMatch[3].toUpperCase() === "PM" && hours !== 12) hours += 12;
-    if (timeMatch[3].toUpperCase() === "AM" && hours === 12) hours = 0;
+
+  // DB stores 24-hour "HH:MM" — try that first
+  const match24 = (fixture.time ?? "").match(/^(\d{1,2}):(\d{2})$/);
+  // Fallback: legacy "8:00 PM" format
+  const match12 = (fixture.time ?? "").match(/(\d+):(\d+)\s*(AM|PM)/i);
+
+  if (match24) {
+    hours   = parseInt(match24[1]);
+    minutes = parseInt(match24[2]);
+  } else if (match12) {
+    hours   = parseInt(match12[1]);
+    minutes = parseInt(match12[2]);
+    if (match12[3].toUpperCase() === "PM" && hours !== 12) hours += 12;
+    if (match12[3].toUpperCase() === "AM" && hours === 12) hours  = 0;
   }
 
-  // Build a UTC Date as if the hours/minutes are in UTC, then shift by the
-  // actual LA→UTC offset at that moment (handles PST −8 and PDT −7 correctly).
+  // Shift from America/Los_Angeles → UTC so comparisons against Date.now() work
+  // correctly regardless of where the browser or server is located.
   const approxUTC = new Date(Date.UTC(year, month - 1, day, hours, minutes));
   const utcStr = approxUTC.toLocaleString("en-US", { timeZone: "UTC" });
   const laStr  = approxUTC.toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
