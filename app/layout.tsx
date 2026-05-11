@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Analytics } from "@vercel/analytics";
+import Script from "next/script";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
@@ -24,9 +24,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-          {children}
-          <Analytics />
-        </body>
+        {children}
+        <Script defer src="/_vercel/insights/script.js" />
+      </body>
     </html>
   );
 }
