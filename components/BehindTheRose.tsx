@@ -43,15 +43,15 @@ export default function BehindTheRose() {
       <div ref={headerRef} className="max-w-3xl mx-auto text-center mb-12 md:mb-16" style={{ opacity: 0 }}>
         <p
           className="font-display font-bold tracking-widest uppercase mb-4"
-          style={{ color: "var(--color-red)", fontSize: "clamp(1rem, 2vw, 1.3rem)" }}
+          style={{ color: "var(--color-red)", fontSize: "clamp(0.58rem, 2.6vw, 1.3rem)", whiteSpace: "nowrap" }}
         >
           Behind the Rose · Season 1 · Episode 1
         </p>
         <h2
           className="font-display font-black uppercase text-white leading-none mb-6"
-          style={{ fontSize: "clamp(2.5rem, 7vw, 6rem)" }}
+          style={{ fontSize: "clamp(1.85rem, 8.5vw, 6rem)", whiteSpace: "nowrap" }}
         >
-          Behind<br className="sm:hidden" /> the Rose
+          Behind the Rose
         </h2>
         <p
           className="font-body leading-relaxed max-w-xl mx-auto"

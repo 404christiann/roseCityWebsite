@@ -83,7 +83,7 @@ export default function Nav() {
           {/* Divider */}
           <div
             className="flex-shrink-0"
-            style={{ width: "1px", height: "28px", backgroundColor: isHero ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.15)" }}
+            style={{ width: "1px", height: "28px", backgroundColor: isHero ? "rgba(255,255,255,0.3)" : "rgba(20,20,20,0.15)" }}
           />
 
           {/* Affiliation logos — tighter cluster */}

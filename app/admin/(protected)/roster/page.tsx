@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { fetchActiveSeason } from "@/lib/queries";
 import { createClient } from "@/lib/supabase-browser";
 // ── Nationalities ─────────────────────────────
 
@@ -165,10 +166,11 @@ async function uploadPhoto(file: File, bucket: string): Promise<string> {
   return data.publicUrl;
 }
 
+
 // ── Main component ────────────────────────────
 
 export default function RosterPage() {
-  const [tab, setTab] = useState<"players" | "staff" | "seasons">("players");
+  const [tab, setTab] = useState<"players" | "staff">("players");
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -181,13 +183,13 @@ export default function RosterPage() {
           Roster
         </h1>
         <p className="font-body text-sm mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
-          Manage players, staff, and seasons.
+          Manage players and staff.
         </p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-8">
-        {(["players", "staff", "seasons"] as const).map((t) => (
+        {(["players", "staff"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -204,7 +206,7 @@ export default function RosterPage() {
         ))}
       </div>
 
-      {tab === "players" ? <PlayersTab /> : tab === "staff" ? <StaffTab /> : <SeasonsTab />}
+      {tab === "players" ? <PlayersTab /> : <StaffTab />}
     </div>
   );
 }
@@ -259,7 +261,7 @@ function PlayersTab() {
       let photoUrl = addForm.photo_url;
       if (addPhoto) photoUrl = await uploadPhoto(addPhoto, "roster-images");
 
-      const { error: e } = await supabase.from("players").insert([{
+      const { data: insertedPlayer, error: e } = await supabase.from("players").insert([{
         ...addForm,
         photo_url: photoUrl,
         caption:       addForm.caption?.trim()       || null,
@@ -269,10 +271,35 @@ function PlayersTab() {
         pronunciation: addForm.pronunciation?.trim() || null,
         foot:          addForm.foot?.trim()          || null,
         active: true,
-      }]);
+      }]).select("id").single();
       if (e) { setError(e.message); setSaving(false); return; }
+
+      let seedError: string | null = null;
+      try {
+        const activeSeason = await fetchActiveSeason();
+        if (!activeSeason) {
+          seedError = "Player saved, but no active season exists for stat seeding.";
+        } else if (insertedPlayer) {
+          const table = addForm.position === "Goalkeeper"
+            ? "goalkeeper_season_stats"
+            : "player_season_stats";
+          const zeroStats = addForm.position === "Goalkeeper"
+            ? { goals_against: 0, saves: 0, clean_sheets: 0, starts: 0, yellow: 0, red: 0, mins: 0 }
+            : { goals: 0, assists: 0, tackles: 0, starts: 0, yellow: 0, red: 0, mins: 0, offsides: 0, fouls: 0, fouls_suffered: 0 };
+          const { error: statSeedError } = await supabase.from(table).insert([{
+            player_id: insertedPlayer.id,
+            season_id: activeSeason.id,
+            ...zeroStats,
+          }]);
+          if (statSeedError) seedError = `Player saved, but season stats were not seeded: ${statSeedError.message}`;
+        }
+      } catch (seedFailure) {
+        seedError = `Player saved, but season stats were not seeded: ${seedFailure instanceof Error ? seedFailure.message : "Unknown error"}`;
+      }
+
       setAddForm(emptyPlayer()); setAddPhoto(null); setAddOpen(false);
       await load(); flash();
+      if (seedError) setError(seedError);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Upload failed");
     }
@@ -713,257 +740,6 @@ function StaffTab() {
   );
 }
 
-// ── Seasons Tab ───────────────────────────────
-
-function SeasonsTab() {
-  const [seasons, setSeasons]         = useState<Season[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [saving, setSaving]           = useState(false);
-  const [error, setError]             = useState<string | null>(null);
-  const [saved, setSaved]             = useState(false);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [showCreateConfirm, setShowCreateConfirm] = useState(false);
-
-  async function load() {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("seasons")
-      .select("*")
-      .order("start_year", { ascending: false });
-    setSeasons((data ?? []) as Season[]);
-    setLoading(false);
-  }
-
-  useEffect(() => { load(); }, []);
-
-  function flash() { setSaved(true); setTimeout(() => setSaved(false), 3000); }
-
-  async function handleSetActive(seasonId: string) {
-    setSaving(true); setError(null);
-    const supabase = createClient();
-    // Deactivate all, then activate chosen
-    const { error: e1 } = await supabase.from("seasons").update({ active: false }).neq("id", "00000000-0000-0000-0000-000000000000");
-    if (e1) { setError(e1.message); setSaving(false); return; }
-    const { error: e2 } = await supabase.from("seasons").update({ active: true }).eq("id", seasonId);
-    if (e2) { setError(e2.message); setSaving(false); return; }
-    await load(); flash(); setSaving(false);
-  }
-
-  async function handleCreateNextSeason() {
-    if (seasons.length === 0) return;
-    setSaving(true); setError(null);
-    const supabase = createClient();
-
-    // Compute next season from the latest one
-    const latest = seasons[0]; // already ordered desc
-    const nextStart = latest.start_year + 1;
-    const nextEnd   = latest.end_year + 1;
-    const nextLabel = `${nextStart}–${String(nextEnd).slice(2)}`;
-
-    // Insert new season
-    const { data: newSeason, error: e1 } = await supabase
-      .from("seasons")
-      .insert([{ label: nextLabel, start_year: nextStart, end_year: nextEnd, active: false }])
-      .select()
-      .single();
-    if (e1 || !newSeason) { setError(e1?.message ?? "Failed to create season"); setSaving(false); return; }
-
-    // Seed zero stats for all active players
-    const { data: players } = await supabase.from("players").select("id, position").eq("active", true);
-    if (players && players.length > 0) {
-      const fieldPlayers = players.filter((p: { id: string; position: string }) => p.position !== "Goalkeeper");
-      const gkPlayers    = players.filter((p: { id: string; position: string }) => p.position === "Goalkeeper");
-
-      if (fieldPlayers.length > 0) {
-        await supabase.from("player_season_stats").insert(
-          fieldPlayers.map((p: { id: string }) => ({
-            player_id: p.id, season_id: newSeason.id,
-            goals: 0, assists: 0, tackles: 0, starts: 0,
-            yellow: 0, red: 0, mins: 0, offsides: 0, fouls: 0, fouls_suffered: 0,
-          }))
-        );
-      }
-      if (gkPlayers.length > 0) {
-        await supabase.from("goalkeeper_season_stats").insert(
-          gkPlayers.map((p: { id: string }) => ({
-            player_id: p.id, season_id: newSeason.id,
-            goals_against: 0, saves: 0, clean_sheets: 0,
-            starts: 0, yellow: 0, red: 0, mins: 0,
-          }))
-        );
-      }
-    }
-
-    await load(); flash(); setSaving(false);
-  }
-
-  async function handleDelete(seasonId: string) {
-    setSaving(true); setError(null);
-    const supabase = createClient();
-    const { error: e } = await supabase.from("seasons").delete().eq("id", seasonId);
-    if (e) { setError(e.message); } else { await load(); }
-    setConfirmDeleteId(null);
-    setSaving(false);
-  }
-
-  const nextLabel = seasons.length > 0
-    ? `${seasons[0].start_year + 1}–${String(seasons[0].end_year + 1).slice(2)}`
-    : "";
-
-  return (
-    <div>
-      {/* Create Next Season confirmation modal */}
-      {showCreateConfirm && (
-        <div
-          className="fixed inset-0 flex items-center justify-center"
-          style={{ zIndex: 200, backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
-          onClick={() => setShowCreateConfirm(false)}
-        >
-          <div
-            className="rounded-2xl p-8 max-w-sm w-full mx-4"
-            style={{ backgroundColor: "#161616", border: "1px solid rgba(255,255,255,0.1)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-display font-black uppercase text-white mb-2" style={{ fontSize: "1.4rem" }}>
-              Create {nextLabel} Season?
-            </h2>
-            <p className="font-body text-sm leading-relaxed mb-1" style={{ color: "rgba(255,255,255,0.55)" }}>
-              This will:
-            </p>
-            <ul className="font-body text-sm mb-5 space-y-1" style={{ color: "rgba(255,255,255,0.45)" }}>
-              <li>• Create the <strong style={{ color: "white" }}>{nextLabel}</strong> season</li>
-              <li>• Seed zero stats for all active players</li>
-              <li>• <strong style={{ color: "white" }}>Not</strong> set it as active — you control that separately</li>
-            </ul>
-            <p className="font-body text-xs mb-6" style={{ color: "rgba(255,255,255,0.3)" }}>
-              If you create it by mistake, use Delete to remove it and its seeded stats.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setShowCreateConfirm(false); handleCreateNextSeason(); }}
-                disabled={saving}
-                className="flex-1 px-5 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white text-xs"
-                style={{ backgroundColor: "#dc2626", opacity: saving ? 0.6 : 1 }}
-              >
-                {saving ? "Creating…" : "Create Season"}
-              </button>
-              <button
-                onClick={() => setShowCreateConfirm(false)}
-                className="flex-1 px-5 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-xs"
-                style={{ backgroundColor: "#222", color: "rgba(255,255,255,0.5)" }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="flex items-center justify-between mb-6">
-        <p className="font-body text-sm" style={{ color: "rgba(255,255,255,0.35)" }}>
-          {seasons.length} season{seasons.length !== 1 ? "s" : ""}
-        </p>
-        <button
-          onClick={() => setShowCreateConfirm(true)}
-          disabled={saving || seasons.length === 0}
-          className="px-6 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white"
-          style={{ backgroundColor: "#dc2626", fontSize: "1.1rem", opacity: saving ? 0.6 : 1 }}
-        >
-          + Create Next Season
-        </button>
-      </div>
-
-      {saved  && <p className="font-display text-sm tracking-widest uppercase mb-4" style={{ color: "rgba(34,197,94,0.9)" }}>✓ Saved</p>}
-      {error  && <p className="font-body text-sm mb-4" style={{ color: "#dc2626" }}>Error: {error}</p>}
-
-      {loading ? (
-        <p className="font-display text-sm tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.3)" }}>Loading…</p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {seasons.map((s) => (
-            <div
-              key={s.id}
-              className="flex items-center justify-between px-5 py-4 rounded-xl"
-              style={{
-                backgroundColor: s.active ? "#161616" : "#111111",
-                border: `1px solid ${s.active ? "rgba(220,38,38,0.3)" : "rgba(255,255,255,0.07)"}`,
-              }}
-            >
-              <div>
-                <p className="font-display font-black text-white" style={{ fontSize: "1.25rem" }}>
-                  {s.label} Season
-                </p>
-                <p className="font-body text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>
-                  {s.start_year} – {s.end_year}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                {s.active ? (
-                  <span
-                    className="font-display text-xs tracking-widest uppercase px-3 py-1 rounded-full"
-                    style={{ backgroundColor: "rgba(34,197,94,0.15)", color: "rgba(34,197,94,0.9)", border: "1px solid rgba(34,197,94,0.3)" }}
-                  >
-                    Active
-                  </span>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => handleSetActive(s.id)}
-                      disabled={saving}
-                      className="px-4 py-2 rounded-lg font-display font-black uppercase tracking-widest"
-                      style={{
-                        fontSize: "0.85rem",
-                        backgroundColor: "rgba(34,197,94,0.1)",
-                        border: "1px solid rgba(34,197,94,0.2)",
-                        color: "rgba(34,197,94,0.8)",
-                        opacity: saving ? 0.6 : 1,
-                      }}
-                    >
-                      Set Active
-                    </button>
-
-                    {/* Two-click delete */}
-                    {confirmDeleteId === s.id ? (
-                      <button
-                        onClick={() => handleDelete(s.id)}
-                        disabled={saving}
-                        className="px-4 py-2 rounded-lg font-display font-black uppercase tracking-widest"
-                        style={{
-                          fontSize: "0.85rem",
-                          backgroundColor: "rgba(220,38,38,0.2)",
-                          border: "1px solid rgba(220,38,38,0.5)",
-                          color: "#dc2626",
-                          opacity: saving ? 0.6 : 1,
-                        }}
-                      >
-                        Confirm?
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setConfirmDeleteId(s.id)}
-                        disabled={saving}
-                        className="px-4 py-2 rounded-lg font-display font-black uppercase tracking-widest"
-                        style={{
-                          fontSize: "0.85rem",
-                          backgroundColor: "transparent",
-                          border: "1px solid rgba(255,255,255,0.08)",
-                          color: "rgba(255,255,255,0.3)",
-                          opacity: saving ? 0.6 : 1,
-                        }}
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── Season Stats Panel ────────────────────────
 

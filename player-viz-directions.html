@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rose City FC — Player Viz · 5 Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --g:#1B4D3E; --gd:#163D31; --gl:#246655; --gb:#2FB574;
+  --r:#C0152A; --rb:#E8192E;
+  --k:#0A0A0A; --w:#FFFFFF;
+  --gray:#9A9A9A; --glt:#F5F5F5;
+  --admin-card:#141414; --admin-border:rgba(255,255,255,0.07);
+}
+
+body{font-family:'DM Sans',-apple-system,sans-serif;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* ── NAV ── */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:9999;
+  background:rgba(10,10,10,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(255,255,255,.07);
+  padding:9px 16px;display:flex;align-items:center;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+}
+.nav-lbl{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
+  color:var(--gray);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;margin-right:4px;flex-shrink:0}
+.nav-btn{
+  padding:5px 14px;border-radius:3px;border:1px solid rgba(255,255,255,.12);
+  background:transparent;font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:rgba(255,255,255,.5);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .16s
+}
+.nav-btn.on{background:var(--r);color:#fff;border-color:var(--r)}
+.nav-btn:hover:not(.on){background:rgba(255,255,255,.08);color:#fff}
+
+.dir{display:none;min-height:100vh;padding-top:50px}
+.dir.on{display:block}
+
+/* shared photo frame */
+.photo-frame{overflow:hidden;flex-shrink:0;background:rgba(255,255,255,.06)}
+.photo-frame img{width:100%;height:100%;object-fit:cover;object-position:top}
+.photo-initials{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:1.4rem;
+  color:#fff;letter-spacing:.04em}
+
+
+/* ══════════════════════════════════════════════
+   D1 · MINIMAL LIGHT
+   White cards · health-app rhythm · green/red
+══════════════════════════════════════════════ */
+#d1{background:var(--glt);padding-bottom:72px}
+.d1w{max-width:980px;margin:0 auto;padding:28px 20px 0}
+
+.d1-dir-note{font-size:12px;color:var(--gray);margin-bottom:20px;
+  display:flex;align-items:center;gap:7px}
+.d1-dir-note::before{content:'';width:6px;height:6px;border-radius:50%;
+  background:var(--g);flex-shrink:0}
+
+/* player header */
+.d1-header{
+  display:flex;align-items:center;gap:18px;margin-bottom:24px;
+  background:#fff;border-radius:12px;padding:20px 22px;
+  box-shadow:0 1px 0 rgba(0,0,0,.04),0 4px 20px rgba(0,0,0,.06)
+}
+.d1-photo{width:88px;height:88px;border-radius:10px;border:2px solid var(--g)}
+.d1-hname{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:900;
+  color:var(--k);letter-spacing:.03em;text-transform:uppercase;line-height:1}
+.d1-hpos{font-size:13px;color:var(--gray);margin-top:4px}
+.d1-badge{display:inline-flex;align-items:center;gap:5px;
+  background:rgba(27,77,62,.09);color:var(--g);
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
+  padding:3px 10px;border-radius:2px;text-transform:uppercase;letter-spacing:.08em;margin-top:7px}
+.d1-bdot{width:5px;height:5px;border-radius:50%;background:var(--g);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.d1-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:620px){.d1-grid{grid-template-columns:1fr}}
+.d1-card{background:#fff;border-radius:12px;padding:20px 22px;
+  box-shadow:0 1px 0 rgba(0,0,0,.04),0 3px 16px rgba(0,0,0,.055)}
+.d1-card.span2{grid-column:1/-1}
+.d1-lbl{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
+  color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;
+  padding-bottom:10px;border-bottom:1px solid rgba(0,0,0,.06)}
+
+.d1-trio{display:flex}
+.d1-stat{flex:1;text-align:center;border-right:1px solid rgba(0,0,0,.06);padding:2px 8px}
+.d1-stat:last-child{border-right:none}
+.d1-sn{font-family:'Barlow Condensed',sans-serif;font-size:46px;font-weight:900;line-height:1}
+.d1-sn.g{color:var(--g)}.d1-sn.r{color:var(--r)}.d1-sn.k{color:var(--k)}
+.d1-sl{font-size:12px;color:var(--gray);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+
+/* bullet bars */
+.d1-bullet{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.d1-bullet:last-child{margin-bottom:0}
+.d1-bname{font-size:13px;font-weight:500;color:var(--k);width:74px;flex-shrink:0}
+.d1-btrack{flex:1;height:8px;background:rgba(0,0,0,.06);border-radius:4px;position:relative;overflow:visible}
+.d1-bfill{height:100%;border-radius:4px;position:relative}
+.d1-bbench{position:absolute;top:-3px;bottom:-3px;width:2px;background:rgba(192,21,42,.45);border-radius:1px}
+.d1-bval{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:900;
+  color:var(--k);width:28px;text-align:right}
+
+/* heatmap */
+.d1-heat{display:flex;flex-wrap:wrap;gap:7px}
+.d1-hcell{width:46px;height:46px;border-radius:7px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;cursor:default;transition:transform .12s}
+.d1-hcell:hover{transform:scale(1.1)}
+.d1-hg{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
+  color:#fff;letter-spacing:.02em}
+.d1-hr{font-size:10px;color:rgba(255,255,255,.75);margin-top:1px}
+
+/* insight rows */
+.d1-irow{display:flex;justify-content:space-between;align-items:center;
+  padding:9px 0;border-bottom:1px solid rgba(0,0,0,.05)}
+.d1-irow:last-child{border-bottom:none}
+.d1-ilbl{font-size:13px;font-weight:500;color:var(--k)}
+.d1-ival{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;
+  color:var(--g);letter-spacing:.02em}
+
+
+/* ══════════════════════════════════════════════
+   D2 · DARK ADMIN
+   Matches actual admin portal: #0A0A0A, #141414 cards, red accent
+══════════════════════════════════════════════ */
+#d2{background:var(--k);padding-bottom:72px}
+.d2w{max-width:980px;margin:0 auto;padding:28px 20px 0}
+
+.d2-dir-note{font-size:12px;color:rgba(255,255,255,.3);margin-bottom:20px;
+  display:flex;align-items:center;gap:7px}
+.d2-dir-note::before{content:'';width:6px;height:6px;border-radius:50%;
+  background:var(--rb);flex-shrink:0;animation:blink 2s infinite}
+
+/* player header — mirrors analytics/page.tsx PlayerDashboard header */
+.d2-header{
+  display:flex;align-items:center;gap:18px;
+  background:var(--admin-card);border:1px solid var(--admin-border);
+  border-radius:12px;padding:20px 22px;margin-bottom:16px
+}
+.d2-photo{width:96px;height:96px;border-radius:10px;border:2px solid var(--r)}
+.d2-hname{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;
+  color:#fff;letter-spacing:.04em;text-transform:uppercase;line-height:1}
+.d2-hpos{font-size:14px;color:rgba(255,255,255,.35);margin-top:5px;
+  font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;
+  letter-spacing:.06em}
+.d2-live{display:inline-flex;align-items:center;gap:5px;
+  background:rgba(192,21,42,.12);border:1px solid rgba(192,21,42,.25);color:var(--rb);
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
+  padding:3px 10px;border-radius:2px;text-transform:uppercase;letter-spacing:.08em;margin-top:8px}
+.d2-ldot{width:5px;height:5px;border-radius:50%;background:var(--rb);animation:blink 2s infinite}
+.d2-rtg-badge{margin-left:auto;text-align:right;flex-shrink:0}
+.d2-rtn{font-family:'Barlow Condensed',sans-serif;font-size:56px;font-weight:900;
+  color:#fff;letter-spacing:-.01em;line-height:1}
+.d2-rtl{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
+  color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
+
+.d2-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:620px){.d2-grid{grid-template-columns:1fr}}
+.d2-card{background:var(--admin-card);border:1px solid var(--admin-border);border-radius:12px;padding:20px 22px}
+.d2-card.span2{grid-column:1/-1}
+.d2-lbl{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
+  color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;
+  margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.06)}
+
+.d2-trio{display:flex}
+.d2-stat{flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.06);padding:2px 8px}
+.d2-stat:last-child{border-right:none}
+.d2-sn{font-family:'Barlow Condensed',sans-serif;font-size:46px;font-weight:900;line-height:1}
+.d2-sn.r{color:var(--rb);text-shadow:0 0 24px rgba(232,25,46,.4)}
+.d2-sn.w{color:#fff}.d2-sn.gy{color:var(--gray)}
+.d2-sl{font-size:12px;color:rgba(255,255,255,.3);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+
+.d2-scatter-hint{font-size:12px;color:rgba(255,255,255,.25);text-align:center;margin-top:8px}
+
+
+/* ══════════════════════════════════════════════
+   D3 · BOLD SPORT
+   Deep green hero · red accent · photo in hero
+══════════════════════════════════════════════ */
+#d3{background:#070D0A;padding-bottom:72px}
+.d3w{max-width:980px;margin:0 auto;padding:24px 20px 0}
+
+.d3-dir-note{font-size:12px;color:rgba(255,255,255,.25);margin-bottom:16px}
+
+.d3-hero{
+  background:linear-gradient(140deg,var(--g) 0%,var(--gd) 100%);
+  border-radius:14px;padding:26px 26px 24px;margin-bottom:16px;
+  position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.06)
+}
+.d3-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--r)}
+.d3-hero-bg{
+  position:absolute;right:8px;bottom:-28px;
+  font-family:'Barlow Condensed',sans-serif;font-style:italic;
+  font-size:200px;font-weight:900;color:rgba(255,255,255,.04);
+  line-height:1;user-select:none;pointer-events:none;letter-spacing:-8px
+}
+.d3-hero-inner{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.d3-hero-left{flex:1;min-width:200px}
+.d3-name{font-family:'Barlow Condensed',sans-serif;font-size:clamp(34px,5.5vw,54px);
+  font-weight:900;color:#fff;letter-spacing:.03em;text-transform:uppercase;line-height:.92}
+.d3-pos{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
+  color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.14em;margin-top:9px}
+.d3-hstats{display:flex;gap:28px;margin-top:22px;flex-wrap:wrap}
+.d3-hsn{font-family:'Barlow Condensed',sans-serif;font-size:54px;font-weight:900;
+  color:#fff;letter-spacing:.01em;line-height:1}
+.d3-hsl{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
+  color:rgba(255,255,255,.42);text-transform:uppercase;letter-spacing:.12em;margin-top:4px}
+.d3-hero-photo-wrap{
+  display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0
+}
+.d3-photo{width:110px;height:130px;border-radius:10px;border:2px solid rgba(255,255,255,.2);
+  overflow:hidden;flex-shrink:0}
+.d3-photo img{width:100%;height:100%;object-fit:cover;object-position:top}
+.d3-rbadge{
+  background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.15);
+  border-radius:8px;padding:8px 14px;text-align:center;width:100%
+}
+.d3-rbn{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;
+  color:#fff;letter-spacing:.01em;line-height:1}
+.d3-rbl{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;
+  color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
+
+.d3-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:620px){.d3-grid{grid-template-columns:1fr}}
+.d3-card{background:rgba(27,77,62,.1);border:1px solid rgba(27,77,62,.22);border-radius:12px;padding:20px 22px}
+.d3-card.span2{grid-column:1/-1}
+.d3-lbl{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
+  color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px;
+  padding-bottom:10px;border-bottom:1px solid rgba(27,77,62,.2)}
+
+.d3-arow{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.d3-an{font-size:13px;color:rgba(255,255,255,.5);width:72px;flex-shrink:0}
+.d3-at{flex:1;height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
+.d3-af{height:100%;border-radius:3px}
+.d3-av{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:900;color:#fff;width:28px;text-align:right}
+
+.d3-results{display:flex;gap:6px;flex-wrap:wrap}
+.d3-rbox{width:34px;height:34px;border-radius:4px;display:flex;align-items:center;justify-content:center;
+  font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:900;color:#fff}
+
+.d3-contrib{display:flex;gap:4px;align-items:flex-end;height:48px;margin-top:10px}
+.d3-cb{flex:1;border-radius:2px 2px 0 0}
+
+
+/* ══════════════════════════════════════════════
+   D4 · EDITORIAL
+   Black hero · magazine grid · photo in hero
+══════════════════════════════════════════════ */
+#d4{background:var(--glt);padding-bottom:72px}
+
+.d4-hero{background:var(--k);padding:40px 20px 44px}
+.d4-hw{max-width:980px;margin:0 auto}
+.d4-hero-inner{display:flex;align-items:flex-end;gap:32px;flex-wrap:wrap}
+.d4-hero-text{flex:1;min-width:220px}
+.d4-eye{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;
+  color:var(--r);text-transform:uppercase;letter-spacing:.18em;margin-bottom:14px}
+.d4-name{font-family:'Barlow Condensed',sans-serif;
+  font-size:clamp(52px,9.5vw,88px);font-weight:900;color:#fff;
+  letter-spacing:.01em;line-height:.86;text-transform:uppercase;margin-bottom:28px}
+.d4-rule{height:1px;background:rgba(255,255,255,.1);margin-bottom:22px}
+.d4-kstats{display:flex;flex-wrap:wrap;gap:0}
+.d4-ks{padding-right:24px;margin-right:24px;border-right:1px solid rgba(255,255,255,.1);margin-bottom:10px}
+.d4-ks:last-child{border-right:none}
+.d4-ksn{font-family:'Barlow Condensed',sans-serif;font-size:46px;font-weight:900;
+  color:#fff;letter-spacing:.01em;line-height:1}
+.d4-ksl{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
+  color:rgba(255,255,255,.32);text-transform:uppercase;letter-spacing:.1em;margin-top:3px}
+
+.d4-photo-block{flex-shrink:0}
+.d4-photo{width:140px;height:168px;border-radius:10px;border:2px solid var(--r);
+  overflow:hidden;flex-shrink:0}
+.d4-photo img{width:100%;height:100%;object-fit:cover;object-position:top}
+
+.d4-body{max-width:980px;margin:0 auto;padding:28px 20px 0}
+.d4-sh{display:flex;align-items:baseline;gap:10px;
+  border-bottom:2px solid var(--k);padding-bottom:8px;margin-bottom:18px}
+.d4-st{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;
+  color:var(--k);text-transform:uppercase;letter-spacing:.04em}
+.d4-ss{font-size:13px;color:var(--gray)}
+
+.d4-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:28px}
+@media(max-width:620px){.d4-grid{grid-template-columns:1fr}}
+.d4-card{background:#fff;border-radius:10px;padding:20px 22px;border:1px solid rgba(0,0,0,.07)}
+.d4-card.span2{grid-column:1/-1}
+.d4-lbl{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
+  color:var(--gray);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;
+  padding-bottom:10px;border-bottom:1px solid rgba(0,0,0,.06)}
+
+.d4-table{width:100%;border-collapse:collapse}
+.d4-table th{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
+  color:var(--gray);text-transform:uppercase;letter-spacing:.1em;
+  padding:0 8px 10px 0;text-align:left;border-bottom:1px solid rgba(0,0,0,.08)}
+.d4-table td{font-size:13px;color:var(--k);padding:8px 8px 8px 0;
+  border-bottom:1px solid rgba(0,0,0,.05);font-weight:500}
+.d4-table td.b{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;letter-spacing:.02em}
+.d4-chip{display:inline-block;width:22px;height:22px;border-radius:3px;
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:900;
+  color:#fff;text-align:center;line-height:22px}
+
+.d4-leg{display:flex;gap:12px;margin-bottom:12px}
+.d4-li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--gray)}
+.d4-ls{width:14px;height:4px;border-radius:2px}
+.d4-crow{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+.d4-clbl{font-size:12px;font-weight:500;color:var(--k);width:72px;flex-shrink:0}
+.d4-ctracks{flex:1;display:flex;flex-direction:column;gap:3px}
+.d4-cb{border-radius:3px}
+.d4-cval{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:900;
+  color:var(--k);width:28px;text-align:right}
+
+
+/* ══════════════════════════════════════════════
+   D5 · GLASS
+   Forest dark bg · glass cards · photo-led hero
+   No number overlay — photo is the hero element
+══════════════════════════════════════════════ */
+#d5{
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%,rgba(27,77,62,.22) 0%,transparent 60%),
+    linear-gradient(160deg,#0D1A14 0%,#0A1210 50%,#080E0A 100%);
+  padding-bottom:80px;
+}
+.d5w{max-width:980px;margin:0 auto;padding:24px 20px 0}
+
+.d5-dir-note{font-size:12px;color:rgba(255,255,255,.25);margin-bottom:18px;
+  display:flex;align-items:center;gap:7px}
+.d5-dir-note::before{content:'';width:6px;height:6px;border-radius:50%;
+  background:var(--gb);flex-shrink:0;animation:blink 2s infinite}
+
+/* glass hero — photo left, rings right */
+.d5-hero{
+  display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center;
+  background:rgba(27,77,62,.07);
+  border:1px solid rgba(27,77,62,.22);border-radius:16px;
+  padding:28px 28px;margin-bottom:18px;
+  position:relative;overflow:hidden;
+}
+@media(max-width:680px){
+  .d5-hero{grid-template-columns:auto 1fr;grid-template-rows:auto auto}
+}
+@media(max-width:480px){
+  .d5-hero{grid-template-columns:1fr;gap:18px}
+}
+.d5-hero::before{
+  content:'';position:absolute;top:0;left:10%;right:10%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(47,181,116,.3),transparent)
+}
+
+.d5-photo-col{flex-shrink:0}
+.d5-photo{
+  width:120px;height:148px;border-radius:12px;
+  border:2px solid rgba(27,77,62,.5);
+  overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 0 1px rgba(47,181,116,.1)
+}
+.d5-photo img{width:100%;height:100%;object-fit:cover;object-position:top}
+.d5-photo-initials{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:2rem;
+  color:rgba(255,255,255,.4);background:rgba(27,77,62,.3);letter-spacing:.04em
+}
+
+.d5-info-col{display:flex;flex-direction:column;justify-content:center}
+.d5-hname{font-family:'Barlow Condensed',sans-serif;font-size:clamp(36px,5vw,52px);
+  font-weight:900;color:#fff;letter-spacing:.03em;text-transform:uppercase;line-height:.92}
+.d5-hpos{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
+  color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.14em;margin-top:10px}
+.d5-hlive{
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(27,77,62,.2);border:1px solid rgba(27,77,62,.35);color:var(--gb);
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
+  padding:3px 10px;border-radius:2px;text-transform:uppercase;letter-spacing:.08em;margin-top:12px
+}
+.d5-ldot{width:5px;height:5px;border-radius:50%;background:var(--gb);animation:blink 2s infinite}
+
+.d5-rings-col{
+  display:flex;flex-direction:column;gap:14px;align-items:center;
+  border-left:1px solid rgba(27,77,62,.2);padding-left:24px;
+}
+@media(max-width:680px){
+  .d5-rings-col{
+    grid-column:1/-1;border-left:none;padding-left:0;
+    flex-direction:row;justify-content:center;flex-wrap:wrap;
+    border-top:1px solid rgba(27,77,62,.2);padding-top:18px;gap:16px
+  }
+}
+.d5-ring-wrap{position:relative;width:88px;height:88px;text-align:center}
+.d5-ring-svg{display:block}
+.d5-ring-inner{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center
+}
+.d5-rn{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;
+  color:#fff;letter-spacing:.01em;line-height:1}
+.d5-rl{font-size:11px;color:rgba(255,255,255,.35);text-transform:uppercase;
+  letter-spacing:.07em;margin-top:2px;font-weight:500}
+
+/* glass grid */
+.d5-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(max-width:620px){.d5-grid{grid-template-columns:1fr}}
+.d5-card{
+  background:rgba(27,77,62,.07);border:1px solid rgba(27,77,62,.2);
+  border-radius:14px;padding:20px 22px;
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  position:relative;overflow:hidden
+}
+.d5-card::before{
+  content:'';position:absolute;top:0;left:15%;right:15%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(47,181,116,.25),transparent)
+}
+.d5-card.span2{grid-column:1/-1}
+.d5-lbl{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
+  color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;
+  margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(27,77,62,.18)}
+
+.d5-scatter-sub{font-size:12px;color:rgba(255,255,255,.25);text-align:center;margin-top:8px}
+.d5-scatter-leg{display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap}
+.d5-scatter-li{display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,.38)}
+.d5-scatter-dot{width:8px;height:8px;border-radius:50%}
+
+.d5-insight{background:rgba(27,77,62,.15);border:1px solid rgba(27,77,62,.25);
+  border-radius:8px;padding:12px 14px;margin-top:14px}
+.d5-insight-t{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
+  color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.d5-insight-v{font-size:13px;color:rgba(255,255,255,.55);line-height:1.6}
+
+.d5-arow{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.d5-an{font-size:13px;color:rgba(255,255,255,.42);width:70px;flex-shrink:0}
+.d5-at{flex:1;height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
+.d5-af{height:100%;border-radius:3px}
+.d5-av{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:900;color:#fff;width:28px;text-align:right}
+
+/* ── Responsive final ── */
+@media(max-width:480px){
+  .d3-hsn{font-size:44px}.d2-rtn{font-size:44px}.d4-ksn{font-size:38px}
+  .d4-ks{padding-right:16px;margin-right:16px}
+  .d3-hero-bg{display:none}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-lbl">Direction</span>
+  <button class="nav-btn on"  onclick="show(1)">1 · Minimal Light</button>
+  <button class="nav-btn"     onclick="show(2)">2 · Dark Admin</button>
+  <button class="nav-btn"     onclick="show(3)">3 · Bold Sport</button>
+  <button class="nav-btn"     onclick="show(4)">4 · Editorial</button>
+  <button class="nav-btn"     onclick="show(5)">5 · Glass</button>
+</nav>
+
+
+<!-- ═══ D1 · MINIMAL LIGHT ═══ -->
+<section id="d1" class="dir on">
+<div class="d1w">
+  <div class="d1-dir-note">Direction 1 — Minimal Light · White cards, green/red RCFC palette, bullet benchmarks, heatmap</div>
+
+  <div class="d1-header">
+    <div class="photo-frame d1-photo">
+      <img src="public/images/roster/players/forward1.webp" alt="Marcus Rivera" onerror="this.parentElement.innerHTML='<div class=\'photo-initials\' style=\'background:var(--g)\'>MR</div>'">
+    </div>
+    <div>
+      <div class="d1-hname">Marcus Rivera</div>
+      <div class="d1-hpos">Forward · Rose City FC · #10</div>
+      <div class="d1-badge"><span class="d1-bdot"></span>Active Season</div>
+    </div>
+  </div>
+
+  <div class="d1-grid">
+    <div class="d1-card">
+      <div class="d1-lbl">Season Summary</div>
+      <div class="d1-trio">
+        <div class="d1-stat"><div class="d1-sn g cnt" data-v="12">0</div><div class="d1-sl">Goals</div></div>
+        <div class="d1-stat"><div class="d1-sn r cnt" data-v="8">0</div><div class="d1-sl">Assists</div></div>
+        <div class="d1-stat"><div class="d1-sn k">7.8</div><div class="d1-sl">Rating</div></div>
+      </div>
+      <p style="font-size:12px;color:var(--gray);text-align:center;margin-top:12px">18 games · 1,620 min played</p>
+    </div>
+
+    <div class="d1-card" style="position:relative">
+      <div class="d1-lbl">Shot Conversion</div>
+      <div style="position:relative;height:148px">
+        <canvas id="d1-donut"></canvas>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;margin-top:-8px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:900;color:var(--g);line-height:1">22%</div>
+          <div style="font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.07em;margin-top:3px">Conversion</div>
+        </div>
+      </div>
+      <p style="font-size:12px;color:var(--gray);text-align:center;margin-top:4px">12 goals from 54 shots this season</p>
+    </div>
+
+    <div class="d1-card span2">
+      <div class="d1-lbl" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        Player Profile
+        <span style="display:flex;gap:14px">
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--gray)">
+            <span style="width:18px;height:1.5px;border-bottom:1.5px dashed var(--gray);display:inline-block"></span>Pos Avg
+          </span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--r)">
+            <span style="width:18px;height:2px;background:var(--r);display:inline-block;border-radius:1px"></span>Player
+          </span>
+        </span>
+      </div>
+      <div id="d1-radar"></div>
+    </div>
+
+    <div class="d1-card">
+      <div class="d1-lbl">Rating Heatmap — Last 10 Games</div>
+      <div class="d1-heat" id="d1-heat"></div>
+      <div style="display:flex;gap:5px;align-items:center;margin-top:10px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--gray)">Lower</span>
+        <div style="width:16px;height:16px;border-radius:3px;background:rgba(192,21,42,.45)"></div>
+        <div style="width:16px;height:16px;border-radius:3px;background:rgba(184,134,11,.55)"></div>
+        <div style="width:16px;height:16px;border-radius:3px;background:rgba(27,77,62,.7)"></div>
+        <div style="width:16px;height:16px;border-radius:3px;background:var(--g)"></div>
+        <span style="font-size:11px;color:var(--gray)">Higher</span>
+      </div>
+    </div>
+
+    <div class="d1-card span2">
+      <div class="d1-lbl">Season Insights</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0">
+        <div style="padding-right:16px;border-right:1px solid rgba(0,0,0,.06)">
+          <div class="d1-irow"><span class="d1-ilbl">Peak rating</span><span class="d1-ival">8.6 vs VAN</span></div>
+          <div class="d1-irow"><span class="d1-ilbl">Goals per 90</span><span class="d1-ival">0.67</span></div>
+        </div>
+        <div style="padding-left:16px">
+          <div class="d1-irow"><span class="d1-ilbl">Pass accuracy</span><span class="d1-ival">87%</span></div>
+          <div class="d1-irow"><span class="d1-ilbl">Man of Match</span><span class="d1-ival">3×</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+
+<!-- ═══ D2 · DARK ADMIN ═══ -->
+<section id="d2" class="dir">
+<div class="d2w">
+  <div class="d2-dir-note">Direction 2 — Dark Admin · Matches actual admin portal exactly (#0A0A0A bg, #141414 cards, red accent)</div>
+
+  <div class="d2-header">
+    <div class="photo-frame d2-photo">
+      <img src="public/images/roster/players/forward1.webp" alt="Marcus Rivera" onerror="this.parentElement.innerHTML='<div class=\'photo-initials\' style=\'background:var(--r)\'>MR</div>'">
+    </div>
+    <div style="flex:1;min-width:0">
+      <div class="d2-hname">Marcus Rivera</div>
+      <div class="d2-hpos">#10 · Forward · 2024–25</div>
+      <div class="d2-live"><span class="d2-ldot"></span>Live Season Data</div>
+    </div>
+    <div class="d2-rtg-badge">
+      <div class="d2-rtn">7.8</div>
+      <div class="d2-rtl">Season Rating</div>
+    </div>
+  </div>
+
+  <div class="d2-grid">
+    <div class="d2-card">
+      <div class="d2-lbl">Attacking</div>
+      <div class="d2-trio">
+        <div class="d2-stat"><div class="d2-sn r">12</div><div class="d2-sl">Goals</div></div>
+        <div class="d2-stat"><div class="d2-sn w">8</div><div class="d2-sl">Assists</div></div>
+        <div class="d2-stat"><div class="d2-sn r">20</div><div class="d2-sl">G+A</div></div>
+      </div>
+    </div>
+
+    <div class="d2-card">
+      <div class="d2-lbl">Availability</div>
+      <div class="d2-trio">
+        <div class="d2-stat"><div class="d2-sn w">18</div><div class="d2-sl">Starts</div></div>
+        <div class="d2-stat"><div class="d2-sn w">1.6k</div><div class="d2-sl">Minutes</div></div>
+        <div class="d2-stat"><div class="d2-sn gy">87%</div><div class="d2-sl">Pass Acc.</div></div>
+      </div>
+    </div>
+
+    <div class="d2-card span2">
+      <div class="d2-lbl">Goal Contribution Per Game (Goals + Assists Stacked)</div>
+      <div style="height:170px;position:relative"><canvas id="d2-stacked"></canvas></div>
+    </div>
+
+    <div class="d2-card span2">
+      <div class="d2-lbl">Minutes Played vs Match Rating — Fatigue / Form Scatter</div>
+      <div style="height:190px;position:relative"><canvas id="d2-scatter"></canvas></div>
+      <div class="d2-scatter-hint">Each point = one game · Cluster top-right shows full 90 min → high rating correlation</div>
+    </div>
+
+    <div class="d2-card span2">
+      <div class="d2-lbl" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        Player Profile
+        <span style="display:flex;gap:14px">
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,.35)">
+            <span style="width:18px;height:1.5px;border-bottom:1.5px dashed rgba(255,255,255,.35);display:inline-block"></span>Pos Avg
+          </span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--rb)">
+            <span style="width:18px;height:2px;background:var(--rb);display:inline-block;border-radius:1px"></span>Player
+          </span>
+        </span>
+      </div>
+      <div id="d2-radar"></div>
+    </div>
+  </div>
+</div>
+</section>
+
+
+<!-- ═══ D3 · BOLD SPORT ═══ -->
+<section id="d3" class="dir">
+<div class="d3w">
+  <div class="d3-dir-note" style="color:rgba(255,255,255,.25);font-size:12px;margin-bottom:16px">Direction 3 — Bold Sport · Deep green hero, player photo, red goal accents, position comparison</div>
+
+  <div class="d3-hero">
+    <div class="d3-hero-bg">10</div>
+    <div class="d3-hero-inner">
+      <div class="d3-hero-left">
+        <div class="d3-name">Marcus<br>Rivera</div>
+        <div class="d3-pos">Forward · Rose City FC</div>
+        <div class="d3-hstats">
+          <div><div class="d3-hsn">12</div><div class="d3-hsl">Goals</div></div>
+          <div><div class="d3-hsn">08</div><div class="d3-hsl">Assists</div></div>
+          <div><div class="d3-hsn">18</div><div class="d3-hsl">Games</div></div>
+        </div>
+      </div>
+      <div class="d3-hero-photo-wrap">
+        <div class="d3-photo">
+          <img src="public/images/roster/players/forward1.webp" alt="Marcus Rivera" onerror="this.style.display='none';this.parentElement.style.background='rgba(27,77,62,.4)'">
+        </div>
+        <div class="d3-rbadge">
+          <div class="d3-rbn">7.8</div>
+          <div class="d3-rbl">Rating</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d3-grid">
+    <div class="d3-card span2">
+      <div class="d3-lbl">Player vs. Position Average (per 90 min)</div>
+      <div style="height:190px;position:relative"><canvas id="d3-hbar"></canvas></div>
+    </div>
+
+    <div class="d3-card span2">
+      <div class="d3-lbl" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        Player Profile
+        <span style="display:flex;gap:14px">
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,.35)">
+            <span style="width:18px;height:1.5px;border-bottom:1.5px dashed rgba(255,255,255,.35);display:inline-block"></span>Pos Avg
+          </span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--rb)">
+            <span style="width:18px;height:2px;background:var(--rb);display:inline-block;border-radius:1px"></span>Player
+          </span>
+        </span>
+      </div>
+      <div id="d3-radar"></div>
+    </div>
+
+    <div class="d3-card">
+      <div class="d3-lbl">Last 10 Results</div>
+      <div class="d3-results" id="d3-res"></div>
+      <div class="d3-lbl" style="margin-top:18px">Goal Contribution</div>
+      <div class="d3-contrib" id="d3-contrib"></div>
+    </div>
+  </div>
+</div>
+</section>
+
+
+<!-- ═══ D4 · EDITORIAL ═══ -->
+<section id="d4" class="dir">
+
+  <div class="d4-hero">
+    <div class="d4-hw">
+      <div class="d4-hero-inner">
+        <div class="d4-hero-text">
+          <div class="d4-eye">Rose City FC · 2024 Season · Forward</div>
+          <div class="d4-name">Marcus<br>Rivera</div>
+          <div class="d4-rule"></div>
+          <div class="d4-kstats">
+            <div class="d4-ks"><div class="d4-ksn">12</div><div class="d4-ksl">Goals</div></div>
+            <div class="d4-ks"><div class="d4-ksn">8</div><div class="d4-ksl">Assists</div></div>
+            <div class="d4-ks"><div class="d4-ksn">7.8</div><div class="d4-ksl">Rating</div></div>
+            <div class="d4-ks"><div class="d4-ksn">87%</div><div class="d4-ksl">Pass Acc.</div></div>
+          </div>
+        </div>
+        <div class="d4-photo-block">
+          <div class="d4-photo">
+            <img src="public/images/roster/players/forward1.webp" alt="Marcus Rivera" onerror="this.parentElement.innerHTML='<div style=\'width:100%;height:100%;background:rgba(192,21,42,.3);display:flex;align-items:center;justify-content:center;font-family:Barlow Condensed,sans-serif;font-size:2rem;font-weight:900;color:rgba(255,255,255,.4);letter-spacing:.04em\'>MR</div>'">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d4-body">
+
+    <div class="d4-sh">
+      <div class="d4-st">G+A Breakdown</div>
+      <div class="d4-ss">Season contribution &amp; team comparison</div>
+    </div>
+    <div class="d4-grid">
+      <div class="d4-card">
+        <div class="d4-lbl">Goals vs Assists Split</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:center">
+          <div style="position:relative;height:160px"><canvas id="d4-donut"></canvas>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:var(--k);line-height:1">20</div>
+              <div style="font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.07em;margin-top:3px">G+A</div>
+            </div>
+          </div>
+          <div style="padding-left:14px">
+            <div style="margin-bottom:12px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                <span style="font-size:13px;color:var(--k)">Goals</span>
+                <span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:var(--g)">60%</span>
+              </div>
+              <div style="height:6px;background:rgba(0,0,0,.07);border-radius:3px">
+                <div style="width:60%;height:100%;background:var(--g);border-radius:3px"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                <span style="font-size:13px;color:var(--k)">Assists</span>
+                <span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:var(--r)">40%</span>
+              </div>
+              <div style="height:6px;background:rgba(0,0,0,.07);border-radius:3px">
+                <div style="width:40%;height:100%;background:var(--r);border-radius:3px"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d4-card span2">
+        <div class="d4-lbl" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          Player Profile
+          <span style="display:flex;gap:14px">
+            <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--gray)">
+              <span style="width:18px;height:1.5px;border-bottom:1.5px dashed var(--gray);display:inline-block"></span>Pos Avg
+            </span>
+            <span style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--g)">
+              <span style="width:18px;height:2px;background:var(--g);display:inline-block;border-radius:1px"></span>Player
+            </span>
+          </span>
+        </div>
+        <div id="d4-radar"></div>
+      </div>
+    </div>
+
+    <div class="d4-sh">
+      <div class="d4-st">Match Log</div>
+      <div class="d4-ss">Last 10 games</div>
+    </div>
+    <div class="d4-card span2">
+      <table class="d4-table" id="d4-table"></table>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ═══ D5 · GLASS ═══ -->
+<section id="d5" class="dir">
+<div class="d5w">
+  <div class="d5-dir-note">Direction 5 — Glass · Forest dark gradient, green-tinted glass cards, photo-led hero, glowing rings</div>
+
+  <!-- photo-led split hero -->
+  <div class="d5-hero">
+    <!-- photo -->
+    <div class="d5-photo-col">
+      <div class="d5-photo">
+        <img src="public/images/roster/players/forward1.webp" alt="Marcus Rivera"
+          onerror="this.parentElement.innerHTML='<div class=\'d5-photo-initials\'>MR</div>'">
+      </div>
+    </div>
+
+    <!-- info -->
+    <div class="d5-info-col">
+      <div class="d5-hname">Marcus<br>Rivera</div>
+      <div class="d5-hpos">#10 · Forward · Rose City FC</div>
+      <div class="d5-hlive"><span class="d5-ldot"></span>2024 Season</div>
+    </div>
+
+    <!-- rings -->
+    <div class="d5-rings-col" id="d5-rings"></div>
+  </div>
+
+  <div class="d5-grid">
+    <div class="d5-card span2">
+      <div class="d5-lbl">Minutes Played vs Match Rating — Consistency &amp; Fatigue</div>
+      <div class="d5-scatter-leg">
+        <div class="d5-scatter-li"><div class="d5-scatter-dot" style="background:var(--rb)"></div>Scored a goal</div>
+        <div class="d5-scatter-li"><div class="d5-scatter-dot" style="background:var(--gb)"></div>No goal</div>
+      </div>
+      <div style="height:200px;position:relative"><canvas id="d5-scatter"></canvas></div>
+      <div class="d5-scatter-sub">Full 90-min appearances correlate with ~0.6 pt higher avg rating</div>
+    </div>
+
+    <div class="d5-card">
+      <div class="d5-lbl">Goal + Assist Contribution Per Game</div>
+      <div style="height:170px;position:relative"><canvas id="d5-stacked"></canvas></div>
+    </div>
+
+    <div class="d5-card">
+      <div class="d5-lbl" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        Player Profile
+        <span style="display:flex;gap:14px">
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,.35)">
+            <span style="width:18px;height:1.5px;border-bottom:1.5px dashed rgba(255,255,255,.35);display:inline-block"></span>Pos Avg
+          </span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--gb)">
+            <span style="width:18px;height:2px;background:var(--gb);display:inline-block;border-radius:1px"></span>Player
+          </span>
+        </span>
+      </div>
+      <div id="d5-radar"></div>
+    </div>
+  </div>
+</div>
+</section>
+
+
+<script>
+/* ── DATA ── */
+const M=[
+  {g:'G1', goals:1,ast:0,mins:90,rtg:7.2,form:'W',opp:'NW United'},
+  {g:'G2', goals:2,ast:1,mins:90,rtg:8.1,form:'W',opp:'PDX Thorns'},
+  {g:'G3', goals:0,ast:1,mins:78,rtg:7.5,form:'D',opp:'OR Thorns'},
+  {g:'G4', goals:1,ast:0,mins:90,rtg:6.8,form:'L',opp:'Bay FC'},
+  {g:'G5', goals:2,ast:0,mins:90,rtg:8.3,form:'W',opp:'Seattle'},
+  {g:'G6', goals:1,ast:2,mins:85,rtg:7.9,form:'W',opp:'Real Salt L.'},
+  {g:'G7', goals:3,ast:0,mins:90,rtg:8.6,form:'W',opp:'Vancouver'},
+  {g:'G8', goals:0,ast:1,mins:62,rtg:7.4,form:'D',opp:'LA FC'},
+  {g:'G9', goals:1,ast:1,mins:90,rtg:8.0,form:'W',opp:'Colorado'},
+  {g:'G10',goals:1,ast:0,mins:90,rtg:7.8,form:'W',opp:'San Jose'},
+];
+const GL=M.map(x=>x.g),RTGS=M.map(x=>x.rtg),GOALS=M.map(x=>x.goals),ASTS=M.map(x=>x.ast);
+const G='#1B4D3E',GL2='#246655',R='#C0152A',RB='#E8192E',GB='#2FB574',GY='#9A9A9A',K='#0A0A0A';
+const FC={W:{bg:G},D:{bg:'#B8860B'},L:{bg:R}};
+
+Chart.defaults.font.family="'DM Sans',-apple-system,sans-serif";
+const charts={};
+
+function tip(dark=true){
+  return{backgroundColor:dark?'rgba(10,10,10,.92)':'rgba(10,10,10,.88)',
+    titleColor:'rgba(255,255,255,.5)',bodyColor:'#fff',
+    borderColor:'rgba(255,255,255,.1)',borderWidth:1,padding:10,cornerRadius:6,
+    titleFont:{size:11,weight:'600'},bodyFont:{size:13,weight:'700'}}
+}
+/* ── SHARED RADAR (mirrors analytics/page.tsx RadarCard SVG) ── */
+const RADAR_LABELS=['Speed','Shooting','Passing','Dribbling','Defense','Physical'];
+const PLAYER_VALS=[85,88,82,79,65,78];
+const AVG_VALS=[72,65,74,68,71,73];
+
+function buildRadar(containerId,labels,pVals,aVals,opts){
+  const el=document.getElementById(containerId); if(!el)return;
+  const{color='#C0152A',avgColor='rgba(255,255,255,.3)',gridColor='rgba(255,255,255,.07)',
+    textColor='rgba(255,255,255,.45)',barBg='rgba(255,255,255,.07)',numColor='#fff',sz=175}=opts||{};
+  const cx=110,cy=110,r=78,n=labels.length;
+  const angle=i=>(Math.PI*2*i)/n-Math.PI/2;
+  const pt=(i,s)=>[cx+s*r*Math.cos(angle(i)),cy+s*r*Math.sin(angle(i))];
+  const poly=vals=>vals.map((v,i)=>pt(i,Math.max(v,2)/100).join(',')).join(' ');
+  const svgStr=`<svg viewBox="-10 -10 240 240" width="${sz}" height="${sz}" style="flex-shrink:0">
+    ${[.25,.5,.75,1].map(s=>`<polygon points="${labels.map((_,i)=>pt(i,s).join(',')).join(' ')}"
+      fill="none" stroke="${gridColor}" stroke-width=".5"/>`).join('')}
+    ${labels.map((_,i)=>{const[x,y]=pt(i,1);return`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}"
+      stroke="${gridColor}" stroke-width=".5"/>`;}).join('')}
+    <polygon points="${poly(aVals)}" fill="none" stroke="${avgColor}" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <polygon points="${poly(pVals)}" fill="${color}26" stroke="${color}" stroke-width="2"/>
+    ${pVals.map((v,i)=>{const[x,y]=pt(i,Math.max(v,2)/100);return`<circle cx="${x}" cy="${y}" r="3.5" fill="${color}"/>`;}).join('')}
+    ${labels.map((l,i)=>{const[x,y]=pt(i,1.38);return`<text x="${x}" y="${y}" text-anchor="middle"
+      dominant-baseline="middle" fill="${textColor}" font-size="9" font-family="DM Sans,sans-serif">${l}</text>`;}).join('')}
+  </svg>`;
+  const barsStr=`<div style="flex:1;min-width:160px;display:flex;flex-direction:column;justify-content:center;gap:0">
+    ${labels.map((l,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:${i<labels.length-1?'9':'0'}px">
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;
+        color:${textColor};text-transform:uppercase;letter-spacing:.08em;width:64px;flex-shrink:0">${l}</span>
+      <div style="flex:1;height:3px;border-radius:2px;background:${barBg};position:relative;overflow:visible">
+        <div style="position:absolute;top:-2.5px;bottom:-2.5px;left:${aVals[i]}%;width:2px;
+          background:${avgColor};transform:translateX(-50%);border-radius:1px"></div>
+        <div style="width:${pVals[i]}%;height:100%;border-radius:2px;background:${color}"></div>
+      </div>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:900;
+        color:${numColor};width:28px;text-align:right">${pVals[i]}</span>
+    </div>`).join('')}
+  </div>`;
+  el.innerHTML=`<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">${svgStr}${barsStr}</div>`;
+}
+
+function rColor(v){
+  if(v>=8.5)return GB; if(v>=8.0)return G;
+  if(v>=7.5)return 'rgba(27,77,62,.7)'; if(v>=7.0)return 'rgba(184,134,11,.6)';
+  return 'rgba(192,21,42,.5)';
+}
+
+function show(n){
+  document.querySelectorAll('.dir').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('on'));
+  document.getElementById('d'+n).classList.add('on');
+  document.querySelectorAll('.nav-btn')[n-1].classList.add('on');
+  requestAnimationFrame(()=>{init(n);animIn(n);});
+}
+
+function animIn(n){
+  gsap.fromTo(`#d${n} .d${n}-card,#d${n} .d${n}-hero,#d${n} .d${n}-header`,
+    {opacity:0,y:12},{opacity:1,y:0,duration:.42,stagger:.055,ease:'power2.out',clearProps:'all'});
+}
+
+function init(n){
+  if(n===1)initD1(); if(n===2)initD2();
+  if(n===3)initD3(); if(n===4)initD4(); if(n===5)initD5();
+}
+
+/* ── D1 ── */
+function initD1(){
+  if(charts.d1)return; charts.d1=true;
+
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const o={v:0};
+    gsap.to(o,{v:+el.dataset.v,duration:1.1,ease:'power2.out',onUpdate(){el.textContent=Math.round(o.v)}});
+  });
+
+  new Chart(document.getElementById('d1-donut'),{
+    type:'doughnut',
+    data:{datasets:[{data:[12,42],backgroundColor:[G,'rgba(0,0,0,.07)'],borderWidth:0,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'72%',
+      plugins:{legend:{display:false},tooltip:{enabled:false}}}
+  });
+
+  buildRadar('d1-radar',RADAR_LABELS,PLAYER_VALS,AVG_VALS,{
+    color:R,avgColor:'rgba(0,0,0,.22)',gridColor:'rgba(0,0,0,.08)',
+    textColor:'rgba(0,0,0,.45)',barBg:'rgba(0,0,0,.07)',numColor:K,sz:175
+  });
+
+  const hc=document.getElementById('d1-heat');
+  M.forEach(m=>{
+    hc.innerHTML+=`<div class="d1-hcell" style="background:${rColor(m.rtg)}" title="${m.g} vs ${m.opp}: ${m.rtg}">
+      <div class="d1-hg">${m.g}</div><div class="d1-hr">${m.rtg}</div>
+    </div>`;
+  });
+}
+
+/* ── D2 ── */
+function initD2(){
+  if(charts.d2)return; charts.d2=true;
+
+  buildRadar('d2-radar',RADAR_LABELS,PLAYER_VALS,AVG_VALS,{
+    color:RB,avgColor:'rgba(255,255,255,.3)',gridColor:'rgba(255,255,255,.07)',
+    textColor:'rgba(255,255,255,.45)',barBg:'rgba(255,255,255,.07)',numColor:'#fff',sz:175
+  });
+
+  new Chart(document.getElementById('d2-stacked'),{
+    type:'bar',
+    data:{labels:GL,datasets:[
+      {label:'Goals',data:GOALS,backgroundColor:RB,stack:'s',
+        borderRadius:{topLeft:4,topRight:4,bottomLeft:0,bottomRight:0},borderSkipped:false},
+      {label:'Assists',data:ASTS,backgroundColor:'rgba(47,181,116,.7)',stack:'s',borderSkipped:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',align:'end',
+        labels:{color:'rgba(255,255,255,.4)',font:{size:11},boxWidth:10,padding:12}},
+        tooltip:tip()},
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:{color:'rgba(255,255,255,.35)',font:{size:11}}},
+        y:{stacked:true,grid:{color:'rgba(255,255,255,.05)'},
+          ticks:{color:'rgba(255,255,255,.35)',font:{size:11},stepSize:1},min:0,max:4}
+      }
+    }
+  });
+
+  new Chart(document.getElementById('d2-scatter'),{
+    type:'scatter',
+    data:{datasets:[
+      {label:'Scored',data:M.filter(m=>m.goals>0).map(m=>({x:m.mins,y:m.rtg,label:m.g})),
+        backgroundColor:RB,pointRadius:7,pointHoverRadius:9},
+      {label:'No goal',data:M.filter(m=>m.goals===0).map(m=>({x:m.mins,y:m.rtg,label:m.g})),
+        backgroundColor:'rgba(154,154,154,.5)',pointRadius:6,pointHoverRadius:8},
+      {type:'line',label:'_t',data:[{x:60,y:7.05},{x:92,y:8.0}],
+        borderColor:'rgba(255,255,255,.14)',borderWidth:1.5,borderDash:[5,5],pointRadius:0,showLine:true}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',align:'end',
+        labels:{color:'rgba(255,255,255,.4)',font:{size:11},boxWidth:10,padding:10,
+          filter:i=>i.text!=='_t'}},
+        tooltip:{...tip(),callbacks:{label:c=>`${c.raw.label}: ${c.raw.y} rating, ${c.raw.x}′`}}},
+      scales:{
+        x:{min:55,max:92,grid:{color:'rgba(255,255,255,.04)'},
+          title:{display:true,text:'Minutes Played',color:'rgba(255,255,255,.25)',font:{size:11}},
+          ticks:{color:'rgba(255,255,255,.35)',font:{size:11}}},
+        y:{min:6.2,max:9,grid:{color:'rgba(255,255,255,.04)'},
+          title:{display:true,text:'Match Rating',color:'rgba(255,255,255,.25)',font:{size:11}},
+          ticks:{color:'rgba(255,255,255,.35)',font:{size:11}}}
+      }
+    }
+  });
+}
+
+/* ── D3 ── */
+function initD3(){
+  if(charts.d3)return; charts.d3=true;
+
+  buildRadar('d3-radar',RADAR_LABELS,PLAYER_VALS,AVG_VALS,{
+    color:RB,avgColor:'rgba(255,255,255,.28)',gridColor:'rgba(255,255,255,.07)',
+    textColor:'rgba(255,255,255,.45)',barBg:'rgba(255,255,255,.07)',numColor:'#fff',sz:175
+  });
+
+  new Chart(document.getElementById('d3-hbar'),{
+    type:'bar',
+    data:{
+      labels:['Goals/90','Assists/90','Key Passes','Shots/90','Dribbles'],
+      datasets:[
+        {label:'Rivera',data:[0.67,0.44,2.4,4.2,3.1],backgroundColor:RB,borderRadius:4,borderSkipped:false},
+        {label:'Position Avg',data:[0.42,0.28,1.7,2.8,2.0],backgroundColor:'rgba(255,255,255,.12)',borderRadius:4,borderSkipped:false}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{position:'top',align:'end',
+        labels:{color:'rgba(255,255,255,.4)',font:{size:11},boxWidth:10,padding:10}},
+        tooltip:tip()},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'rgba(255,255,255,.35)',font:{size:11}}},
+        y:{grid:{display:false},ticks:{color:'rgba(255,255,255,.45)',font:{size:12}}}
+      }
+    }
+  });
+
+  const rc=document.getElementById('d3-res');
+  M.forEach(m=>{
+    const el=document.createElement('div');
+    el.className='d3-rbox'; el.style.background=FC[m.form].bg; el.textContent=m.form;
+    rc.appendChild(el);
+  });
+
+  const cc=document.getElementById('d3-contrib');
+  M.forEach(m=>{
+    const el=document.createElement('div'); el.className='d3-cb';
+    el.style.height=Math.max(6,(m.goals+m.ast)*13)+'px';
+    el.style.background=m.goals>0?RB:'rgba(47,181,116,.55)';
+    cc.appendChild(el);
+  });
+}
+
+/* ── D4 ── */
+function initD4(){
+  if(charts.d4)return; charts.d4=true;
+
+  buildRadar('d4-radar',RADAR_LABELS,PLAYER_VALS,AVG_VALS,{
+    color:G,avgColor:'rgba(0,0,0,.2)',gridColor:'rgba(0,0,0,.07)',
+    textColor:'rgba(0,0,0,.4)',barBg:'rgba(0,0,0,.07)',numColor:K,sz:175
+  });
+
+  new Chart(document.getElementById('d4-donut'),{
+    type:'doughnut',
+    data:{datasets:[{data:[12,8],backgroundColor:[G,R],borderWidth:0,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'70%',
+      plugins:{legend:{display:false},tooltip:{enabled:false}}}
+  });
+
+  const tbl=document.getElementById('d4-table');
+  tbl.innerHTML=`<thead><tr>
+    <th>Match</th><th>Opponent</th><th>Result</th>
+    <th>Goals</th><th>Ast.</th><th>Rating</th><th>Min</th>
+  </tr></thead><tbody>${M.map(m=>{
+    const chip=`<span class="d4-chip" style="background:${FC[m.form].bg}">${m.form}</span>`;
+    const rc2=m.rtg>=8?G:m.rtg<7?R:K;
+    return `<tr><td>${m.g}</td><td>${m.opp}</td><td>${chip}</td>
+      <td class="b" style="color:${m.goals>0?R:K}">${m.goals}</td>
+      <td>${m.ast}</td>
+      <td class="b" style="color:${rc2}">${m.rtg}</td>
+      <td style="color:${GY}">${m.mins}′</td></tr>`;
+  }).join('')}</tbody>`;
+}
+
+/* ── D5 GLASS ── */
+function initD5(){
+  if(charts.d5)return; charts.d5=true;
+
+  /* SVG rings */
+  const ringDefs=[
+    {v:12,max:20,label:'Goals',  color:RB,   id:'rg0'},
+    {v:8, max:15,label:'Assists',color:GB,   id:'rg1'},
+    {v:7.8,max:10,label:'Rating',color:'rgba(255,255,255,.75)',id:'rg2'},
+  ];
+  const rc=document.getElementById('d5-rings');
+  ringDefs.forEach(rd=>{
+    const r=34,circ=2*Math.PI*r,dash=(circ*rd.v/rd.max).toFixed(2),gap=(circ*(1-rd.v/rd.max)).toFixed(2);
+    rc.innerHTML+=`<div class="d5-ring-wrap">
+      <svg class="d5-ring-svg" width="88" height="88" viewBox="0 0 88 88">
+        <defs><filter id="${rd.id}">
+          <feGaussianBlur stdDeviation="2.5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter></defs>
+        <circle cx="44" cy="44" r="${r}" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="5"/>
+        <circle cx="44" cy="44" r="${r}" fill="none" stroke="${rd.color}" stroke-width="5"
+          stroke-dasharray="${dash} ${gap}" stroke-linecap="round"
+          transform="rotate(-90 44 44)" filter="url(#${rd.id})"/>
+      </svg>
+      <div class="d5-ring-inner">
+        <div class="d5-rn" style="color:${rd.color}">${rd.v}</div>
+        <div class="d5-rl">${rd.label}</div>
+      </div>
+    </div>`;
+  });
+
+  /* scatter */
+  new Chart(document.getElementById('d5-scatter'),{
+    type:'scatter',
+    data:{datasets:[
+      {label:'Scored',data:M.filter(m=>m.goals>0).map(m=>({x:m.mins,y:m.rtg,label:m.g})),
+        backgroundColor:RB,pointRadius:7,pointHoverRadius:10},
+      {label:'No goal',data:M.filter(m=>m.goals===0).map(m=>({x:m.mins,y:m.rtg,label:m.g})),
+        backgroundColor:'rgba(47,181,116,.5)',pointRadius:6,pointHoverRadius:9},
+      {type:'line',label:'_t',data:[{x:60,y:7.0},{x:92,y:8.05}],
+        borderColor:'rgba(255,255,255,.12)',borderWidth:1.5,borderDash:[6,4],pointRadius:0,showLine:true}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{...tip(),callbacks:{label:c=>`${c.raw.label||''}: ${c.raw.y} rtg, ${c.raw.x}′`}}},
+      scales:{
+        x:{min:55,max:92,grid:{color:'rgba(27,77,62,.12)'},
+          title:{display:true,text:'Minutes Played',color:'rgba(255,255,255,.22)',font:{size:11}},
+          ticks:{color:'rgba(255,255,255,.3)',font:{size:11}}},
+        y:{min:6.2,max:9,grid:{color:'rgba(27,77,62,.12)'},
+          title:{display:true,text:'Match Rating',color:'rgba(255,255,255,.22)',font:{size:11}},
+          ticks:{color:'rgba(255,255,255,.3)',font:{size:11}}}
+      }
+    }
+  });
+
+  /* stacked */
+  new Chart(document.getElementById('d5-stacked'),{
+    type:'bar',
+    data:{labels:GL,datasets:[
+      {label:'Goals',data:GOALS,backgroundColor:RB,stack:'s',
+        borderRadius:{topLeft:4,topRight:4,bottomLeft:0,bottomRight:0},borderSkipped:false},
+      {label:'Assists',data:ASTS,backgroundColor:'rgba(47,181,116,.6)',stack:'s',borderSkipped:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',align:'end',
+        labels:{color:'rgba(255,255,255,.35)',font:{size:11},boxWidth:8,padding:10}},
+        tooltip:tip()},
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:{color:'rgba(255,255,255,.3)',font:{size:11}}},
+        y:{stacked:true,grid:{color:'rgba(27,77,62,.1)'},
+          ticks:{color:'rgba(255,255,255,.3)',font:{size:11},stepSize:1},min:0,max:4}
+      }
+    }
+  });
+
+  buildRadar('d5-radar',RADAR_LABELS,PLAYER_VALS,AVG_VALS,{
+    color:GB,avgColor:'rgba(255,255,255,.28)',gridColor:'rgba(27,77,62,.2)',
+    textColor:'rgba(255,255,255,.45)',barBg:'rgba(27,77,62,.2)',numColor:'#fff',sz:175
+  });
+}
+
+/* boot */
+initD1();
+gsap.from('#d1 .d1-card,#d1 .d1-header',{opacity:0,y:12,duration:.45,stagger:.06,ease:'power2.out',clearProps:'all'});
+</script>
+</body>
+</html>

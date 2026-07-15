@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import FixtureRow from "@/components/FixtureRow";
-import { fetchSchedule } from "@/lib/queries";
+import { fetchActiveSeason, fetchSchedule } from "@/lib/queries";
 import { Fixture } from "@/lib/data";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -54,6 +54,7 @@ export default function SchedulePage() {
   const listRef = useRef<HTMLDivElement>(null);
 
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
+  const [seasonLabel, setSeasonLabel] = useState("Current");
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
   const [now, setNow]           = useState(() => new Date());
@@ -65,8 +66,11 @@ export default function SchedulePage() {
   }, []);
 
   useEffect(() => {
-    fetchSchedule()
-      .then(setFixtures)
+    fetchActiveSeason()
+      .then(async (activeSeason) => {
+        setSeasonLabel(activeSeason?.label ?? "Current");
+        setFixtures(activeSeason ? await fetchSchedule(activeSeason.id) : []);
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
@@ -137,7 +141,7 @@ export default function SchedulePage() {
               className="font-display font-bold tracking-widest uppercase mb-3"
               style={{ color: "var(--color-red)", fontSize: "clamp(0.85rem, 1.5vw, 1.1rem)" }}
             >
-              2025 – 2026 Season
+              {seasonLabel} Season
             </p>
             <h1
               className="font-display font-black uppercase leading-none"

@@ -10,14 +10,14 @@ const config: Config = {
     extend: {
       colors: {
         white: "#FFFFFF",
-        black: "#0A0A0A",
+        black: "#141414",
         green: {
           DEFAULT: "#1B4D3E",
           dark: "#163d31",
           light: "#246655",
         },
         red: {
-          DEFAULT: "#C0152A",
+          DEFAULT: "#E7001B",
           dark: "#9e1123",
         },
         gray: {
@@ -28,6 +28,7 @@ const config: Config = {
       fontFamily: {
         display: ["var(--font-display)", "sans-serif"],
         body: ["var(--font-body)", "sans-serif"],
+        lemon: ["var(--font-lemon-milk)", "sans-serif"],
       },
     },
   },

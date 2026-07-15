@@ -4,21 +4,118 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'LEMON MILK';
+  src: url('/fonts/lemon-milk/LEMONMILK-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'LEMON MILK';
+  src: url('/fonts/lemon-milk/LEMONMILK-LightItalic.otf') format('opentype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'LEMON MILK';
+  src: url('/fonts/lemon-milk/LEMONMILK-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'LEMON MILK';
+  src: url('/fonts/lemon-milk/LEMONMILK-RegularItalic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'LEMON MILK';
+  src: url('/fonts/lemon-milk/LEMONMILK-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'LEMON MILK';
+  src: url('/fonts/lemon-milk/LEMONMILK-MediumItalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'LEMON MILK';
+  src: url('/fonts/lemon-milk/LEMONMILK-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'LEMON MILK';
+  src: url('/fonts/lemon-milk/LEMONMILK-Bold.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'LEMON MILK';
+  src: url('/fonts/lemon-milk/LEMONMILK-Bold.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'LEMON MILK';
+  src: url('/fonts/lemon-milk/LEMONMILK-BoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'LEMON MILK';
+  src: url('/fonts/lemon-milk/LEMONMILK-BoldItalic.otf') format('opentype');
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'LEMON MILK';
+  src: url('/fonts/lemon-milk/LEMONMILK-BoldItalic.otf') format('opentype');
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
+
 :root {
   /* Brand Colors */
   --color-white: #FFFFFF;
-  --color-black: #0A0A0A;
+  --color-black: #141414;
   --color-green: #1B4D3E;
   --color-green-dark: #163d31;
   --color-green-light: #246655;
-  --color-red: #C0152A;
+  --color-red: #E7001B;
   --color-red-dark: #9e1123;
   --color-gray-light: #F5F5F5;
   --color-gray-mid: #9A9A9A;
 
   /* Typography */
-  --font-display: 'Barlow Condensed', sans-serif;
+  --font-display: 'LEMON MILK', sans-serif;
   --font-body: 'DM Sans', sans-serif;
+  --font-lemon-milk: 'LEMON MILK', sans-serif;
 }
 
 @layer base {
@@ -45,6 +142,7 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     font-weight: 700;
+    font-style: italic;
     line-height: 1.05;
     letter-spacing: -0.01em;
     text-transform: uppercase;
@@ -75,6 +173,10 @@
 
   .font-body {
     font-family: var(--font-body);
+  }
+
+  .font-lemon-milk {
+    font-family: var(--font-lemon-milk);
   }
 
   .text-green {

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import SeasonSelect from "@/components/admin/SeasonSelect";
 import { createClient } from "@/lib/supabase-browser";
+import { useSeasons } from "@/lib/use-seasons";
 
 // ── Types ─────────────────────────────────────
 
@@ -11,6 +13,7 @@ type Match = {
   time: string;
   opponent: string;
   home: boolean;
+  season_id: string;
 };
 
 type Player = {
@@ -65,6 +68,12 @@ const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Forward"] as const;
 // ── Main component ────────────────────────────
 
 export default function StatsPage() {
+  const {
+    seasons,
+    selectedSeasonId,
+    setSelectedSeasonId,
+    loading: seasonsLoading,
+  } = useSeasons();
   const [matches, setMatches]     = useState<Match[]>([]);
   const [players, setPlayers]     = useState<Player[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
@@ -79,13 +88,22 @@ export default function StatsPage() {
   useEffect(() => {
     const supabase = createClient();
     Promise.all([
-      supabase.from("matches").select("id, date, time, opponent, home").order("id"),
+      supabase.from("matches").select("id, date, time, opponent, home, season_id").order("date").order("time"),
       supabase.from("players").select("id, number, name, position").eq("active", true).order("number"),
     ]).then(([{ data: m }, { data: p }]) => {
       setMatches((m ?? []) as Match[]);
       setPlayers((p ?? []) as Player[]);
     });
   }, []);
+
+  useEffect(() => {
+    setSelectedMatch((current) => {
+      if (!current) return null;
+      return matches.some((match) => match.id === current && match.season_id === selectedSeasonId)
+        ? current
+        : null;
+    });
+  }, [matches, selectedSeasonId]);
 
   // When match is selected, load existing stats
   useEffect(() => {
@@ -194,6 +212,7 @@ export default function StatsPage() {
   }
 
   const selectedMatchData = matches.find((m) => m.id === selectedMatch);
+  const seasonMatches = matches.filter((match) => match.season_id === selectedSeasonId);
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -212,7 +231,15 @@ export default function StatsPage() {
       </div>
 
       {/* Match selector */}
-      <div className="mb-8">
+      <div className="mb-8 flex flex-col gap-4">
+        <SeasonSelect
+          seasons={seasons}
+          value={selectedSeasonId}
+          onChange={setSelectedSeasonId}
+          label="Season"
+          disabled={seasonsLoading}
+          className="w-full"
+        />
         <label
           className="block font-display tracking-widest uppercase mb-2"
           style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.4)" }}
@@ -222,6 +249,7 @@ export default function StatsPage() {
         <select
           value={selectedMatch ?? ""}
           onChange={(e) => setSelectedMatch(e.target.value || null)}
+          disabled={seasonsLoading || !selectedSeasonId}
           className="w-full rounded-lg px-4 py-3 font-body outline-none"
           style={{
             fontSize: "1rem",
@@ -232,7 +260,7 @@ export default function StatsPage() {
           }}
         >
           <option value="" style={{ backgroundColor: "#1a1a1a" }}>— Select a match —</option>
-          {matches
+          {seasonMatches
             .slice()
             .sort((a, b) => new Date(`${a.date} ${a.time}`).getTime() - new Date(`${b.date} ${b.time}`).getTime())
             .map((m) => (
@@ -241,6 +269,12 @@ export default function StatsPage() {
               </option>
             ))}
         </select>
+
+        {!seasonsLoading && selectedSeasonId && seasonMatches.length === 0 && (
+          <p className="font-body text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>
+            No matches are assigned to this season.
+          </p>
+        )}
 
       </div>
 
