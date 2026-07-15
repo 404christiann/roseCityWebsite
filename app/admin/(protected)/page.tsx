@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { fetchActiveSeason } from "@/lib/queries";
 import { createClient } from "@/lib/supabase-browser";
 
 function formatDate(dateStr: string): string {
@@ -16,6 +17,7 @@ type Stats = {
   staff: number;
   matches: number;
   nextMatch: { date: string; opponent: string; home: boolean } | null;
+  seasonLabel: string;
 };
 
 export default function AdminDashboard() {
@@ -29,12 +31,19 @@ export default function AdminDashboard() {
       const [
         { count: players },
         { count: staff },
-        { data: matches },
+        activeSeason,
       ] = await Promise.all([
         supabase.from("players").select("*", { count: "exact", head: true }).eq("active", true),
         supabase.from("staff").select("*", { count: "exact", head: true }).eq("active", true),
-        supabase.from("matches").select("date, opponent, home, time"),
+        fetchActiveSeason(),
       ]);
+
+      const { data: matches } = activeSeason
+        ? await supabase
+            .from("matches")
+            .select("date, opponent, home, time")
+            .eq("season_id", activeSeason.id)
+        : { data: [] };
 
       // Find next upcoming match
       const now = new Date();
@@ -47,6 +56,7 @@ export default function AdminDashboard() {
         staff: staff ?? 0,
         matches: matches?.length ?? 0,
         nextMatch: upcoming[0] ?? null,
+        seasonLabel: activeSeason?.label ?? "No active season",
       });
       setLoading(false);
     }
@@ -64,14 +74,7 @@ export default function AdminDashboard() {
           Dashboard
         </h1>
         <p className="font-body text-sm mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
-          {(() => {
-            const now = new Date();
-            const year = now.getFullYear();
-            // UPSL season runs Jan–Aug; after August we roll into the next season
-            return now.getMonth() >= 8
-              ? `${year} – ${year + 1} Season`
-              : `${year - 1} – ${year} Season`;
-          })()}
+          {loading ? "Loading season…" : `${stats?.seasonLabel ?? "No active season"}${stats?.seasonLabel === "No active season" ? "" : " Season"}`}
         </p>
       </div>
 
@@ -96,7 +99,7 @@ export default function AdminDashboard() {
         >
           Quick Actions
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           <ActionCard
             href="/admin/stats"
             title="Enter Match Stats"
@@ -104,6 +107,17 @@ export default function AdminDashboard() {
             icon={
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                 <path d="M18 20V10M12 20V4M6 20v-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            }
+          />
+          <ActionCard
+            href="/admin/seasons"
+            title="Manage Seasons"
+            description="Create the next season or change which season is active."
+            icon={
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" strokeWidth="2"/>
+                <path d="M8 2v4M16 2v4M3 9h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             }
           />

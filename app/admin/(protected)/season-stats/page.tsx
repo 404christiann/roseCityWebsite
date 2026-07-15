@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import SeasonSelect from "@/components/admin/SeasonSelect";
 import { createClient } from "@/lib/supabase-browser";
+import { useSeasons } from "@/lib/use-seasons";
 
 // ── Types ─────────────────────────────────────
 
@@ -53,6 +55,13 @@ function isGK(s: FieldStats | GKStats): s is GKStats {
 // ── Main component ────────────────────────────
 
 export default function SeasonStatsPage() {
+  const {
+    seasons,
+    activeSeasonId,
+    selectedSeasonId,
+    setSelectedSeasonId,
+    loading: seasonsLoading,
+  } = useSeasons();
   const [players, setPlayers] = useState<Player[]>([]);
   const [stats, setStats]         = useState<StatsMap>({});
   const [hasChanges, setHasChanges] = useState(false);
@@ -62,15 +71,43 @@ export default function SeasonStatsPage() {
   const [error, setError]     = useState<string | null>(null);
 
   useEffect(() => {
+    if (!selectedSeasonId) {
+      if (!seasonsLoading) setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
     async function load() {
+      setLoading(true);
+      setError(null);
       const supabase = createClient();
-      const [{ data: playerRows }, { data: fieldRows }, { data: gkRows }] = await Promise.all([
-        supabase.from("players").select("id, number, name, position").eq("active", true).order("number"),
-        supabase.from("player_season_stats").select("*"),
-        supabase.from("goalkeeper_season_stats").select("*"),
+      const [playersResult, fieldResult, gkResult] = await Promise.all([
+        supabase.from("players").select("id, number, name, position, active").order("number"),
+        supabase.from("player_season_stats").select("*").eq("season_id", selectedSeasonId),
+        supabase.from("goalkeeper_season_stats").select("*").eq("season_id", selectedSeasonId),
       ]);
 
-      const ps = (playerRows ?? []) as Player[];
+      if (cancelled) return;
+      const queryError = playersResult.error ?? fieldResult.error ?? gkResult.error;
+      if (queryError) {
+        setError(queryError.message);
+        setPlayers([]);
+        setStats({});
+        setLoading(false);
+        return;
+      }
+
+      const fieldRows = fieldResult.data ?? [];
+      const gkRows = gkResult.data ?? [];
+      const seasonPlayerIds = new Set([
+        ...fieldRows.map((row: Record<string, unknown>) => row.player_id as string),
+        ...gkRows.map((row: Record<string, unknown>) => row.player_id as string),
+      ]);
+      const isActiveSeason = selectedSeasonId === activeSeasonId;
+      const ps = ((playersResult.data ?? []) as (Player & { active: boolean })[])
+        .filter((player) => seasonPlayerIds.has(player.id) || (isActiveSeason && player.active))
+        .map(({ active: _active, ...player }) => player);
       setPlayers(ps);
 
       const map: StatsMap = {};
@@ -110,7 +147,8 @@ export default function SeasonStatsPage() {
       setLoading(false);
     }
     load();
-  }, []);
+    return () => { cancelled = true; };
+  }, [activeSeasonId, selectedSeasonId, seasonsLoading]);
 
   function updateStat(playerId: string, field: string, value: number) {
     setHasChanges(true);
@@ -121,7 +159,7 @@ export default function SeasonStatsPage() {
   }
 
   async function handleSave() {
-    if (!hasChanges) return;
+    if (!hasChanges || !selectedSeasonId) return;
     setSaving(true);
     setError(null);
     const supabase = createClient();
@@ -133,18 +171,18 @@ export default function SeasonStatsPage() {
       const s = stats[p.id];
       if (!s) return;
       if (p.position === "Goalkeeper" && isGK(s)) {
-        gkRows.push({ player_id: p.id, ...s });
+        gkRows.push({ player_id: p.id, season_id: selectedSeasonId, ...s });
       } else if (!isGK(s)) {
-        fieldRows.push({ player_id: p.id, ...s });
+        fieldRows.push({ player_id: p.id, season_id: selectedSeasonId, ...s });
       }
     });
 
     const [{ error: fe }, { error: ge }] = await Promise.all([
       fieldRows.length > 0
-        ? supabase.from("player_season_stats").upsert(fieldRows, { onConflict: "player_id" })
+        ? supabase.from("player_season_stats").upsert(fieldRows, { onConflict: "player_id,season_id" })
         : Promise.resolve({ error: null }),
       gkRows.length > 0
-        ? supabase.from("goalkeeper_season_stats").upsert(gkRows, { onConflict: "player_id" })
+        ? supabase.from("goalkeeper_season_stats").upsert(gkRows, { onConflict: "player_id,season_id" })
         : Promise.resolve({ error: null }),
     ]);
 
@@ -161,7 +199,7 @@ export default function SeasonStatsPage() {
   return (
     <div className="max-w-5xl mx-auto">
       {/* Header */}
-      <div className="mb-8 flex items-start justify-between gap-4">
+      <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1
             className="font-display font-black uppercase text-white leading-none"
@@ -174,7 +212,14 @@ export default function SeasonStatsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-4 flex-shrink-0">
+        <div className="flex flex-wrap items-end gap-4 flex-shrink-0">
+          <SeasonSelect
+            seasons={seasons}
+            value={selectedSeasonId}
+            onChange={setSelectedSeasonId}
+            label="Season"
+            disabled={seasonsLoading || saving}
+          />
           {saved && (
             <span className="font-display tracking-widest uppercase" style={{ fontSize: "1rem", color: "rgba(34,197,94,0.9)" }}>
               ✓ Saved
@@ -182,9 +227,9 @@ export default function SeasonStatsPage() {
           )}
           <button
             onClick={handleSave}
-            disabled={saving || loading || !hasChanges}
+            disabled={saving || loading || !hasChanges || !selectedSeasonId}
             className="px-6 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white"
-            style={{ fontSize: "1.1rem", backgroundColor: "#dc2626", opacity: saving || !hasChanges ? 0.4 : 1, cursor: saving || !hasChanges ? "not-allowed" : "pointer" }}
+            style={{ fontSize: "1.1rem", backgroundColor: "#dc2626", opacity: saving || !hasChanges || !selectedSeasonId ? 0.4 : 1, cursor: saving || !hasChanges || !selectedSeasonId ? "not-allowed" : "pointer" }}
           >
             {saving ? "Saving…" : "Save All"}
           </button>
@@ -195,9 +240,17 @@ export default function SeasonStatsPage() {
         <p className="font-body text-sm mb-4" style={{ color: "#dc2626" }}>Error: {error}</p>
       )}
 
-      {loading ? (
+      {loading || seasonsLoading ? (
         <p className="font-display text-sm tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.3)" }}>
           Loading…
+        </p>
+      ) : !selectedSeasonId ? (
+        <p className="font-body text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>
+          Create a season before editing season stats.
+        </p>
+      ) : players.length === 0 ? (
+        <p className="font-body text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>
+          No players are assigned to this season.
         </p>
       ) : (
         <div className="flex flex-col gap-4">

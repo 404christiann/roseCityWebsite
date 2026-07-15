@@ -10,18 +10,18 @@ function isGK(stats: GoalkeeperStats | FieldStats): stats is GoalkeeperStats {
   return "saves" in stats;
 }
 
-
 export default function PlayerCard({ player, seasonLabel }: { player: Player; seasonLabel?: string }) {
   const [hovered, setHovered] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const stats = player.stats;
   const gk = isGK(stats);
+  const flagCode = player.nationality ? FLAG_CODES[player.nationality] : null;
 
   return (
     <>
       <div
         className="relative overflow-hidden cursor-pointer group"
-        style={{ backgroundColor: "var(--color-black)", aspectRatio: "3/4" }}
+        style={{ backgroundColor: "var(--color-white)", aspectRatio: "3/4" }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onClick={() => setModalOpen(true)}
@@ -39,53 +39,56 @@ export default function PlayerCard({ player, seasonLabel }: { player: Player; se
         <div
           className="absolute inset-x-0 bottom-0 pt-6 md:pt-16 pb-4 px-4"
           style={{
-            background: "linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 50%, transparent 100%)",
+            background: "linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.94) 48%, rgba(255,255,255,0.55) 72%, transparent 100%)",
             zIndex: 2,
           }}
         >
-          {/* Jersey number */}
-          <span
-            className="font-display font-black leading-none block"
-            style={{
-              fontSize: "clamp(2.5rem, 5vw, 3.5rem)",
-              color: "var(--color-red)",
-              lineHeight: 1,
-            }}
-          >
-            {player.number}
-          </span>
-
-          {/* Name + captain badge */}
-          <h3
-            className="font-display font-bold uppercase text-white leading-tight mt-1"
-            style={{ fontSize: "clamp(1rem, 2vw, 1.25rem)" }}
-          >
-            {player.name}
-            {player.caption && (
-              <span className="ml-2 text-sm" style={{ color: "var(--color-red)" }}>
-                {player.caption}
+          <div>
+            <div className="flex items-end justify-between gap-3">
+              {/* Jersey number */}
+              <span
+                className="font-display font-black leading-none block"
+                style={{
+                  fontSize: "clamp(2.5rem, 5vw, 3.5rem)",
+                  color: "var(--color-red)",
+                  lineHeight: 1,
+                }}
+              >
+                {player.number}
               </span>
-            )}
-          </h3>
 
-          {/* Position + flag */}
-          <div className="flex items-center gap-2 mt-1">
-            <span
-              className="font-display text-xs tracking-widest uppercase"
-              style={{ color: "var(--color-gray-mid)" }}
+              {flagCode && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`https://flagcdn.com/w40/${flagCode}.png`}
+                  alt={player.nationality}
+                  width={34}
+                  height={25}
+                  style={{ display: "inline-block", borderRadius: "2px", flexShrink: 0, marginBottom: "0.18rem" }}
+                />
+              )}
+            </div>
+
+            {/* Name + captain badge */}
+            <h3
+              className="font-display font-bold uppercase leading-tight mt-1"
+              style={{ fontSize: "clamp(1rem, 2vw, 1.25rem)", color: "var(--color-black)" }}
+            >
+              {player.name}
+              {player.caption && (
+                <span className="ml-2 text-sm" style={{ color: "var(--color-red)" }}>
+                  {player.caption}
+                </span>
+              )}
+            </h3>
+
+            {/* Position */}
+            <p
+              className="font-display text-xs tracking-widest uppercase mt-1"
+              style={{ color: "rgba(10,10,10,0.62)" }}
             >
               {player.position}
-            </span>
-            {player.nationality && FLAG_CODES[player.nationality] && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={`https://flagcdn.com/w40/${FLAG_CODES[player.nationality]}.png`}
-                alt={player.nationality}
-                width={28}
-                height={21}
-                style={{ display: "inline-block", borderRadius: "2px", flexShrink: 0 }}
-              />
-            )}
+            </p>
           </div>
 
           {/* Stats overlay — slides up on hover */}
@@ -99,7 +102,7 @@ export default function PlayerCard({ player, seasonLabel }: { player: Player; se
           >
             <div
               className="mt-3 pt-3 grid grid-cols-3 gap-2 text-center"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}
+              style={{ borderTop: "1px solid rgba(231,0,27,0.25)" }}
             >
               {isGK(stats) ? (
                 <>
@@ -118,7 +121,7 @@ export default function PlayerCard({ player, seasonLabel }: { player: Player; se
             {/* Tap hint */}
             <p
               className="font-display text-xs tracking-widest uppercase text-center mt-3"
-              style={{ color: "rgba(255,255,255,0.35)" }}
+              style={{ color: "rgba(10,10,10,0.38)" }}
             >
               Tap for full profile
             </p>
@@ -137,8 +140,10 @@ export default function PlayerCard({ player, seasonLabel }: { player: Player; se
 function StatBox({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex flex-col items-center">
-      <span className="font-display font-black text-white text-lg leading-none">{value}</span>
-      <span className="font-display text-xs tracking-widest uppercase mt-0.5" style={{ color: "var(--color-gray-mid)" }}>
+      <span className="font-display font-black text-lg leading-none" style={{ color: "var(--color-black)" }}>
+        {value}
+      </span>
+      <span className="font-display text-xs tracking-widest uppercase mt-0.5" style={{ color: "rgba(10,10,10,0.55)" }}>
         {label}
       </span>
     </div>

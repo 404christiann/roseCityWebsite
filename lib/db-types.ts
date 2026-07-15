@@ -44,6 +44,7 @@ export type DBMatch = {
   home: boolean;
   venue: string;
   address: string | null;
+  season_id: string | null;
 };
 
 export type DBSeason = {
@@ -77,6 +78,7 @@ export type DBPlayerMatchStats = {
   fouls_suffered: number;
   yellow: number;
   red: number;
+  rating: number | null;
 };
 
 export type DBGoalkeeperMatchStats = {
@@ -90,4 +92,5 @@ export type DBGoalkeeperMatchStats = {
   clean_sheets: number;
   yellow: number;
   red: number;
+  rating: number | null;
 };

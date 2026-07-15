@@ -53,7 +53,7 @@ export default function PlayerModal({ player, onClose, seasonLabel = "Current Se
           transition
           className="
             w-full md:w-[480px] flex flex-col overflow-hidden
-            bg-[#0e0e0e]
+            bg-[var(--color-white)]
             rounded-t-2xl md:rounded-2xl
             duration-300 ease-out
             data-closed:opacity-0
@@ -79,7 +79,7 @@ export default function PlayerModal({ player, onClose, seasonLabel = "Current Se
             />
             <div
               className="absolute inset-0"
-              style={{ background: "linear-gradient(to top, rgba(14,14,14,0.95) 0%, transparent 55%)" }}
+              style={{ background: "linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.84) 24%, rgba(255,255,255,0.35) 46%, transparent 68%)" }}
             />
 
             {/* Drag handle — mobile only */}
@@ -156,13 +156,13 @@ export default function PlayerModal({ player, onClose, seasonLabel = "Current Se
           </div>
 
           {/* Details */}
-          <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col" style={{ colorScheme: "dark" }}>
+          <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col" style={{ colorScheme: "light" }}>
 
             {/* Name + flag */}
             <div className="flex items-start gap-3 mb-0.5">
               <h2
-                className="font-display font-black uppercase text-white leading-none flex-1"
-                style={{ fontSize: "clamp(1.5rem, 5vw, 2rem)" }}
+                className="font-display font-black uppercase leading-none flex-1"
+                style={{ fontSize: "clamp(1.5rem, 5vw, 2rem)", color: "var(--color-black)" }}
               >
                 {player.name}
                 {player.caption && (
@@ -193,12 +193,12 @@ export default function PlayerModal({ player, onClose, seasonLabel = "Current Se
 
             {/* Pronunciation */}
             {player.pronunciation && (
-              <p className="font-body text-xs italic mb-3" style={{ color: "rgba(255,255,255,0.4)" }}>
+              <p className="font-body text-xs italic mb-3" style={{ color: "rgba(20,20,20,0.48)" }}>
                 {player.pronunciation}
               </p>
             )}
 
-            <div className="mb-4" style={{ height: 1, backgroundColor: "rgba(255,255,255,0.07)" }} />
+            <div className="mb-4" style={{ height: 1, backgroundColor: "rgba(20,20,20,0.08)" }} />
 
             {/* Meta grid */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-4">
@@ -219,7 +219,7 @@ export default function PlayerModal({ player, onClose, seasonLabel = "Current Se
 
             <p
               className="font-display text-xs tracking-widest uppercase text-center mt-6 mb-1"
-              style={{ color: "rgba(255,255,255,0.12)" }}
+              style={{ color: "rgba(20,20,20,0.24)" }}
             >
               Tap outside to dismiss
             </p>
@@ -268,7 +268,7 @@ function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | Fie
 
   return (
     <>
-      <div className="mb-3" style={{ height: 1, backgroundColor: "rgba(255,255,255,0.07)" }} />
+      <div className="mb-3" style={{ height: 1, backgroundColor: "rgba(20,20,20,0.08)" }} />
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex items-center justify-between w-full mb-3"
@@ -279,7 +279,7 @@ function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | Fie
         <svg
           width="14" height="14" viewBox="0 0 24 24" fill="none"
           style={{
-            color: "rgba(255,255,255,0.6)",
+            color: "rgba(20,20,20,0.62)",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.25s ease",
             flexShrink: 0,
@@ -292,18 +292,18 @@ function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | Fie
       <div style={{ display: "grid", gridTemplateRows: open ? "1fr" : "0fr", transition: "grid-template-rows 0.25s ease" }}>
         <div style={{ overflow: "hidden" }}>
 
-          {/* ── Dark premium card ── */}
+          {/* ── Light premium card ── */}
           <div
             className="rounded-xl mb-4 relative overflow-hidden"
-            style={{ backgroundColor: "#161616", border: "1px solid rgba(255,255,255,0.08)" }}
+            style={{ backgroundColor: "var(--color-white)", border: "1px solid rgba(20,20,20,0.12)" }}
           >
 
             {/* Metric grid — 2 rows × 3 cols */}
             <div
               className="px-4 pt-3 pb-1"
-              style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+              style={{ borderBottom: "1px solid rgba(20,20,20,0.1)" }}
             >
-              <p className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.6)" }}>
+              <p className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(20,20,20,0.5)" }}>
                 Key stats
               </p>
             </div>
@@ -316,19 +316,19 @@ function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | Fie
                     key={s.label}
                     className="flex flex-col items-center justify-center py-4"
                     style={{
-                      borderRight: colPos < 2 ? "1px solid rgba(255,255,255,0.06)" : "none",
-                      borderBottom: !isLastRow ? "1px solid rgba(255,255,255,0.06)" : "none",
+                      borderRight: colPos < 2 ? "1px solid rgba(20,20,20,0.1)" : "none",
+                      borderBottom: !isLastRow ? "1px solid rgba(20,20,20,0.1)" : "none",
                     }}
                   >
                     <span
-                      className="font-display font-black text-white"
-                      style={{ fontSize: "1.75rem", lineHeight: 1 }}
+                      className="font-display font-black"
+                      style={{ fontSize: "1.75rem", lineHeight: 1, color: "var(--color-black)" }}
                     >
                       {s.value.toLocaleString()}
                     </span>
                     <span
                       className="font-display text-center"
-                      style={{ fontSize: "0.6rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.6)", marginTop: 5 }}
+                      style={{ fontSize: "0.6rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(20,20,20,0.45)", marginTop: 5 }}
                     >
                       {s.label}
                     </span>
@@ -340,9 +340,9 @@ function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | Fie
             {/* Bar section */}
             <div
               className="px-4 pt-3 pb-1"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+              style={{ borderTop: "1px solid rgba(20,20,20,0.1)" }}
             >
-              <p className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.6)" }}>
+              <p className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(20,20,20,0.5)" }}>
                 Performance
               </p>
             </div>
@@ -355,24 +355,24 @@ function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | Fie
                   <div key={b.label} className="flex items-center gap-3">
                     <span
                       className="font-display"
-                      style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.6)", width: 72, flexShrink: 0 }}
+                      style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(20,20,20,0.5)", width: 72, flexShrink: 0 }}
                     >
                       {b.label}
                     </span>
-                    <div style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.07)", overflow: "hidden" }}>
+                    <div style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: "rgba(20,20,20,0.12)", overflow: "hidden" }}>
                       <div
                         style={{
                           width: `${pct}%`,
                           height: "100%",
                           borderRadius: 2,
-                          backgroundColor: "#dc2626",
+                          backgroundColor: "var(--color-red)",
                           transition: "width 0.6s ease",
                         }}
                       />
                     </div>
                     <span
-                      className="font-display font-black text-white"
-                      style={{ fontSize: "0.85rem", width: 32, textAlign: "right", flexShrink: 0 }}
+                      className="font-display font-black"
+                      style={{ fontSize: "0.85rem", width: 32, textAlign: "right", flexShrink: 0, color: "var(--color-black)" }}
                     >
                       {b.value.toLocaleString()}
                     </span>
@@ -385,9 +385,9 @@ function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | Fie
             {!gk && (
               <div
                 className="px-4 pt-3 pb-3"
-                style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+                style={{ borderTop: "1px solid rgba(20,20,20,0.1)" }}
               >
-                <p className="font-display text-xs tracking-widest uppercase mb-3" style={{ color: "rgba(255,255,255,0.6)" }}>
+                <p className="font-display text-xs tracking-widest uppercase mb-3" style={{ color: "rgba(20,20,20,0.5)" }}>
                   Discipline
                 </p>
               <div className="flex justify-around">
@@ -398,8 +398,8 @@ function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | Fie
                   { label: "Red Cards",      value: stats.red },
                 ].map((s) => (
                   <div key={s.label} className="flex flex-col items-center">
-                    <span className="font-display font-black text-white" style={{ fontSize: "1rem" }}>{s.value}</span>
-                    <span className="font-display text-center" style={{ fontSize: "0.58rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginTop: 3 }}>{s.label}</span>
+                    <span className="font-display font-black" style={{ fontSize: "1rem", color: "var(--color-black)" }}>{s.value}</span>
+                    <span className="font-display text-center" style={{ fontSize: "0.58rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(20,20,20,0.42)", marginTop: 3 }}>{s.label}</span>
                   </div>
                 ))}
               </div>
@@ -408,9 +408,9 @@ function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | Fie
             {gk && (
               <div
                 className="px-4 pt-3 pb-3"
-                style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+                style={{ borderTop: "1px solid rgba(20,20,20,0.1)" }}
               >
-                <p className="font-display text-xs tracking-widest uppercase mb-3" style={{ color: "rgba(255,255,255,0.6)" }}>
+                <p className="font-display text-xs tracking-widest uppercase mb-3" style={{ color: "rgba(20,20,20,0.5)" }}>
                   Discipline
                 </p>
                 <div className="flex justify-around">
@@ -419,8 +419,8 @@ function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | Fie
                   { label: "Red Cards",    value: stats.red },
                 ].map((s) => (
                   <div key={s.label} className="flex flex-col items-center">
-                    <span className="font-display font-black text-white" style={{ fontSize: "1rem" }}>{s.value}</span>
-                    <span className="font-display text-center" style={{ fontSize: "0.58rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginTop: 3 }}>{s.label}</span>
+                    <span className="font-display font-black" style={{ fontSize: "1rem", color: "var(--color-black)" }}>{s.value}</span>
+                    <span className="font-display text-center" style={{ fontSize: "0.58rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(20,20,20,0.42)", marginTop: 3 }}>{s.label}</span>
                   </div>
                 ))}
                 </div>
@@ -435,11 +435,11 @@ function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | Fie
 }
 
 function CollapsibleBio({ bio }: { bio: string }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   return (
     <>
-      <div className="mb-3" style={{ height: 1, backgroundColor: "rgba(255,255,255,0.07)" }} />
+      <div className="mb-3" style={{ height: 1, backgroundColor: "rgba(20,20,20,0.08)" }} />
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex items-center justify-between w-full mb-2 group"
@@ -456,7 +456,7 @@ function CollapsibleBio({ bio }: { bio: string }) {
           viewBox="0 0 24 24"
           fill="none"
           style={{
-            color: "rgba(255,255,255,0.6)",
+            color: "rgba(20,20,20,0.62)",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.25s ease",
             flexShrink: 0,
@@ -475,7 +475,7 @@ function CollapsibleBio({ bio }: { bio: string }) {
         <div style={{ overflow: "hidden" }}>
           <p
             className="font-body text-sm leading-relaxed mb-4"
-            style={{ color: "rgba(255,255,255,0.55)" }}
+            style={{ color: "rgba(20,20,20,0.7)" }}
           >
             {bio}
           </p>
@@ -491,21 +491,7 @@ function MetaRow({ label, value }: { label: string; value: string }) {
       <p className="font-display text-xs tracking-widest uppercase mb-0.5" style={{ color: "var(--color-gray-mid)" }}>
         {label}
       </p>
-      <p className="font-body text-sm font-medium text-white">{value}</p>
-    </div>
-  );
-}
-
-function StatRow({ label, value }: { label: string; value: number }) {
-  return (
-    <div
-      className="flex items-center justify-between py-2.5"
-      style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
-    >
-      <span className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.4)" }}>
-        {label}
-      </span>
-      <span className="font-display font-black text-white" style={{ fontSize: "1.1rem" }}>{value}</span>
+      <p className="font-body text-sm font-medium" style={{ color: "var(--color-black)" }}>{value}</p>
     </div>
   );
 }

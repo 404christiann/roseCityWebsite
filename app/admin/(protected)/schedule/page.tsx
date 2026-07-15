@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import SeasonSelect from "@/components/admin/SeasonSelect";
+import type { DBSeason } from "@/lib/db-types";
 import { createClient } from "@/lib/supabase-browser";
+import { useSeasons } from "@/lib/use-seasons";
 
 // ── Types ─────────────────────────────────────
 
@@ -13,17 +16,24 @@ type Match = {
   home: boolean;
   venue: string;
   address: string | null;
+  season_id: string;
 };
 
 type FormState = Omit<Match, "id">;
 
-function emptyForm(): FormState {
-  return { date: "", time: "", opponent: "", home: true, venue: "", address: "" };
+function emptyForm(seasonId = ""): FormState {
+  return { date: "", time: "", opponent: "", home: true, venue: "", address: "", season_id: seasonId };
 }
 
 // ── Main component ────────────────────────────
 
 export default function SchedulePage() {
+  const {
+    seasons,
+    selectedSeasonId,
+    setSelectedSeasonId,
+    loading: seasonsLoading,
+  } = useSeasons();
   const [matches, setMatches]       = useState<Match[]>([]);
   const [loading, setLoading]       = useState(true);
   const [editingId, setEditingId]   = useState<string | null>(null);
@@ -39,16 +49,22 @@ export default function SchedulePage() {
 
   async function load() {
     const supabase = createClient();
-    const { data } = await supabase
+    const { data, error: loadError } = await supabase
       .from("matches")
-      .select("id, date, time, opponent, home, venue, address")
+      .select("id, date, time, opponent, home, venue, address, season_id")
       .order("date")
       .order("time");
+    if (loadError) setError(loadError.message);
     setMatches((data ?? []) as Match[]);
     setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    setEditingId(null);
+    setAddForm((form) => ({ ...form, season_id: selectedSeasonId }));
+  }, [selectedSeasonId]);
 
   function flash() {
     setSaved(true);
@@ -58,6 +74,7 @@ export default function SchedulePage() {
   // ── Add ─────────────────────────────────────
 
   function validate(form: FormState): string | null {
+    if (!form.season_id) return "Season is required.";
     if (!form.date)     return "Date is required.";
     if (!form.time)     return "Time is required.";
     if (!form.opponent.trim()) return "Opponent is required.";
@@ -76,7 +93,7 @@ export default function SchedulePage() {
       address: addForm.address?.trim() || null,
     }]);
     if (e) { setError(e.message); setSaving(false); return; }
-    setAddForm(emptyForm());
+    setAddForm(emptyForm(selectedSeasonId));
     setAddOpen(false);
     await load();
     flash();
@@ -87,7 +104,7 @@ export default function SchedulePage() {
 
   function startEdit(m: Match) {
     setEditingId(m.id);
-    setEditForm({ date: m.date, time: m.time, opponent: m.opponent, home: m.home, venue: m.venue, address: m.address ?? "" });
+    setEditForm({ date: m.date, time: m.time, opponent: m.opponent, home: m.home, venue: m.venue, address: m.address ?? "", season_id: m.season_id });
   }
 
   async function handleSaveEdit() {
@@ -122,7 +139,8 @@ export default function SchedulePage() {
 
   // ── Render ───────────────────────────────────
 
-  const sorted = [...matches].sort((a, b) => {
+  const selectedSeason = seasons.find((season) => season.id === selectedSeasonId);
+  const sorted = matches.filter((match) => match.season_id === selectedSeasonId).sort((a, b) => {
     const keyA = `${a.date}T${a.time ?? "00:00"}`;
     const keyB = `${b.date}T${b.time ?? "00:00"}`;
     return keyA < keyB ? -1 : keyA > keyB ? 1 : 0;
@@ -132,7 +150,7 @@ export default function SchedulePage() {
     <div className="max-w-4xl mx-auto">
 
       {/* Header */}
-      <div className="mb-8 flex items-start justify-between gap-4">
+      <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1
             className="font-display font-black uppercase text-white leading-none"
@@ -145,13 +163,23 @@ export default function SchedulePage() {
           </p>
         </div>
 
-        <button
-          onClick={() => { setAddOpen((o) => !o); setAddForm(emptyForm()); setError(null); }}
-          className="flex-shrink-0 px-6 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white transition-opacity"
-          style={{ backgroundColor: "#dc2626", fontSize: "1.1rem" }}
-        >
-          {addOpen ? "Cancel" : "+ Add Match"}
-        </button>
+        <div className="flex flex-wrap items-end gap-3">
+          <SeasonSelect
+            seasons={seasons}
+            value={selectedSeasonId}
+            onChange={setSelectedSeasonId}
+            label="View Season"
+            disabled={seasonsLoading || saving}
+          />
+          <button
+            onClick={() => { setAddOpen((o) => !o); setAddForm(emptyForm(selectedSeasonId)); setError(null); }}
+            disabled={!selectedSeasonId}
+            className="flex-shrink-0 px-6 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white transition-opacity"
+            style={{ backgroundColor: "#dc2626", fontSize: "1.1rem", opacity: selectedSeasonId ? 1 : 0.5 }}
+          >
+            {addOpen ? "Cancel" : "+ Add Match"}
+          </button>
+        </div>
       </div>
 
       {/* Global feedback */}
@@ -175,7 +203,7 @@ export default function SchedulePage() {
           <p className="font-display font-black uppercase text-xs tracking-widest mb-4" style={{ color: "rgba(255,255,255,0.5)" }}>
             New Match
           </p>
-          <MatchForm form={addForm} onChange={setAddForm} />
+          <MatchForm form={addForm} onChange={setAddForm} seasons={seasons} />
           <div className="mt-4 flex gap-3">
             <button
               onClick={handleAdd}
@@ -190,13 +218,13 @@ export default function SchedulePage() {
       )}
 
       {/* Match list */}
-      {loading ? (
+      {loading || seasonsLoading ? (
         <p className="font-display text-sm tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.3)" }}>
           Loading…
         </p>
       ) : sorted.length === 0 ? (
         <p className="font-body text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>
-          No matches yet. Add one above.
+          No matches for {selectedSeason?.label ?? "the selected season"}. Add one above.
         </p>
       ) : (
         <div className="flex flex-col gap-3">
@@ -213,7 +241,7 @@ export default function SchedulePage() {
                 {isEditing ? (
                   /* Edit mode */
                   <div className="p-5" style={{ backgroundColor: "#161616" }}>
-                    <MatchForm form={editForm} onChange={setEditForm} />
+                    <MatchForm form={editForm} onChange={setEditForm} seasons={seasons} />
                     <div className="mt-4 flex gap-3">
                       <button
                         onClick={handleSaveEdit}
@@ -312,9 +340,11 @@ export default function SchedulePage() {
 function MatchForm({
   form,
   onChange,
+  seasons,
 }: {
   form: Omit<Match, "id">;
   onChange: (f: Omit<Match, "id">) => void;
+  seasons: DBSeason[];
 }) {
   function set(field: string, value: string | boolean) {
     onChange({ ...form, [field]: value });
@@ -322,6 +352,22 @@ function MatchForm({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <Field label="Season" required>
+        <select
+          value={form.season_id}
+          onChange={(e) => set("season_id", e.target.value)}
+          style={inputStyle}
+          required
+        >
+          <option value="">— Select a season —</option>
+          {seasons.map((season) => (
+            <option key={season.id} value={season.id}>
+              {season.label}{season.active ? " (Active)" : ""}
+            </option>
+          ))}
+        </select>
+      </Field>
+
       <Field label="Date" required>
         <input
           type="date"
