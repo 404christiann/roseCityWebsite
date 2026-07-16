@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import dynamic from "next/dynamic";
 import { shopProduct } from "@/lib/data";
+import { SHOW_SHOP_HERO } from "@/lib/site-flags";
 import JerseyImagePair from "@/components/JerseyImagePair";
 
 const ShopHero      = dynamic(() => import("@/components/ShopHero"),      { ssr: false });
@@ -35,10 +36,10 @@ export default function ShopPage() {
   }, []);
 
   return (
-    <div className="pt-20 sm:pt-0" style={{ backgroundColor: "var(--color-white)" }}>
+    <div className={SHOW_SHOP_HERO ? "pt-20 sm:pt-0" : "pt-24 sm:pt-28"} style={{ backgroundColor: "var(--color-white)" }}>
 
       {/* ── Cinematic hero slideshow ── */}
-      <ShopHero />
+      {SHOW_SHOP_HERO && <ShopHero />}
 
       {/* ── Hero product split ── */}
       <div className="flex flex-col md:flex-row" style={{ backgroundColor: "var(--color-white)" }}>

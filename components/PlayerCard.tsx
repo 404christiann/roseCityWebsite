@@ -39,9 +39,9 @@ export default function PlayerCard({ player, seasonLabel }: { player: Player; se
 
         {/* Always-visible gradient + info at bottom */}
         <div
-          className="absolute inset-x-0 bottom-0 pt-6 md:pt-16 pb-4 px-4"
+          className="absolute inset-x-0 bottom-0 pt-6 md:pt-12 pb-4 px-4"
           style={{
-            background: "linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.94) 48%, rgba(255,255,255,0.55) 72%, transparent 100%)",
+            background: "linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.94) 38%, rgba(255,255,255,0.45) 60%, transparent 88%)",
             zIndex: 2,
           }}
         >

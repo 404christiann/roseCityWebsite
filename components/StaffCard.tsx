@@ -14,7 +14,7 @@ export default function StaffCard({ member }: { member: Staff }) {
     <>
       <div
         className="relative overflow-hidden group cursor-pointer"
-        style={{ backgroundColor: "var(--color-black)", aspectRatio: "3/4" }}
+        style={{ backgroundColor: "var(--color-white)", aspectRatio: "3/4" }}
         onClick={() => setModalOpen(true)}
       >
         {/* Photo */}
@@ -28,45 +28,41 @@ export default function StaffCard({ member }: { member: Staff }) {
 
         {/* Gradient */}
         <div
-          className="absolute inset-x-0 bottom-0 pt-6 md:pt-16 px-3 pb-3"
+          className="absolute inset-x-0 bottom-0 pt-6 md:pt-12 pb-4 px-4"
           style={{
-            background: "linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 50%, transparent 100%)",
+            background: "linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.94) 38%, rgba(255,255,255,0.45) 60%, transparent 88%)",
             zIndex: 2,
           }}
         >
           {/* Initials badge + flag */}
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <div
-              className="inline-flex items-center justify-center w-7 h-7 font-display font-black text-white flex-shrink-0"
-              style={{ backgroundColor: "var(--color-red)", fontSize: "0.65rem" }}
+          <div className="flex items-end justify-between gap-3">
+            <span
+              className="font-display font-black leading-none block"
+              style={{
+                fontSize: "clamp(2.25rem, 5vw, 3.25rem)",
+                color: "var(--color-red)",
+                lineHeight: 1,
+              }}
             >
               {member.initials}
-            </div>
+            </span>
             {member.nationality && (
-              <NationalityFlag nationality={member.nationality} width={22} />
+              <NationalityFlag nationality={member.nationality} className="mb-[0.18rem]" />
             )}
           </div>
 
           {/* Name */}
           <h3
-            className="font-display font-bold uppercase text-white leading-tight line-clamp-1"
-            style={{ fontSize: "clamp(0.75rem, 3vw, 1rem)" }}
+            className="font-display font-bold uppercase leading-tight mt-1 line-clamp-1"
+            style={{ fontSize: "clamp(1rem, 2vw, 1.25rem)", color: "var(--color-black)" }}
           >
             {member.name}
           </h3>
 
-          {/* Role */}
-          <p
-            className="font-display tracking-widest uppercase mt-0.5 line-clamp-1"
-            style={{ fontSize: "clamp(0.55rem, 2vw, 0.65rem)", color: "var(--color-red)" }}
-          >
-            {member.role}
-          </p>
-
           {/* Hometown */}
           <p
-            className="font-body font-medium mt-0.5 truncate"
-            style={{ fontSize: "clamp(0.6rem, 2vw, 0.8rem)", color: "rgba(255,255,255,0.75)" }}
+            className="font-body font-medium mt-1 truncate"
+            style={{ fontSize: "clamp(0.65rem, 2vw, 0.8rem)", color: "rgba(10,10,10,0.5)" }}
           >
             {member.hometown}
           </p>

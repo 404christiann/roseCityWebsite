@@ -452,6 +452,55 @@ describe('fetchRoster (season-aware)', () => {
 
     expect(allPlayers.map((player) => player.id)).toEqual([activePlayer.id])
   })
+
+  it('supports the full active → inactive → active lifecycle without deleting season membership', async () => {
+    const seededStats = [{ ...fieldSeasonStats[0], goals: 0, assists: 0 }]
+    const deactivatedPlayer = { ...activePlayer, active: false }
+
+    mockFrom
+      // Newly added/active player with a seeded season row.
+      .mockReturnValueOnce(chain({ data: [activeSeason], error: null }))
+      .mockReturnValueOnce(chain({ data: seededStats, error: null }))
+      .mockReturnValueOnce(chain({ data: [], error: null }))
+      .mockReturnValueOnce(chain({ data: [activePlayer], error: null }))
+      .mockReturnValueOnce(chain({ data: [], error: null }))
+      // Deactivation retains the same season row but hides the player.
+      .mockReturnValueOnce(chain({ data: [activeSeason], error: null }))
+      .mockReturnValueOnce(chain({ data: seededStats, error: null }))
+      .mockReturnValueOnce(chain({ data: [], error: null }))
+      .mockReturnValueOnce(chain({ data: [deactivatedPlayer], error: null }))
+      .mockReturnValueOnce(chain({ data: [], error: null }))
+      // Reactivation uses the retained row and shows the player again.
+      .mockReturnValueOnce(chain({ data: [activeSeason], error: null }))
+      .mockReturnValueOnce(chain({ data: seededStats, error: null }))
+      .mockReturnValueOnce(chain({ data: [], error: null }))
+      .mockReturnValueOnce(chain({ data: [activePlayer], error: null }))
+      .mockReturnValueOnce(chain({ data: [], error: null }))
+
+    const added = await fetchRoster()
+    const deactivated = await fetchRoster()
+    const reactivated = await fetchRoster()
+
+    expect(added.forwards.map((player) => player.id)).toEqual([activePlayer.id])
+    expect(deactivated.forwards).toEqual([])
+    expect(reactivated.forwards.map((player) => player.id)).toEqual([activePlayer.id])
+  })
+
+  it('includes a previously inactive player after activation seeds active-season membership', async () => {
+    const reactivatedPlayer = { ...inactivePlayer, active: true }
+    const seededStats = [{ ...fieldSeasonStats[0], player_id: inactivePlayer.id, goals: 0, assists: 0 }]
+
+    mockFrom
+      .mockReturnValueOnce(chain({ data: [activeSeason], error: null }))
+      .mockReturnValueOnce(chain({ data: seededStats, error: null }))
+      .mockReturnValueOnce(chain({ data: [], error: null }))
+      .mockReturnValueOnce(chain({ data: [reactivatedPlayer], error: null }))
+      .mockReturnValueOnce(chain({ data: [], error: null }))
+
+    const result = await fetchRoster()
+
+    expect(result.forwards.map((player) => player.id)).toEqual([inactivePlayer.id])
+  })
 })
 
 // ─────────────────────────────────────────────────────────────

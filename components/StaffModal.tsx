@@ -27,7 +27,7 @@ export default function StaffModal({ member, onClose }: Props) {
           transition
           className="
             w-full md:w-[480px] flex flex-col overflow-hidden
-            bg-[#0e0e0e]
+            bg-[var(--color-white)]
             rounded-t-2xl md:rounded-2xl
             duration-300 ease-out
             data-closed:opacity-0
@@ -35,11 +35,14 @@ export default function StaffModal({ member, onClose }: Props) {
             md:data-closed:translate-y-4
             md:data-closed:scale-95
           "
-          style={{ maxHeight: "90vh" }}
+          style={{
+            height: "min(760px, calc(100dvh - 24px))",
+            maxHeight: "calc(100dvh - 24px)",
+          }}
         >
           {/* Photo */}
           <div
-            className="relative flex-shrink-0 w-full h-[400px] rounded-t-2xl overflow-hidden"
+            className="relative flex-shrink-0 w-full h-[340px] md:h-[400px] rounded-t-2xl overflow-hidden"
             style={{ WebkitTransform: "translateZ(0)" }}
           >
             <Image
@@ -51,7 +54,7 @@ export default function StaffModal({ member, onClose }: Props) {
             />
             <div
               className="absolute inset-0"
-              style={{ background: "linear-gradient(to top, rgba(14,14,14,0.95) 0%, transparent 55%)" }}
+              style={{ background: "linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.84) 12%, rgba(255,255,255,0.35) 24%, transparent 40%)" }}
             />
 
             {/* Drag handle — mobile only */}
@@ -71,24 +74,24 @@ export default function StaffModal({ member, onClose }: Props) {
               </svg>
             </button>
 
-            {/* Initials badge bottom-left */}
-            <div
-              className="absolute bottom-3 left-4 inline-flex items-center justify-center w-10 h-10 font-display font-black text-white text-sm"
-              style={{ backgroundColor: "var(--color-red)" }}
+            {/* Initials bottom-left */}
+            <span
+              className="absolute bottom-3 left-4 font-display font-black leading-none select-none"
+              style={{ fontSize: "4rem", color: "var(--color-red)", lineHeight: 1, opacity: 0.9 }}
             >
               {member.initials}
-            </div>
+            </span>
           </div>
 
           {/* Details */}
-          <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col">
+          <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col" style={{ colorScheme: "light" }}>
 
 
             {/* Name + flag */}
             <div className="flex items-start gap-3 mb-0.5">
               <h2
-                className="font-display font-black uppercase text-white leading-none flex-1"
-                style={{ fontSize: "clamp(1.4rem, 5vw, 1.8rem)" }}
+                className="font-display font-black uppercase leading-none flex-1"
+                style={{ fontSize: "clamp(1.4rem, 5vw, 1.8rem)", color: "var(--color-black)" }}
               >
                 {member.name}
               </h2>
@@ -105,7 +108,7 @@ export default function StaffModal({ member, onClose }: Props) {
               {member.role}
             </p>
 
-            <div className="mb-4" style={{ height: 1, backgroundColor: "rgba(255,255,255,0.07)" }} />
+            <div className="mb-4" style={{ height: 1, backgroundColor: "rgba(20,20,20,0.08)" }} />
 
             {/* Meta */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-4">
@@ -116,10 +119,10 @@ export default function StaffModal({ member, onClose }: Props) {
             {/* Bio */}
             {member.bio && (
               <>
-                <div className="mb-4" style={{ height: 1, backgroundColor: "rgba(255,255,255,0.07)" }} />
+                <div className="mb-4" style={{ height: 1, backgroundColor: "rgba(20,20,20,0.08)" }} />
                 <p
                   className="font-body leading-relaxed"
-                  style={{ fontSize: "0.95rem", color: "rgba(255,255,255,0.65)" }}
+                  style={{ fontSize: "0.95rem", color: "rgba(20,20,20,0.65)" }}
                 >
                   {member.bio}
                 </p>
@@ -128,7 +131,7 @@ export default function StaffModal({ member, onClose }: Props) {
 
             <p
               className="font-display text-xs tracking-widest uppercase text-center mt-6 mb-1"
-              style={{ color: "rgba(255,255,255,0.12)" }}
+              style={{ color: "rgba(20,20,20,0.24)" }}
             >
               Tap outside to dismiss
             </p>
@@ -145,7 +148,7 @@ function MetaRow({ label, value }: { label: string; value: string }) {
       <p className="font-display text-xs tracking-widest uppercase mb-0.5" style={{ color: "var(--color-gray-mid)" }}>
         {label}
       </p>
-      <p className="font-body text-sm font-medium text-white">{value}</p>
+      <p className="font-body text-sm font-medium" style={{ color: "var(--color-black)" }}>{value}</p>
     </div>
   );
 }

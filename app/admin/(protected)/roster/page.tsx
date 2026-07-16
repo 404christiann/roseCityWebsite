@@ -3,6 +3,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { fetchActiveSeason } from "@/lib/queries";
+import { getPlayerSeasonSeed } from "@/lib/player-season";
 import { createClient } from "@/lib/supabase-browser";
 import { getRosterImageSrc, isRosterPlaceholderLogo, ROSE_CITY_PATCH_URL } from "@/lib/roster-images";
 // ── Nationalities ─────────────────────────────
@@ -286,12 +287,7 @@ function PlayersTab() {
         if (!activeSeason) {
           seedError = "Player saved, but no active season exists for stat seeding.";
         } else if (insertedPlayer) {
-          const table = addForm.position === "Goalkeeper"
-            ? "goalkeeper_season_stats"
-            : "player_season_stats";
-          const zeroStats = addForm.position === "Goalkeeper"
-            ? { goals_against: 0, saves: 0, clean_sheets: 0, starts: 0, yellow: 0, red: 0, mins: 0 }
-            : { goals: 0, assists: 0, tackles: 0, starts: 0, yellow: 0, red: 0, mins: 0, offsides: 0, fouls: 0, fouls_suffered: 0 };
+          const { table, stats: zeroStats } = getPlayerSeasonSeed(addForm.position);
           const { error: statSeedError } = await supabase.from(table).insert([{
             player_id: insertedPlayer.id,
             season_id: activeSeason.id,
@@ -358,6 +354,37 @@ function PlayersTab() {
     setSaving(true);
     setError(null);
     const supabase = createClient();
+
+    if (!p.active) {
+      try {
+        const activeSeason = await fetchActiveSeason();
+        if (!activeSeason) {
+          setError("A player cannot be activated until an active season is configured.");
+          setSaving(false);
+          return;
+        }
+
+        const { table, stats } = getPlayerSeasonSeed(p.position);
+        const { error: seedError } = await supabase.from(table).upsert([{
+          player_id: p.id,
+          season_id: activeSeason.id,
+          ...stats,
+        }], {
+          onConflict: "player_id,season_id",
+          ignoreDuplicates: true,
+        });
+        if (seedError) {
+          setError(`Player was not activated because season stats could not be seeded: ${seedError.message}`);
+          setSaving(false);
+          return;
+        }
+      } catch (activationError) {
+        setError(activationError instanceof Error ? activationError.message : "Player activation failed");
+        setSaving(false);
+        return;
+      }
+    }
+
     const { error: toggleError } = await supabase
       .from("players")
       .update({ active: !p.active })

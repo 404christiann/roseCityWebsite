@@ -29,13 +29,20 @@ const socialLinks = [
   },
 ];
 
+const SPONSOR_BASE =
+  `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/sponsors`;
+
+function sponsorLogo(filename: string) {
+  return `${SPONSOR_BASE}/${encodeURIComponent(filename)}`;
+}
+
 const partners = [
-  { name: "Chronic Tacos", src: "/images/partners/chronicTacosSponsor.png" },
-  { name: "Modern Woodmen", src: "/images/partners/modernWoodward_sponsor.png" },
-  { name: "Niky's Sports", src: "/images/partners/nickySports_sponsor.png" },
-  { name: "Planted Beauty Rx", src: "/images/partners/plantedBeautySponsor.png" },
-  { name: "Tepito Coffee", src: "/images/partners/tepitoSponsor.png" },
-  { name: "The Pack Shot Agency", src: "/images/partners/tpaSponsor.png" },
+  { name: "Chronic Tacos", src: sponsorLogo("Rose City FC 2027 Official Sponsor Chronic Tacos Logo Website.png") },
+  { name: "Modern Woodmen", src: sponsorLogo("Rose City FC 2027 Official Sponsor Modern Woodmen Logo Website white.png") },
+  { name: "Niky's Sports", src: sponsorLogo("Rose City FC 2027 Official Sponsor Niky's Sports Logo Website white & blue.png") },
+  { name: "Planted Beauty Rx", src: sponsorLogo("Rose City FC 2027 Official Sponsor Planted Beauty Logo Website green.png") },
+  { name: "Tepito Coffee", src: "/images/partners/tepitoSponsor.png", invert: true },
+  { name: "The Pack Shot Agency", src: sponsorLogo("Rose City FC 2027 Official Sponsor The Packshot Agency Logo Website white.png") },
 ];
 
 export default function Footer() {
@@ -54,12 +61,12 @@ export default function Footer() {
         </p>
         <div className="flex items-center justify-center flex-wrap gap-8 md:gap-12">
           {partners.map((partner) => (
-            <div key={partner.name} className="relative h-10 w-28 opacity-60 hover:opacity-100 transition-opacity duration-200">
+            <div key={partner.name} className="relative h-12 w-32 opacity-100 md:h-14 md:w-36">
               <Image
                 src={partner.src}
                 alt={partner.name}
                 fill
-                className="object-contain filter brightness-0 invert"
+                className={`object-contain ${partner.invert ? "filter brightness-0 invert" : ""}`}
               />
             </div>
           ))}

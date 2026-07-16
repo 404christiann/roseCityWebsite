@@ -62,7 +62,10 @@ export default function PlayerModal({ player, onClose, seasonLabel = "Current Se
             md:data-closed:translate-y-4
             md:data-closed:scale-95
           "
-          style={{ maxHeight: "90vh" }}
+          style={{
+            height: "min(760px, calc(100dvh - 24px))",
+            maxHeight: "calc(100dvh - 24px)",
+          }}
         >
           {/* Photo carousel */}
           <div
@@ -80,7 +83,7 @@ export default function PlayerModal({ player, onClose, seasonLabel = "Current Se
             />
             <div
               className="absolute inset-0"
-              style={{ background: "linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.84) 24%, rgba(255,255,255,0.35) 46%, transparent 68%)" }}
+              style={{ background: "linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.84) 12%, rgba(255,255,255,0.35) 24%, transparent 40%)" }}
             />
 
             {/* Drag handle — mobile only */}
@@ -225,7 +228,7 @@ export default function PlayerModal({ player, onClose, seasonLabel = "Current Se
 }
 
 function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | FieldStats; seasonLabel: string }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const gk = isGK(stats);
 
   const gridStats = gk

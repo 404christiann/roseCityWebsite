@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ROSE_CITY_PATCH_URL } from "@/lib/roster-images";
+import { SHOW_SHOP_HERO } from "@/lib/site-flags";
 
 const LOGO_BASE =
   `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/logos_v2`;
@@ -12,7 +13,7 @@ const LOGO_BASE =
 const affiliationLogos = [
   {
     colorSrc: `${LOGO_BASE}/US%20Soccer%20logo%20color.png`,
-    whiteSrc: `${LOGO_BASE}/US%20Soccer%20logo%20color.png`,
+    whiteSrc: `${LOGO_BASE}/US%20Soccer%20logo%20white.png`,
     alt: "US Soccer",
     className: "h-7 w-7 sm:h-10 sm:w-10",
     sizes: "(max-width: 639px) 28px, 40px",
@@ -33,7 +34,7 @@ const affiliationLogos = [
   },
   {
     colorSrc: `${LOGO_BASE}/UPSL%20logo%20color.png`,
-    whiteSrc: `${LOGO_BASE}/UPSL%20logo%20color.png`,
+    whiteSrc: `${LOGO_BASE}/UPSL%20logo%20white.png`,
     alt: "UPSL",
     className: "h-7 w-7 sm:h-10 sm:w-10",
     sizes: "(max-width: 639px) 28px, 40px",
@@ -72,7 +73,7 @@ export default function Nav() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  const isDarkHeroPage = pathname === "/" || (pathname === "/shop" && !isMobile);
+  const isDarkHeroPage = pathname === "/" || (pathname === "/shop" && SHOW_SHOP_HERO && !isMobile);
   const isHero = isDarkHeroPage && !scrolled;
 
   return (
@@ -130,7 +131,7 @@ export default function Nav() {
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className="font-display text-sm font-semibold tracking-widest uppercase transition-colors duration-300 relative group"
+                  className="font-body text-sm font-semibold tracking-widest uppercase transition-colors duration-300 relative group"
                   style={{
                     color: isActive
                       ? isHero
@@ -183,7 +184,7 @@ export default function Nav() {
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className={`font-display text-lg font-semibold tracking-widest uppercase block py-1 ${
+                  className={`font-body text-lg font-semibold tracking-widest uppercase block py-1 ${
                     isActive
                       ? "text-[var(--color-red)]"
                       : "text-[var(--color-black)]"
