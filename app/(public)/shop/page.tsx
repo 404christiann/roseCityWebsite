@@ -6,23 +6,17 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import dynamic from "next/dynamic";
 import { shopProduct } from "@/lib/data";
 import { SHOW_SHOP_HERO } from "@/lib/site-flags";
-import JerseyImagePair from "@/components/JerseyImagePair";
+import ShopKitSectionContainer from "@/components/ShopKitSectionContainer";
 
 const ShopHero      = dynamic(() => import("@/components/ShopHero"),      { ssr: false });
 
 gsap.registerPlugin(ScrollTrigger);
 
 export default function ShopPage() {
-  const heroRef    = useRef<HTMLDivElement>(null);
   const nikysRef   = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.fromTo(
-        heroRef.current,
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.9, ease: "power3.out", delay: 0.15 }
-      );
       gsap.fromTo(
         nikysRef.current,
         { y: 40, opacity: 0 },
@@ -41,97 +35,7 @@ export default function ShopPage() {
       {/* ── Cinematic hero slideshow ── */}
       {SHOW_SHOP_HERO && <ShopHero />}
 
-      {/* ── Hero product split ── */}
-      <div className="flex flex-col md:flex-row" style={{ backgroundColor: "var(--color-white)" }}>
-
-        {/* Kit views — left / top on mobile */}
-        <div
-          className="relative w-full flex-shrink-0 md:w-3/5"
-          style={{ backgroundColor: "var(--color-white)" }}
-        >
-          <div className="mb-2 flex items-center gap-3 px-4 pt-6 md:hidden">
-            <div className="h-px flex-1" style={{ backgroundColor: "rgba(0,0,0,0.08)" }} />
-            <span
-              className="font-display text-[0.65rem] font-bold tracking-[0.3em] uppercase"
-              style={{ color: "rgba(0,0,0,0.35)" }}
-            >
-              Shop Detail
-            </span>
-            <div className="h-px flex-1" style={{ backgroundColor: "rgba(0,0,0,0.08)" }} />
-          </div>
-          <div
-            className="relative w-full overflow-hidden"
-            style={{ aspectRatio: "5262 / 4692" }}
-          >
-            <JerseyImagePair sizes="(max-width: 768px) 50vw, 30vw" />
-          </div>
-        </div>
-
-        {/* Product details — right / bottom on mobile */}
-        <div
-          ref={heroRef}
-          className="w-full md:w-2/5 flex flex-col justify-start md:justify-center px-8 sm:px-12 md:px-14 lg:px-20 py-12 md:py-24"
-          style={{ opacity: 0, backgroundColor: "var(--color-white)" }}
-        >
-          <p
-            className="font-display font-bold tracking-widest uppercase mb-4"
-            style={{ color: "var(--color-red)", fontSize: "clamp(0.85rem, 1.5vw, 1.1rem)" }}
-          >
-            2026 Kit · Available Now
-          </p>
-
-          <h1
-            className="font-display font-black uppercase leading-none mb-6"
-            style={{ fontSize: "clamp(2.8rem, 5vw, 5rem)", color: "var(--color-black)" }}
-          >
-            Thorn<br />Edition<br />2026
-          </h1>
-
-          <div className="w-12 h-0.5 mb-8" style={{ backgroundColor: "var(--color-red)" }} />
-
-          <p
-            className="font-body mb-8 leading-relaxed"
-            style={{ color: "rgba(0,0,0,0.6)", fontSize: "clamp(0.9rem, 1.4vw, 1rem)" }}
-          >
-            {shopProduct.description}
-          </p>
-
-          {/* Includes list */}
-          <ul className="flex flex-col gap-3 mb-8">
-            {shopProduct.includes.map((item) => (
-              <li key={item} className="flex items-center gap-3">
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: "var(--color-red)" }} />
-                <span className="font-body text-sm" style={{ color: "rgba(0,0,0,0.6)" }}>{item}</span>
-              </li>
-            ))}
-            {shopProduct.addOn && (
-              <li className="flex items-center gap-3">
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: "rgba(0,0,0,0.2)" }} />
-                <span className="font-body text-sm italic" style={{ color: "rgba(0,0,0,0.4)" }}>
-                  Add-on: {shopProduct.addOn}
-                </span>
-              </li>
-            )}
-          </ul>
-
-          <p className="font-body text-xs mb-8" style={{ color: "rgba(0,0,0,0.4)" }}>
-            Sold exclusively at Niky&apos;s Sports<br />
-            {shopProduct.storeAddress}
-          </p>
-
-          <a
-            href={shopProduct.buyLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center md:inline-flex md:w-auto gap-3 font-display font-bold tracking-widest uppercase px-10 py-4 transition-all duration-200"
-            style={{ backgroundColor: "var(--color-red)", color: "#fff", fontSize: "clamp(0.85rem, 1.2vw, 1rem)" }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = "var(--color-red-dark)")}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = "var(--color-red)")}
-          >
-            Buy Now →
-          </a>
-        </div>
-      </div>
+      <ShopKitSectionContainer headingTag="h1" />
 
       {/* ── Purchase info ── */}
       <div style={{ backgroundColor: "var(--color-black)" }}>

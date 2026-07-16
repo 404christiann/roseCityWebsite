@@ -19,6 +19,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   fetchSeasons,
   fetchActiveSeason,
+  fetchShopKitContent,
   fetchPlayerMatchLog,
   fetchRoster,
   fetchPlayerMatchTrend,
@@ -144,6 +145,62 @@ describe('fetchActiveSeason', () => {
     mockFrom.mockReturnValue(chain({ data: null, error: { message: 'active season failed' } }))
 
     await expect(fetchActiveSeason()).rejects.toThrow('active season failed')
+  })
+})
+
+describe('fetchShopKitContent', () => {
+  const section = {
+    id: 1,
+    eyebrow: '2026 Kit · Available Now',
+    title: 'Thorn\nEdition\n2026',
+    description: 'Official kit',
+    cta_label: 'Buy Now →',
+    cta_link: 'https://example.com',
+    updated_at: '2026-07-16T00:00:00Z',
+  }
+  const photos = [
+    { id: 'photo-a', url: 'a.jpg', sort_order: 0, created_at: '2026-07-16T00:00:00Z' },
+    { id: 'photo-b', url: 'b.jpg', sort_order: 1, created_at: '2026-07-16T00:00:00Z' },
+  ]
+
+  it('returns the singleton section and ordered photos', async () => {
+    const sectionQuery = chain({ data: [section], error: null })
+    const photosQuery = chain({ data: photos, error: null })
+    mockFrom
+      .mockReturnValueOnce(sectionQuery)
+      .mockReturnValueOnce(photosQuery)
+
+    await expect(fetchShopKitContent()).resolves.toEqual({ section, photos })
+    expect(mockFrom).toHaveBeenNthCalledWith(1, 'shop_kit_section')
+    expect(mockFrom).toHaveBeenNthCalledWith(2, 'shop_kit_photos')
+    expect(sectionQuery.limit).toHaveBeenCalledWith(1)
+    expect(photosQuery.order).toHaveBeenCalledWith('sort_order', { ascending: true })
+  })
+
+  it('returns an empty content shape when both tables are empty', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: [], error: null }))
+      .mockReturnValueOnce(chain({ data: [], error: null }))
+
+    await expect(fetchShopKitContent()).resolves.toEqual({ section: null, photos: [] })
+  })
+
+  it('throws with context when the section query fails', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: null, error: { message: 'section unavailable' } }))
+      .mockReturnValueOnce(chain({ data: [], error: null }))
+
+    await expect(fetchShopKitContent())
+      .rejects.toThrow('fetchShopKitContent: section unavailable')
+  })
+
+  it('throws with context when the photos query fails', async () => {
+    mockFrom
+      .mockReturnValueOnce(chain({ data: [section], error: null }))
+      .mockReturnValueOnce(chain({ data: null, error: { message: 'photos unavailable' } }))
+
+    await expect(fetchShopKitContent())
+      .rejects.toThrow('fetchShopKitContent: photos unavailable')
   })
 })
 

@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import AdminSaveFeedback from "@/components/admin/AdminSaveFeedback";
 import { fetchActiveSeason } from "@/lib/queries";
 import { getPlayerSeasonSeed } from "@/lib/player-season";
 import { createClient } from "@/lib/supabase-browser";
@@ -403,6 +404,7 @@ function PlayersTab() {
 
   return (
     <div>
+      <AdminSaveFeedback saving={saving} saved={saved} />
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-6">
         <p className="font-body text-sm" style={{ color: "rgba(255,255,255,0.35)" }}>
@@ -417,8 +419,6 @@ function PlayersTab() {
         </button>
       </div>
 
-      {/* Feedback */}
-      {saved  && <p className="font-display text-sm tracking-widest uppercase mb-4" style={{ color: "rgba(34,197,94,0.9)" }}>✓ Saved</p>}
       {error  && <p className="font-body text-sm mb-4" style={{ color: "#dc2626" }}>Error: {error}</p>}
 
       {/* Add form */}
@@ -694,6 +694,7 @@ function StaffTab() {
 
   return (
     <div>
+      <AdminSaveFeedback saving={saving} saved={saved} />
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-6">
         <p className="font-body text-sm" style={{ color: "rgba(255,255,255,0.35)" }}>
@@ -707,8 +708,6 @@ function StaffTab() {
         </button>
       </div>
 
-      {/* Feedback */}
-      {saved && <p className="font-display text-sm tracking-widest uppercase mb-4" style={{ color: "rgba(34,197,94,0.9)" }}>✓ Saved</p>}
       {error && <p className="font-body text-sm mb-4" style={{ color: "#dc2626" }}>Error: {error}</p>}
 
       {/* Add form */}
@@ -881,6 +880,12 @@ function SeasonStatsPanel({ playerId, position }: { playerId: string; position: 
 
   return (
     <div>
+      <AdminSaveFeedback
+        saving={saving}
+        saved={saved}
+        savingLabel="Saving season stats…"
+        successLabel="Season stats saved"
+      />
       <div className="mb-3" style={{ height: 1, backgroundColor: "rgba(255,255,255,0.07)" }} />
       <div className="flex items-center justify-between mb-3">
         <label className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>
@@ -941,7 +946,6 @@ function SeasonStatsPanel({ playerId, position }: { playerId: string; position: 
             >
               {saving ? "Saving…" : "Save Stats"}
             </button>
-            {saved && <span className="font-display text-xs tracking-widest uppercase" style={{ color: "rgba(34,197,94,0.9)" }}>✓ Saved</span>}
           </div>
         </>
       )}

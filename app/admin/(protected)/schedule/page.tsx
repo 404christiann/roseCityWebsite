@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AdminSaveFeedback from "@/components/admin/AdminSaveFeedback";
 import SeasonSelect from "@/components/admin/SeasonSelect";
 import type { DBSeason } from "@/lib/db-types";
 import { createClient } from "@/lib/supabase-browser";
@@ -148,6 +149,7 @@ export default function SchedulePage() {
 
   return (
     <div className="max-w-4xl mx-auto">
+      <AdminSaveFeedback saving={saving} saved={saved} />
 
       {/* Header */}
       <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
@@ -183,11 +185,6 @@ export default function SchedulePage() {
       </div>
 
       {/* Global feedback */}
-      {saved && (
-        <p className="font-display text-sm tracking-widest uppercase mb-4" style={{ color: "rgba(34,197,94,0.9)" }}>
-          ✓ Saved
-        </p>
-      )}
       {error && (
         <p className="font-body text-sm mb-4" style={{ color: "#dc2626" }}>
           Error: {error}

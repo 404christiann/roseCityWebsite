@@ -1,181 +1,178 @@
 # Rose City FC New Agent Handoff - 2026-07-15
 
-## Immediate Context
+## Start Here
 
-Christian wants the admin portal to support multiple seasons safely. The
-database prep/backfill has been completed manually in Supabase. The next agent
-should continue with app implementation, not restart the SQL gate.
-
-The repo is at:
+Repository:
 
 ```text
 /Users/christianalcala/Downloads/roseCityWebsite
 ```
 
-## Completed In This Session
+Read these files in order:
 
-### Public Site UI
+1. `CLAUDE.md`
+2. `HANDOFF.md`
+3. `SUMMARY.md`
+4. this file
+5. `docs/multi-season-implementation-plan.md`
+6. `db/migrations/2026-07-multi-season.sql`
 
-- Roster player cards changed from black overlay to white/light overlay.
-- Roster card text/stat colors were flipped for the white treatment.
-- Player-card country flag is positioned on the right, aligned with the bottom
-  of the jersey number.
-- Brand red changed to `#E7001B`.
-- Brand black changed to `#141414`.
-- Site-wide white was temporarily tested as `#F7F7F7`, then reverted to
-  `#FFFFFF`.
-- Navigation/header black accents were included in the color update.
-- Lemon Milk font was unpacked from `~/Downloads/lemon_milk.zip` into
-  `public/fonts/lemon-milk/`.
-- Headings use `LEMON MILK` Bold Italic through local `@font-face` rules.
-- Roster player modal was changed to a white/light card treatment.
-- Player modal bio is collapsed initially; users can expand it.
-- Homepage `Behind the Rose` heading and
-  `Behind the Rose · Season 1 · Episode 1` eyebrow were adjusted to stay on one
-  line across mobile and desktop.
+The shipped baseline before the admin-managed shop release was `9568beb1` on
+`main`. The worktree may contain the generated cache file
+`tsconfig.tsbuildinfo`; do not treat it as product work or commit it by default.
+Always inspect `git status` and current diffs before editing because this
+repository has previously contained work from multiple agents.
 
-### Admin Local Login
+## Current Product State
 
-Local Supabase magic-link admin login was verified after adding redirect URLs:
+The public website and protected Supabase admin portal are production Next.js
+applications deployed by Vercel. The visual refresh and multi-season admin work
+described in older handoffs are complete; do not restart those phases.
+
+Brand and typography to preserve:
+
+- Lemon Milk for display headings and DM Sans for body/navigation text.
+- red `#E7001B`, black `#141414`, and white `#FFFFFF`.
+- public pages should feel editorial and club-forward.
+- admin pages should remain dense, dark, and operational.
+
+## Multi-Season Implementation - Complete
+
+Supabase gate:
+
+- `matches.season_id` exists and existing matches are backfilled.
+- `player_season_stats` and `goalkeeper_season_stats` use
+  `PRIMARY KEY (player_id, season_id)`.
+- null season counts for matches and both season-stat tables are `0`.
+- the active season is `2025–26`, id
+  `e3e7e955-4e7d-4887-821b-06ccc23c2cf3`.
+
+Application behavior:
+
+- `fetchActiveSeason()`, `useSeasons`, and the shared admin `SeasonSelect`
+  exist.
+- `/admin/seasons` is the dedicated, intuitive season-management page.
+- `/admin/season-stats` loads and saves the selected season using conflict key
+  `(player_id, season_id)`.
+- `/admin/schedule` requires a season on every match and filters the list by
+  season.
+- `/admin/stats` filters its match picker and player cohort by season.
+- the dashboard and public schedule use the active-season label and matches.
+- adding a player seeds a zero stats row in the active season.
+- season deletion is guarded against matches or non-zero stats; permitted
+  deletion removes zero seed rows first.
+
+### Player Activation Contract
+
+This lifecycle was added after a public-roster regression:
+
+- the active-season public roster must exclude `players.active = false`.
+- historical rosters remain based on season-stat row membership so former
+  players still appear in their historical season.
+- activating an inactive or older player first upserts a zero active-season
+  stats row with `ignoreDuplicates: true`, preserving any existing totals, and
+  then sets the player active.
+- deactivation keeps season statistics intact.
+- admin roster mutations surface errors rather than silently appearing to
+  succeed.
+
+Tests cover active to inactive to active, inactive to active to inactive, and
+new/older player activation scenarios. Keep these semantics when changing
+roster queries or admin actions.
+
+## Shipped Public UI
+
+- Homepage video hero is approximately half-screen on desktop; mobile remains
+  immersive.
+- The UPSL SoCal North Conference feature is also approximately half-screen.
+- Homepage hero CTA is `Team Store`, links to `/shop`, and has no arrow.
+- The two-image 2026 kit treatment is used on the homepage immediately after
+  the video and on `/shop`; images come from the public Supabase `shop` bucket.
+- `/admin/shop` edits the shared kit content, purchase link, and ordered photo
+  set. Its scaled preview uses the same public component, and the editor adapts
+  to mobile admin layouts.
+- Shop form labels use plain language for non-technical club managers.
+- Save actions throughout the admin portal use the shared subtle
+  saving/success feedback treatment.
+- Shop purchase labels are non-bold, detail headings are non-italic, and the
+  `Purchase Details` section heading is italic.
+- The shop cinematic slideshow remains implemented but is temporarily hidden
+  with `SHOW_SHOP_HERO = false` in `lib/site-flags.ts`.
+- Navigation shows Rose City, US Soccer, FIFA, Lamar Hunt U.S. Open Cup, and
+  UPSL marks from the public `logos_v2` bucket. Only the Rose City mark links,
+  and it links home. US Soccer and UPSL remain in color. White variants appear
+  over the homepage video, with regular/color variants after scroll and on
+  light interior states.
+- Navigation labels use DM Sans without changing their established sizing.
+- The Rose City color patch from `logos_v2` is shared by the navigation and
+  player cards that have no headshot.
+- Roster nationality flags come from the public Supabase `flags` bucket and
+  hide gracefully when no mapping or asset exists.
+- Player and technical-staff cards/modals use the white treatment. Staff roles
+  are hidden on the outer cards but remain visible inside the modal.
+- Player and staff modal dimensions are bounded by a fixed-yet-responsive
+  viewport height with internally scrolling details.
+- Player bio and Season Stats sections begin collapsed.
+- Footer sponsors, except Tepito Coffee, use the public Supabase `sponsors`
+  bucket. They are larger and remain fully visible without hover.
+- `Behind the Rose` responsive headings retain their one-line fixes.
+
+## Authentication And Deployment
+
+- Admin auth uses Supabase email magic links.
+- Access is controlled by the comma-separated `ADMIN_ALLOWED_EMAILS`
+  environment variable; do not hardcode admin emails.
+- A user needs a Supabase Auth account/invitation, their email in the Vercel
+  environment variable, and a redeploy after environment changes.
+- Supabase Redirect URLs must include the deployment callback, for example
+  `https://rose-city-website.vercel.app/admin/auth/callback`. A magic link that
+  redirects to the site root is a configuration problem, not a reason to
+  hardcode a redirect.
+- Pushes to `main` trigger Vercel deployment.
+
+## Verification
+
+Latest release checks for the admin-managed shop work:
 
 ```text
-http://localhost:3000/admin/auth/callback
-http://127.0.0.1:3000/admin/auth/callback
-https://rose-city-website.vercel.app/admin/auth/callback
+npm test                         117/117 tests passed across 5 files
+npx tsc --noEmit --pretty false passed
+npm run build                    passed
 ```
 
-The login page uses:
+Known non-blocking build warnings:
 
-```ts
-emailRedirectTo: `${window.location.origin}/admin/auth/callback`
-```
+- raw `<img>` warnings in the analytics page and `Hero.tsx`.
+- unnecessary `useMemo` dependency warnings in the analytics page.
 
-### Multi-Season Database Gate
+Earlier route smoke checks returned `200` for `/roster`, `/schedule`, and
+`/admin/login`; `/admin` correctly redirected unauthenticated requests to login.
+Do not mutate production data merely to repeat destructive CRUD verification.
 
-Supabase was updated manually through the SQL editor.
+## Remaining Work / Known Limitations
 
-Verified active season:
+- The analytics data layer supports nullable match ratings, but the Match Stats
+  admin form does not expose a rating input. Confirm rating columns and unique
+  constraints in the target database before implementing it.
+- Stat submissions are last-write-wins; there is no approval/review workflow.
+- Supabase database types are handwritten, and season-stat paths still contain
+  record casts. Generated types would improve safety.
+- The shop tables and storage bucket require the grants and RLS policies
+  recorded in `db/migrations/2026-07-shop-kit-section.sql`. The production
+  database setup has already been completed; do not rerun it by default.
+- Authenticated admin CRUD can receive an additional browser pass using safe
+  test records if Christian explicitly requests it.
+- `PartnerStrip.tsx` may still use older local partner artwork; the completed
+  sponsor replacement specifically applies to the footer.
+- The existing lint warnings above can be cleaned up separately.
 
-```text
-id: e3e7e955-4e7d-4887-821b-06ccc23c2cf3
-label: 2025–26
-active: true
-```
+## Working Rules
 
-Completed database changes:
-
-- Added `matches.season_id UUID REFERENCES seasons(id)`.
-- Backfilled these matches to the active season:
-  - `89c360c7-0e2f-4bcd-90f5-2cf12b1fd9a4`
-  - `f0e4814d-882d-4bda-abf2-23a8e57569c2`
-  - `ad3b0871-5409-4e03-bdee-1a4a5cb8eb03`
-  - `769b62b1-d74a-48de-9834-1186429930b8`
-  - `8bdf6790-b9f1-436a-ad34-93981b5da050`
-- Backfilled null `season_id` rows in `player_season_stats`.
-- Backfilled null `season_id` rows in `goalkeeper_season_stats`.
-- Replaced season-stat table primary keys:
-  - `player_season_stats`: `PRIMARY KEY (player_id, season_id)`
-  - `goalkeeper_season_stats`: `PRIMARY KEY (player_id, season_id)`
-- Added/kept supporting constraints and indexes:
-  - one active season partial unique index
-  - `matches_season_id_idx`
-
-Verification results supplied by Christian:
-
-```text
-null_match_seasons = 0
-null_goalkeeper_stat_seasons = 0
-null_player_stat_seasons = 0
-```
-
-Constraint verification:
-
-```text
-goalkeeper_season_stats_pkey = PRIMARY KEY (player_id, season_id)
-player_season_stats_pkey = PRIMARY KEY (player_id, season_id)
-```
-
-## Files Already Touched
-
-Likely touched in this session:
-
-- `components/PlayerCard.tsx`
-- `components/PlayerModal.tsx`
-- `components/BehindTheRose.tsx`
-- `components/Nav.tsx`
-- `styles/globals.css`
-- `tailwind.config.ts`
-- `public/fonts/lemon-milk/*`
-- `db/migrations/2026-07-multi-season.sql`
-- `docs/multi-season-implementation-plan.md`
-- `HANDOFF.md`
-- `SUMMARY.md`
-- `CLAUDE.md`
-- `.claude/CLAUDE.md`
-
-There are also uncommitted changes from another agent around analytics/tests:
-
-- `lib/queries.ts`
-- `lib/db-types.ts`
-- `lib/analytics-helpers.ts`
-- `lib/db-utils.ts`
-- `lib/__tests__/*`
-- `package.json`
-- `package-lock.json`
-- `vitest.config.ts`
-- `vitest.setup.ts`
-- `player-viz-directions.html`
-
-Do not revert these unless Christian explicitly asks.
-
-## What Is Still Left
-
-Continue from `docs/multi-season-implementation-plan.md`.
-
-Priority order:
-
-1. Add shared season helpers:
-   - `fetchActiveSeason()` in `lib/queries.ts`
-   - `lib/use-seasons.ts`
-   - `components/admin/SeasonSelect.tsx`
-2. Update `/admin/season-stats`:
-   - add season selector
-   - load and save rows scoped to selected `season_id`
-   - use upsert conflict `player_id,season_id`
-3. Update `/admin/schedule`:
-   - add `season_id` to local types/forms
-   - default new matches to active season
-   - filter by selected season
-   - prevent new `season_id: null` matches
-4. Update `/admin/stats`:
-   - filter match picker by selected season
-   - clear selected match on season change
-5. Update dashboard and public schedule:
-   - use active season label from DB
-   - count/show active-season matches only
-6. Update roster admin season workflows:
-   - seed zero active-season stats row when adding a player
-   - guard season deletion
-   - keep active-season update order compatible with the partial unique index
-7. Verify:
-   - `npx tsc --noEmit --pretty false`
-   - `npm test`
-   - manual browser check for admin pages
-
-## Important Risks
-
-- Do not implement `onConflict: "player_id,season_id"` in code against a DB
-  that has not passed the gate. This project DB has passed, but another
-  environment may not.
-- Do not let admin schedule inserts create matches with `season_id = null`.
-- Historical season rosters should be based on stats rows in that season, not
-  `players.active`.
-- The worktree is dirty and multi-agent. Inspect diffs before changing shared
-  files.
-
-## Useful Existing Docs
-
-- `HANDOFF.md` - broad repo handoff plus latest session status.
-- `SUMMARY.md` - quick codebase map.
-- `docs/multi-season-implementation-plan.md` - implementation phases.
-- `db/migrations/2026-07-multi-season.sql` - SQL runbook/history.
+- Do not make broad reversions or erase unrelated dirty-worktree changes.
+- Preserve the established visual system and recently tuned gradient/modal
+  behavior unless Christian explicitly asks to change it.
+- Keep all season-aware reads and writes scoped by `season_id`.
+- Do not rerun the completed destructive database migration by default.
+- Use `apply_patch` for edits, add focused tests for behavior changes, and run
+  TypeScript, Vitest, and a production build before calling a change Vercel
+  ready.

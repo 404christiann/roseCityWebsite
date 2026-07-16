@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AdminSaveFeedback from "@/components/admin/AdminSaveFeedback";
 import SeasonSelect from "@/components/admin/SeasonSelect";
 import { createClient } from "@/lib/supabase-browser";
 import { useSeasons } from "@/lib/use-seasons";
@@ -271,6 +272,7 @@ export default function StatsPage() {
 
   return (
     <div className="max-w-5xl mx-auto">
+      <AdminSaveFeedback saving={saving} saved={saved} />
 
       {/* Header */}
       <div className="mb-8">
@@ -398,14 +400,6 @@ export default function StatsPage() {
               {saving ? "Saving…" : "Save All Stats"}
             </button>
 
-            {saved && (
-              <span
-                className="font-display text-sm tracking-widest uppercase"
-                style={{ color: "rgba(34,197,94,0.9)" }}
-              >
-                ✓ Saved
-              </span>
-            )}
           </div>
         </>
       )}

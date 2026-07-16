@@ -1,6 +1,13 @@
 import { supabase } from "@/lib/supabase";
 import { Player, Staff, Fixture, GoalkeeperStats, FieldStats } from "@/lib/data";
-import { DBPlayer, DBStaff, DBMatch, DBSeason } from "@/lib/db-types";
+import {
+  DBPlayer,
+  DBStaff,
+  DBMatch,
+  DBSeason,
+  DBShopKitPhoto,
+  DBShopKitSection,
+} from "@/lib/db-types";
 import { coerceRating } from "@/lib/db-utils";
 
 function defaultGKStats(): GoalkeeperStats {
@@ -73,6 +80,11 @@ export type PlayerMatchTrendPoint = {
   rating:   number | null;
 };
 
+export type ShopKitContent = {
+  section: DBShopKitSection | null;
+  photos: DBShopKitPhoto[];
+};
+
 
 // ── Queries ───────────────────────────────────────────────────
 
@@ -95,6 +107,20 @@ export async function fetchActiveSeason(): Promise<DBSeason | null> {
     .limit(1);
   if (error) throw new Error(error.message);
   return ((data ?? []) as DBSeason[])[0] ?? null;
+}
+
+/** Fetches the singleton shop kit section and its ordered photos. */
+export async function fetchShopKitContent(): Promise<ShopKitContent> {
+  const [sectionResult, photosResult] = await Promise.all([
+    supabase.from("shop_kit_section").select("*").limit(1),
+    supabase.from("shop_kit_photos").select("*").order("sort_order", { ascending: true }),
+  ]);
+  const error = sectionResult.error ?? photosResult.error;
+  if (error) throw new Error(`fetchShopKitContent: ${error.message}`);
+  return {
+    section: ((sectionResult.data ?? []) as DBShopKitSection[])[0] ?? null,
+    photos: (photosResult.data ?? []) as DBShopKitPhoto[],
+  };
 }
 
 /**

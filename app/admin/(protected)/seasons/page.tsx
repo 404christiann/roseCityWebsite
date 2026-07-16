@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AdminSaveFeedback from "@/components/admin/AdminSaveFeedback";
 import type { DBSeason } from "@/lib/db-types";
 import { createClient } from "@/lib/supabase-browser";
 
@@ -195,6 +196,7 @@ export default function SeasonsPage() {
       const { error: seasonDeleteError } = await supabase.from("seasons").delete().eq("id", seasonId);
       if (seasonDeleteError) throw new Error(seasonDeleteError.message);
       await load();
+      flash();
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Failed to delete season");
     } finally {
@@ -210,6 +212,12 @@ export default function SeasonsPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
+      <AdminSaveFeedback
+        saving={saving}
+        saved={saved}
+        savingLabel="Updating seasons…"
+        successLabel="Season changes saved"
+      />
       {showCreateConfirm && (
         <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex: 200, backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }} onClick={() => setShowCreateConfirm(false)}>
           <div role="dialog" aria-modal="true" aria-labelledby="create-season-title" className="rounded-2xl p-8 max-w-sm w-full mx-4" style={{ backgroundColor: "#161616", border: "1px solid rgba(255,255,255,0.1)" }} onClick={(event) => event.stopPropagation()}>
@@ -242,7 +250,6 @@ export default function SeasonsPage() {
         <div><p className="font-display uppercase tracking-widest" style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.3)" }}>Season Records</p><p className="font-display font-black text-white" style={{ fontSize: "1.25rem" }}>{seasons.length}</p></div>
       </div>
 
-      {saved && <p className="font-display text-sm tracking-widest uppercase mb-4" style={{ color: "rgba(34,197,94,0.9)" }}>✓ Saved</p>}
       {error && <p className="font-body text-sm mb-4" style={{ color: "#dc2626" }}>Error: {error}</p>}
 
       {loading ? (

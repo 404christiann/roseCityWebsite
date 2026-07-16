@@ -1,16 +1,17 @@
 # Multi-Season Support Implementation Plan
 
-This plan is intentionally ordered around database safety. Do not ship the UI
-changes that depend on season-filtered matches or `(player_id, season_id)`
-upserts until the SQL runbook has passed.
+This plan records the completed multi-season rollout and its safety contract.
+The database gate and Phases 1-7 are implemented. Keep the ordering below as a
+reference for future environments; do not rerun destructive migration steps in
+the current project by default.
 
 Primary SQL runbook:
 
 - `db/migrations/2026-07-multi-season.sql`
 
-## Current Status (2026-07-15)
+## Current Status (2026-07-15) - Implemented
 
-Gate 0 is complete in Supabase:
+Gate 0 and the application phases are complete:
 
 - `matches.season_id` exists.
 - Current matches are backfilled to active season `2025–26`.
@@ -20,8 +21,17 @@ Gate 0 is complete in Supabase:
 - `player_season_stats` primary key is now `(player_id, season_id)`.
 - `goalkeeper_season_stats` primary key is now `(player_id, season_id)`.
 - Active season is `e3e7e955-4e7d-4887-821b-06ccc23c2cf3` (`2025–26`).
+- Shared season helpers and the dedicated `/admin/seasons` page are live.
+- Admin season stats, schedule, and match picker are season-scoped.
+- Dashboard and public schedule use active-season labels and matches.
+- New players receive active-season seed rows, season deletion is guarded, and
+  player activation/deactivation preserves the expected current/historical
+  roster behavior.
+- Latest verification passed: 117 Vitest tests, TypeScript, and production
+  build.
 
-Continue with Phase 1 app implementation.
+Phase 8 production mutations remain an optional manual verification step and
+must use safe test data or explicit approval.
 
 ## Gate 0: Run Supabase Diagnostics And Migration - Complete
 
@@ -38,7 +48,7 @@ Continue with Phase 1 app implementation.
    - active season query returns one row
    - null-season match count returns `0`
 
-## Phase 1: Shared Season Helpers
+## Phase 1: Shared Season Helpers - Complete
 
 Add `fetchActiveSeason()` in `lib/queries.ts`.
 
@@ -55,7 +65,7 @@ Add `components/admin/SeasonSelect.tsx`:
 - labels active row as `(Active)`
 - supports optional `label`
 
-## Phase 2: Fix `/admin/season-stats`
+## Phase 2: Fix `/admin/season-stats` - Complete
 
 File:
 
@@ -75,7 +85,7 @@ Changes:
 This fixes the current all-season mixing bug and must happen only after the SQL
 unique indexes exist.
 
-## Phase 3: Update `/admin/schedule`
+## Phase 3: Update `/admin/schedule` - Complete
 
 File:
 
@@ -93,7 +103,7 @@ Changes:
 
 This fixes the current bug where new matches insert with `season_id: null`.
 
-## Phase 4: Update `/admin/stats`
+## Phase 4: Update `/admin/stats` - Complete
 
 File:
 
@@ -107,7 +117,7 @@ Changes:
 - Clear selected match when switching to a season that does not contain it.
 - No stat save-path changes expected.
 
-## Phase 5: Active Season Labels And Counts
+## Phase 5: Active Season Labels And Counts - Complete
 
 Dashboard:
 
@@ -135,7 +145,7 @@ Public roster and player modal:
 - Keep current prop-driven behavior from `fetchRoster()` active-season
   resolution.
 
-## Phase 6: Roster Admin Season Workflows
+## Phase 6: Roster Admin Season Workflows - Complete
 
 File:
 
@@ -166,7 +176,15 @@ Set active:
 - Keep existing order: deactivate all seasons, then activate selected season.
 - Add a short comment noting this order is required by the partial unique index.
 
-## Phase 7: Tests
+Player activation lifecycle added during regression hardening:
+
+- active-season public roster excludes inactive players.
+- historical season rosters continue to use season-row membership.
+- activation creates a missing active-season zero row with
+  `ignoreDuplicates: true` before setting the player active.
+- deactivation preserves historical and current stats.
+
+## Phase 7: Tests - Complete
 
 Run:
 
@@ -183,10 +201,12 @@ Add query tests:
 
 Add one integration scenario for `fetchActiveSeason()`.
 
-There is no current component-test harness for admin pages, so admin UI behavior
-is verified manually.
+The current suite has 117 passing tests across five files, including player
+season and activation lifecycle coverage. There is no browser component-test
+harness for the admin pages, so UI behavior still benefits from bounded manual
+verification.
 
-## Phase 8: Manual Verification
+## Phase 8: Manual Verification - Bounded / Non-Destructive Checks Complete
 
 1. `/admin/season-stats`
    - switch seasons
@@ -210,6 +230,10 @@ is verified manually.
    - both use active-season matches only
 7. Public roster and player modal
    - verify behavior is unchanged
+
+TypeScript, the full test suite, the production build, and unauthenticated route
+smoke checks passed. Do not perform the destructive portions of this list
+against production data without safe test records or explicit approval.
 
 ## Risk Notes
 

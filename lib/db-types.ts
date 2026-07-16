@@ -94,3 +94,20 @@ export type DBGoalkeeperMatchStats = {
   red: number;
   rating: number | null;
 };
+
+export type DBShopKitSection = {
+  id: number;
+  eyebrow: string;
+  title: string;
+  description: string;
+  cta_label: string;
+  cta_link: string;
+  updated_at: string;
+};
+
+export type DBShopKitPhoto = {
+  id: string;
+  url: string;
+  sort_order: number;
+  created_at: string;
+};

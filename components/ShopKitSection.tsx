@@ -1,0 +1,193 @@
+"use client";
+
+import { Fragment, useEffect, useRef } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import type { DBShopKitPhoto, DBShopKitSection } from "@/lib/db-types";
+import { shopProduct } from "@/lib/data";
+import { kitPhotoAlt, titleLines } from "@/lib/shop-kit";
+import KitImageGrid from "@/components/KitImageGrid";
+
+gsap.registerPlugin(ScrollTrigger);
+
+interface ShopKitSectionProps {
+  section: DBShopKitSection;
+  photos: DBShopKitPhoto[];
+  headingTag?: "h1" | "h2";
+  animate?: boolean;
+}
+
+export default function ShopKitSection({
+  section,
+  photos,
+  headingTag = "h2",
+  animate = true,
+}: ShopKitSectionProps) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const imageRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
+  const Heading = headingTag;
+  const kitPhotos = photos.map((photo, index) => ({
+    url: photo.url,
+    alt: kitPhotoAlt(section.title, index, photos.length),
+  }));
+
+  useEffect(() => {
+    if (!animate) return;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        imageRef.current,
+        { opacity: 0, y: 30 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 1,
+          ease: "power3.out",
+          scrollTrigger: { trigger: sectionRef.current, start: "top 80%" },
+        },
+      );
+      gsap.fromTo(
+        textRef.current,
+        { opacity: 0, y: 30 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 1,
+          ease: "power3.out",
+          delay: 0.2,
+          scrollTrigger: { trigger: sectionRef.current, start: "top 80%" },
+        },
+      );
+    }, sectionRef);
+    return () => ctx.revert();
+  }, [animate]);
+
+  return (
+    <section
+      ref={sectionRef}
+      className="relative w-full overflow-hidden"
+      style={{ backgroundColor: "var(--color-white)" }}
+    >
+      <div className="flex flex-col md:flex-row">
+        <div
+          ref={imageRef}
+          className="relative w-full md:w-1/2"
+          style={{ opacity: animate ? 0 : 1 }}
+        >
+          <div
+            className="relative w-full md:hidden"
+            style={{ aspectRatio: "5262 / 4692" }}
+          >
+            <KitImageGrid photos={kitPhotos} sizes="50vw" />
+          </div>
+          <div className="absolute inset-0 hidden md:block">
+            <KitImageGrid photos={kitPhotos} sizes="25vw" />
+          </div>
+        </div>
+
+        <div
+          ref={textRef}
+          className="flex w-full flex-col justify-center px-6 py-12 sm:px-10 md:w-1/2 md:px-14 md:py-20 lg:px-20"
+          style={{ opacity: animate ? 0 : 1 }}
+        >
+          <p
+            className="font-display mb-4 font-bold uppercase tracking-widest"
+            style={{
+              color: "var(--color-red)",
+              fontSize: "clamp(1rem, 2vw, 1.3rem)",
+            }}
+          >
+            {section.eyebrow}
+          </p>
+
+          <Heading
+            className="font-display mb-6 font-black uppercase leading-none"
+            style={{
+              fontSize: "clamp(2.8rem, 6vw, 5rem)",
+              color: "var(--color-black)",
+            }}
+          >
+            {titleLines(section.title).map((line, index, lines) => (
+              <Fragment key={index}>
+                {line}
+                {index < lines.length - 1 && <br />}
+              </Fragment>
+            ))}
+          </Heading>
+
+          <div
+            className="mb-8 h-0.5 w-12"
+            style={{ backgroundColor: "var(--color-red)" }}
+          />
+
+          <p
+            className="font-body mb-8 leading-relaxed"
+            style={{
+              color: "rgba(0,0,0,0.6)",
+              fontSize: "clamp(0.9rem, 1.4vw, 1rem)",
+            }}
+          >
+            {section.description}
+          </p>
+
+          <ul className="mb-8 flex flex-col gap-3">
+            {shopProduct.includes.map((item) => (
+              <li key={item} className="flex items-center gap-3">
+                <span
+                  className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                  style={{ backgroundColor: "var(--color-red)" }}
+                />
+                <span
+                  className="font-body text-sm"
+                  style={{ color: "rgba(0,0,0,0.6)" }}
+                >
+                  {item}
+                </span>
+              </li>
+            ))}
+            {shopProduct.addOn && (
+              <li className="flex items-center gap-3">
+                <span
+                  className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                  style={{ backgroundColor: "var(--color-red)" }}
+                />
+                <span
+                  className="font-body text-sm"
+                  style={{ color: "rgba(0,0,0,0.6)" }}
+                >
+                  {shopProduct.addOn}
+                </span>
+              </li>
+            )}
+          </ul>
+
+          <p
+            className="font-body mb-8 text-xs"
+            style={{ color: "rgba(0,0,0,0.4)" }}
+          >
+            Sold exclusively at Niky&apos;s Sports
+            <br />
+            {shopProduct.storeAddress}
+          </p>
+
+          <a
+            href={section.cta_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-display flex items-center justify-center gap-3 px-10 py-4 text-sm font-bold uppercase tracking-widest transition-all duration-200 md:inline-flex md:w-auto"
+            style={{ backgroundColor: "var(--color-red)", color: "#fff" }}
+            onMouseEnter={(event) => {
+              event.currentTarget.style.backgroundColor = "var(--color-red-dark)";
+            }}
+            onMouseLeave={(event) => {
+              event.currentTarget.style.backgroundColor = "var(--color-red)";
+            }}
+          >
+            {section.cta_label}
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}

@@ -4,14 +4,14 @@ const Hero           = dynamic(() => import("@/components/Hero"),           { ss
 const Countdown      = dynamic(() => import("@/components/Countdown"),      { ssr: false });
 const ChampionsBadge = dynamic(() => import("@/components/ChampionsBadge"), { ssr: false });
 const PhotoSlideshow = dynamic(() => import("@/components/PhotoSlideshow"), { ssr: false });
-const JerseySection   = dynamic(() => import("@/components/JerseySection"),   { ssr: false });
+const ShopKitSection  = dynamic(() => import("@/components/ShopKitSectionContainer"), { ssr: false });
 const BehindTheRose   = dynamic(() => import("@/components/BehindTheRose"),   { ssr: false });
 
 export default function HomePage() {
   return (
     <>
       <Hero />
-      <JerseySection />
+      <ShopKitSection />
       <Countdown />
       <ChampionsBadge />
       <PhotoSlideshow />
