@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Player, GoalkeeperStats, FieldStats } from "@/lib/data";
 import PlayerModal from "@/components/PlayerModal";
 import NationalityFlag from "@/components/NationalityFlag";
-import { isRosterPlaceholderLogo } from "@/lib/roster-images";
+import { getRosterImageSrc, isRosterPlaceholderLogo } from "@/lib/roster-images";
 
 function isGK(stats: GoalkeeperStats | FieldStats): stats is GoalkeeperStats {
   return "saves" in stats;
@@ -17,6 +17,7 @@ export default function PlayerCard({ player, seasonLabel }: { player: Player; se
   const stats = player.stats;
   const gk = isGK(stats);
   const isPlaceholderLogo = isRosterPlaceholderLogo(player.image);
+  const imageSrc = getRosterImageSrc(player.image);
 
   return (
     <>
@@ -29,7 +30,7 @@ export default function PlayerCard({ player, seasonLabel }: { player: Player; se
       >
         {/* Player photo */}
         <Image
-          src={player.image}
+          src={imageSrc}
           alt={player.name}
           fill
           className={`${isPlaceholderLogo ? "object-contain object-top" : "object-cover object-center"} transition-transform duration-500 group-hover:scale-105`}

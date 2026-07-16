@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Player, GoalkeeperStats, FieldStats } from "@/lib/data";
 import NationalityFlag from "@/components/NationalityFlag";
-import { isRosterPlaceholderLogo } from "@/lib/roster-images";
+import { getRosterImageSrc, isRosterPlaceholderLogo } from "@/lib/roster-images";
 
 function isGK(stats: GoalkeeperStats | FieldStats): stats is GoalkeeperStats {
   return "saves" in stats;
@@ -22,7 +22,7 @@ export default function PlayerModal({ player, onClose, seasonLabel = "Current Se
   const stats = player.stats;
 
   // Build the full photo array: profile photo first, then action photos
-  const allPhotos = [player.image, ...(player.actionPhotos ?? [])];
+  const allPhotos = [getRosterImageSrc(player.image), ...(player.actionPhotos ?? [])];
   // Open on the first action photo if one exists, otherwise the profile shot
   const [photoIdx, setPhotoIdx] = useState(player.actionPhotos?.length ? 1 : 0);
   const hasMultiple = allPhotos.length > 1;

@@ -4,11 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { ROSE_CITY_PATCH_URL } from "@/lib/roster-images";
 
 const LOGO_BASE =
   `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/logos_v2`;
-
-const roseCityLogo = `${LOGO_BASE}/Rose%20City%20FC%20Patch%20Color.png`;
 
 const affiliationLogos = [
   {
@@ -91,7 +90,7 @@ export default function Nav() {
           {/* Rose City crest — primary */}
           <Link href="/" className="relative h-16 w-16 flex-shrink-0 sm:h-24 sm:w-24" aria-label="Rose City FC Home">
             <Image
-              src={roseCityLogo}
+              src={ROSE_CITY_PATCH_URL}
               alt="Rose City FC"
               fill
               className="object-contain transition-all duration-300"
@@ -136,7 +135,7 @@ export default function Nav() {
                     color: isActive
                       ? isHero
                         ? "#ffffff"
-                        : "var(--color-green)"
+                        : "var(--color-red)"
                       : isHero
                       ? "rgba(255,255,255,0.85)"
                       : "var(--color-black)",
@@ -145,9 +144,10 @@ export default function Nav() {
                   {link.label}
                   {/* Active / hover underline */}
                   <span
-                    className={`absolute -bottom-1 left-0 h-0.5 bg-[var(--color-red)] transition-all duration-300 ${
+                    className={`absolute -bottom-1 left-0 h-0.5 transition-all duration-300 ${
                       isActive ? "w-full" : "w-0 group-hover:w-full"
                     }`}
+                    style={{ backgroundColor: isHero ? "var(--color-red)" : "var(--color-black)" }}
                   />
                 </Link>
               </li>
@@ -185,7 +185,7 @@ export default function Nav() {
                   href={link.href}
                   className={`font-display text-lg font-semibold tracking-widest uppercase block py-1 ${
                     isActive
-                      ? "text-[var(--color-green)]"
+                      ? "text-[var(--color-red)]"
                       : "text-[var(--color-black)]"
                   }`}
                 >

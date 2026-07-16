@@ -4,6 +4,7 @@
 import { useEffect, useState, useRef } from "react";
 import { fetchActiveSeason } from "@/lib/queries";
 import { createClient } from "@/lib/supabase-browser";
+import { getRosterImageSrc, isRosterPlaceholderLogo, ROSE_CITY_PATCH_URL } from "@/lib/roster-images";
 // ── Nationalities ─────────────────────────────
 
 const NATIONALITIES = [
@@ -152,7 +153,7 @@ const POSITIONS: Position[] = ["Goalkeeper", "Defender", "Midfielder", "Forward"
 
 // ── Default photo ─────────────────────────────
 
-const DEFAULT_PLAYER_PHOTO = "/images/logo/rosecityLogo.jpeg";
+const DEFAULT_PLAYER_PHOTO = ROSE_CITY_PATCH_URL;
 
 // ── Photo upload helper ───────────────────────
 
@@ -258,7 +259,7 @@ function PlayersTab() {
     setSaving(true); setError(null);
     try {
       const supabase = createClient();
-      let photoUrl = addForm.photo_url;
+      let photoUrl = getRosterImageSrc(addForm.photo_url);
       if (addPhoto) photoUrl = await uploadPhoto(addPhoto, "roster-images");
 
       const { data: insertedPlayer, error: e } = await supabase.from("players").insert([{
@@ -326,7 +327,7 @@ function PlayersTab() {
     setSaving(true); setError(null);
     try {
       const supabase = createClient();
-      let photoUrl = editForm.photo_url;
+      let photoUrl = getRosterImageSrc(editForm.photo_url);
       if (editPhoto) photoUrl = await uploadPhoto(editPhoto, "roster-images");
 
       const { error: e } = await supabase.from("players").update({
@@ -494,7 +495,11 @@ function PlayerPositionGroup({
                       <div className="flex items-center gap-4 flex-1 min-w-0">
                         <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0"
                           style={{ backgroundColor: "#1a1a1a", border: "1px solid rgba(255,255,255,0.08)" }}>
-                          <img src={p.photo_url || DEFAULT_PLAYER_PHOTO} alt={p.name} className="w-full h-full object-cover" />
+                          <img
+                            src={getRosterImageSrc(p.photo_url)}
+                            alt={p.name}
+                            className={`w-full h-full ${isRosterPlaceholderLogo(p.photo_url) ? "object-contain" : "object-cover"}`}
+                          />
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -1036,7 +1041,7 @@ function PlayerFormFields({
   position?: Position;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const preview = photoFile ? URL.createObjectURL(photoFile) : (form.photo_url || DEFAULT_PLAYER_PHOTO);
+  const preview = photoFile ? URL.createObjectURL(photoFile) : getRosterImageSrc(form.photo_url || DEFAULT_PLAYER_PHOTO);
 
   function set(field: string, value: string | number) {
     onChange({ ...form, [field]: value });
@@ -1048,7 +1053,11 @@ function PlayerFormFields({
       <div className="flex items-center gap-4">
         <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
           style={{ backgroundColor: "#0e0e0e", border: "1px solid rgba(255,255,255,0.08)" }}>
-          <img src={preview} alt="preview" className="w-full h-full object-cover" />
+          <img
+            src={preview}
+            alt="preview"
+            className={`w-full h-full ${isRosterPlaceholderLogo(preview) ? "object-contain" : "object-cover"}`}
+          />
         </div>
         <div>
           <button type="button" onClick={() => fileRef.current?.click()}
