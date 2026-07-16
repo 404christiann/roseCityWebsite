@@ -24,11 +24,11 @@ function formatDayOfWeek(dateStr: string): string {
   return new Date(year, month - 1, day).toLocaleDateString("en-US", { weekday: "long" });
 }
 
-/** "2026-05-08" → "Sat, May 8" */
+/** "2026-05-08" → "May 8" */
 function formatShortDate(dateStr: string): string {
   const [year, month, day] = dateStr.split("-").map(Number);
   return new Date(year, month - 1, day).toLocaleDateString("en-US", {
-    weekday: "short", month: "short", day: "numeric",
+    month: "short", day: "numeric",
   });
 }
 
@@ -152,8 +152,8 @@ export default function NextMatchCard() {
 
             {/* Date · kickoff · venue */}
             <p
-              className="font-display font-semibold tracking-wide uppercase"
-              style={{ color: "var(--color-black)", fontSize: "clamp(0.9rem, 1.8vw, 1.1rem)" }}
+              className="font-display font-semibold uppercase tracking-normal sm:tracking-wide whitespace-nowrap"
+              style={{ color: "var(--color-black)", fontSize: "clamp(0.7rem, 2.8vw, 1.1rem)" }}
             >
               {formatShortDate(nextFixture.date)}
               <span style={{ color: "var(--color-gray-mid)" }}> · </span>
