@@ -430,6 +430,28 @@ describe('fetchRoster (season-aware)', () => {
     const result = await fetchRoster()   // no seasonId
     expect(result.seasonId).toBe(activeSeason.id)
   })
+
+  it('excludes a deactivated player from the active season even when their season stats remain', async () => {
+    const activeAndInactiveStats = [
+      fieldSeasonStats[0],
+      { ...fieldSeasonStats[0], player_id: inactivePlayer.id },
+    ]
+
+    mockFrom
+      .mockReturnValueOnce(chain({ data: [activeSeason], error: null }))
+      .mockReturnValueOnce(chain({ data: activeAndInactiveStats, error: null }))
+      .mockReturnValueOnce(chain({ data: [], error: null }))
+      .mockReturnValueOnce(chain({ data: [activePlayer, inactivePlayer], error: null }))
+      .mockReturnValueOnce(chain({ data: [], error: null }))
+
+    const result = await fetchRoster()
+    const allPlayers = [
+      ...result.goalkeepers, ...result.defenders,
+      ...result.midfielders, ...result.forwards,
+    ]
+
+    expect(allPlayers.map((player) => player.id)).toEqual([activePlayer.id])
+  })
 })
 
 // ─────────────────────────────────────────────────────────────

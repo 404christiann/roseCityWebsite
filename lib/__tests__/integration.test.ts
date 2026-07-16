@@ -346,6 +346,23 @@ describe('Scenario 3: season-switch flow', () => {
     // Active current-season players (fwd-1 through fwd-4) should NOT appear
     expect(allPlayers.map(p => p.id)).not.toContain('player-fwd-1')
   })
+
+  it('deactivating a player removes them from the active roster without deleting season stats', async () => {
+    const deactivatedPlayer = { ...playerRows[0], active: false }
+
+    mockFrom
+      .mockReturnValueOnce(chain({ data: [seasons[0]], error: null }))
+      .mockReturnValueOnce(chain({ data: forwardSeasonStats, error: null }))
+      .mockReturnValueOnce(chain({ data: gkSeasonStats, error: null }))
+      .mockReturnValueOnce(chain({ data: [deactivatedPlayer, ...playerRows.slice(1)], error: null }))
+      .mockReturnValueOnce(chain({ data: [], error: null }))
+
+    const roster = await fetchRoster()
+    const allPlayers = [...roster.forwards, ...roster.goalkeepers, ...roster.defenders, ...roster.midfielders]
+
+    expect(allPlayers.map((player) => player.id)).not.toContain(deactivatedPlayer.id)
+    expect(forwardSeasonStats.some((stats) => stats.player_id === deactivatedPlayer.id)).toBe(true)
+  })
 })
 
 

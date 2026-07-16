@@ -84,17 +84,56 @@ export default function StatsPage() {
   const [saved, setSaved]         = useState(false);
   const [error, setError]         = useState<string | null>(null);
 
-  // Load matches + players on mount
+  // Load matches on mount. The player cohort is loaded separately per season.
   useEffect(() => {
     const supabase = createClient();
-    Promise.all([
-      supabase.from("matches").select("id, date, time, opponent, home, season_id").order("date").order("time"),
-      supabase.from("players").select("id, number, name, position").eq("active", true).order("number"),
-    ]).then(([{ data: m }, { data: p }]) => {
-      setMatches((m ?? []) as Match[]);
-      setPlayers((p ?? []) as Player[]);
-    });
+    supabase
+      .from("matches")
+      .select("id, date, time, opponent, home, season_id")
+      .order("date")
+      .order("time")
+      .then(({ data, error: matchesError }) => {
+        if (matchesError) {
+          setError(matchesError.message);
+          return;
+        }
+        setMatches((data ?? []) as Match[]);
+      });
   }, []);
+
+  // Season-stat rows define season membership. This keeps departed players
+  // editable on historical matches without adding them back to the live roster.
+  useEffect(() => {
+    if (!selectedSeasonId) {
+      setPlayers([]);
+      return;
+    }
+
+    let cancelled = false;
+    setError(null);
+    const supabase = createClient();
+    Promise.all([
+      supabase.from("players").select("id, number, name, position").order("number"),
+      supabase.from("player_season_stats").select("player_id").eq("season_id", selectedSeasonId),
+      supabase.from("goalkeeper_season_stats").select("player_id").eq("season_id", selectedSeasonId),
+    ]).then(([playersResult, fieldResult, goalkeeperResult]) => {
+      if (cancelled) return;
+      const queryError = playersResult.error ?? fieldResult.error ?? goalkeeperResult.error;
+      if (queryError) {
+        setError(queryError.message);
+        setPlayers([]);
+        return;
+      }
+
+      const seasonPlayerIds = new Set([
+        ...(fieldResult.data ?? []).map((row) => row.player_id as string),
+        ...(goalkeeperResult.data ?? []).map((row) => row.player_id as string),
+      ]);
+      setPlayers(((playersResult.data ?? []) as Player[]).filter((player) => seasonPlayerIds.has(player.id)));
+    });
+
+    return () => { cancelled = true; };
+  }, [selectedSeasonId]);
 
   useEffect(() => {
     setSelectedMatch((current) => {
@@ -107,7 +146,12 @@ export default function StatsPage() {
 
   // When match is selected, load existing stats
   useEffect(() => {
-    if (!selectedMatch || players.length === 0) return;
+    if (!selectedMatch || players.length === 0) {
+      setStats({});
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
     setLoading(true);
     setSaved(false);
     setHasChanges(false);
@@ -117,7 +161,17 @@ export default function StatsPage() {
     Promise.all([
       supabase.from("player_match_stats").select("*").eq("match_id", selectedMatch),
       supabase.from("goalkeeper_match_stats").select("*").eq("match_id", selectedMatch),
-    ]).then(([{ data: fieldData }, { data: gkData }]) => {
+    ]).then(([fieldResult, goalkeeperResult]) => {
+      if (cancelled) return;
+      const queryError = fieldResult.error ?? goalkeeperResult.error;
+      if (queryError) {
+        setError(queryError.message);
+        setLoading(false);
+        return;
+      }
+
+      const fieldData = fieldResult.data;
+      const gkData = goalkeeperResult.data;
       const map: StatsMap = {};
 
       // Initialise all players with defaults first
@@ -157,6 +211,7 @@ export default function StatsPage() {
       setStats(map);
       setLoading(false);
     });
+    return () => { cancelled = true; };
   }, [selectedMatch, players]);
 
   // Update a single field in a player's stat row

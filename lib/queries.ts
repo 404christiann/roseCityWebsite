@@ -100,9 +100,10 @@ export async function fetchActiveSeason(): Promise<DBSeason | null> {
 /**
  * Fetches players grouped by position with season-aggregate stats.
  *
- * When `seasonId` is provided the cohort is determined by presence in
- * `player_season_stats` (not `active=true`), so historical rosters render
- * correctly. Falls back to the active season when omitted.
+ * The cohort is determined by presence in the selected season's aggregate
+ * stats. The active season additionally respects `players.active`, while
+ * historical seasons retain players who have since been deactivated.
+ * Falls back to the active season when omitted.
  */
 export async function fetchRoster(seasonId?: string): Promise<{
   goalkeepers: Player[];
@@ -114,44 +115,55 @@ export async function fetchRoster(seasonId?: string): Promise<{
 }> {
   let resolvedSeasonId = "";
   let seasonLabel      = "Current Season";
+  let isActiveSeason   = false;
 
   if (seasonId) {
-    const { data } = await supabase.from("seasons").select("*");
+    const { data, error } = await supabase.from("seasons").select("*");
+    if (error) throw new Error(`fetchRoster seasons: ${error.message}`);
     const season = ((data ?? []) as DBSeason[]).find((s) => s.id === seasonId) ?? null;
     resolvedSeasonId = seasonId;
     seasonLabel      = season?.label ?? "Season";
+    isActiveSeason   = season?.active === true;
   } else {
-    const { data } = await supabase.from("seasons").select("*").eq("active", true);
+    const { data, error } = await supabase.from("seasons").select("*").eq("active", true);
+    if (error) throw new Error(`fetchRoster active season: ${error.message}`);
     const season = ((data ?? []) as DBSeason[])[0] ?? null;
     resolvedSeasonId = season?.id ?? "";
     seasonLabel      = season?.label ?? "Current Season";
+    isActiveSeason   = season?.active === true;
   }
 
-  const [{ data: fieldSeasonRows }, { data: gkSeasonRows }] = await Promise.all([
+  const [fieldResult, goalkeeperResult] = await Promise.all([
     supabase.from("player_season_stats").select("*").eq("season_id", resolvedSeasonId),
     supabase.from("goalkeeper_season_stats").select("*").eq("season_id", resolvedSeasonId),
   ]);
+  const seasonStatsError = fieldResult.error ?? goalkeeperResult.error;
+  if (seasonStatsError) throw new Error(`fetchRoster season stats: ${seasonStatsError.message}`);
 
-  const fieldStats = (fieldSeasonRows ?? []) as Record<string, unknown>[];
-  const gkStats    = (gkSeasonRows    ?? []) as Record<string, unknown>[];
+  const fieldStats = (fieldResult.data      ?? []) as Record<string, unknown>[];
+  const gkStats    = (goalkeeperResult.data ?? []) as Record<string, unknown>[];
 
   const allPlayerIds = [
     ...fieldStats.map((r) => r.player_id as string),
     ...gkStats.map((r)    => r.player_id as string),
   ].filter(Boolean);
 
-  const [{ data: rows }, { data: photoRows }] = await Promise.all([
+  const [playersResult, photosResult] = await Promise.all([
     supabase.from("players").select("*").in("id", allPlayerIds),
     supabase.from("player_photos")
       .select("player_id, url, sort_order")
       .in("player_id", allPlayerIds)
       .order("sort_order", { ascending: true }),
   ]);
+  const rosterDataError = playersResult.error ?? photosResult.error;
+  if (rosterDataError) throw new Error(`fetchRoster players: ${rosterDataError.message}`);
 
-  const players = (rows ?? []) as DBPlayer[];
+  const players = ((playersResult.data ?? []) as DBPlayer[]).filter(
+    (player) => !isActiveSeason || player.active,
+  );
 
   const photosByPlayer = new Map<string, string[]>();
-  ((photoRows ?? []) as { player_id: string; url: string; sort_order: number }[]).forEach((r) => {
+  ((photosResult.data ?? []) as { player_id: string; url: string; sort_order: number }[]).forEach((r) => {
     const arr = photosByPlayer.get(r.player_id) ?? [];
     arr.push(r.url);
     photosByPlayer.set(r.player_id, arr);

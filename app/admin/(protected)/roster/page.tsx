@@ -229,10 +229,15 @@ function PlayersTab() {
 
   async function load() {
     const supabase = createClient();
-    const { data } = await supabase
+    const { data, error: loadError } = await supabase
       .from("players")
       .select("*")
       .order("number");
+    if (loadError) {
+      setError(loadError.message);
+      setLoading(false);
+      return;
+    }
     setPlayers((data ?? []) as Player[]);
     setLoading(false);
   }
@@ -350,9 +355,21 @@ function PlayersTab() {
   }
 
   async function toggleActive(p: Player) {
+    setSaving(true);
+    setError(null);
     const supabase = createClient();
-    await supabase.from("players").update({ active: !p.active }).eq("id", p.id);
+    const { error: toggleError } = await supabase
+      .from("players")
+      .update({ active: !p.active })
+      .eq("id", p.id);
+    if (toggleError) {
+      setError(toggleError.message);
+      setSaving(false);
+      return;
+    }
     await load();
+    flash();
+    setSaving(false);
   }
 
   const sorted = [...players].sort((a, b) => a.number - b.number);
@@ -523,7 +540,7 @@ function PlayerPositionGroup({
                           style={{ fontSize: "0.95rem", backgroundColor: "#1e1e1e", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" }}>
                           Edit
                         </button>
-                        <button onClick={() => toggleActive(p)}
+                        <button onClick={() => toggleActive(p)} disabled={saving}
                           className="flex-1 sm:flex-none px-4 py-2 rounded-lg font-display font-black uppercase tracking-widest"
                           style={{
                             fontSize: "0.95rem",
@@ -563,7 +580,12 @@ function StaffTab() {
 
   async function load() {
     const supabase = createClient();
-    const { data } = await supabase.from("staff").select("*").order("name");
+    const { data, error: loadError } = await supabase.from("staff").select("*").order("name");
+    if (loadError) {
+      setError(loadError.message);
+      setLoading(false);
+      return;
+    }
     setStaff((data ?? []) as Staff[]);
     setLoading(false);
   }
@@ -626,9 +648,21 @@ function StaffTab() {
   }
 
   async function toggleActive(s: Staff) {
+    setSaving(true);
+    setError(null);
     const supabase = createClient();
-    await supabase.from("staff").update({ active: !s.active }).eq("id", s.id);
+    const { error: toggleError } = await supabase
+      .from("staff")
+      .update({ active: !s.active })
+      .eq("id", s.id);
+    if (toggleError) {
+      setError(toggleError.message);
+      setSaving(false);
+      return;
+    }
     await load();
+    flash();
+    setSaving(false);
   }
 
   return (
@@ -723,7 +757,7 @@ function StaffTab() {
                         style={{ fontSize: "0.95rem", backgroundColor: "#1e1e1e", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" }}>
                         Edit
                       </button>
-                      <button onClick={() => toggleActive(s)}
+                      <button onClick={() => toggleActive(s)} disabled={saving}
                         className="flex-1 sm:flex-none px-4 py-2 rounded-lg font-display font-black uppercase tracking-widest"
                         style={{
                           fontSize: "0.95rem",
@@ -759,13 +793,18 @@ function SeasonStatsPanel({ playerId, position }: { playerId: string; position: 
   const [saved, setSaved]             = useState(false);
   const [error, setError]             = useState<string | null>(null);
 
-  const defaultStats = isGK
+  const defaultStats: Record<string, number> = isGK
     ? { goals_against: 0, saves: 0, clean_sheets: 0, starts: 0, yellow: 0, red: 0, mins: 0 }
     : { goals: 0, assists: 0, tackles: 0, starts: 0, yellow: 0, red: 0, mins: 0, offsides: 0, fouls: 0, fouls_suffered: 0 };
 
   async function loadSeasons() {
     const supabase = createClient();
-    const { data } = await supabase.from("seasons").select("*").order("start_year", { ascending: false });
+    const { data, error: seasonsError } = await supabase.from("seasons").select("*").order("start_year", { ascending: false });
+    if (seasonsError) {
+      setError(seasonsError.message);
+      setLoading(false);
+      return;
+    }
     const list = (data ?? []) as Season[];
     setSeasons(list);
     const active = list.find((s) => s.active) ?? list[0];
@@ -776,12 +815,17 @@ function SeasonStatsPanel({ playerId, position }: { playerId: string; position: 
   async function loadStats(seasonId: string) {
     const supabase = createClient();
     const table = isGK ? "goalkeeper_season_stats" : "player_season_stats";
-    const { data } = await supabase
+    const { data, error: statsError } = await supabase
       .from(table)
       .select("*")
       .eq("player_id", playerId)
       .eq("season_id", seasonId)
-      .single();
+      .maybeSingle();
+    if (statsError) {
+      setError(statsError.message);
+      setStats({ ...defaultStats });
+      return;
+    }
     setStats(data ? { ...data } : { ...defaultStats });
   }
 
@@ -914,11 +958,15 @@ function ActionPhotosPanel({ playerId }: { playerId: string }) {
 
   async function loadPhotos() {
     const supabase = createClient();
-    const { data } = await supabase
+    const { data, error: photosError } = await supabase
       .from("player_photos")
       .select("id, url, sort_order")
       .eq("player_id", playerId)
       .order("sort_order", { ascending: true });
+    if (photosError) {
+      setError(photosError.message);
+      return;
+    }
     setPhotos((data ?? []) as ActionPhoto[]);
   }
 
@@ -947,8 +995,13 @@ function ActionPhotosPanel({ playerId }: { playerId: string }) {
   }
 
   async function handleDelete(photoId: string) {
+    setError(null);
     const supabase = createClient();
-    await supabase.from("player_photos").delete().eq("id", photoId);
+    const { error: deleteError } = await supabase.from("player_photos").delete().eq("id", photoId);
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
     await loadPhotos();
   }
 
