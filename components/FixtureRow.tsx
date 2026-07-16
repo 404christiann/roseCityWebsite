@@ -83,7 +83,12 @@ export default function FixtureRow({ fixture, isNext, isPast, index }: Props) {
       {/* Opponent — main focus */}
       <div className="flex-1 sm:px-6">
         <div className="flex items-center gap-3 flex-wrap">
-          <OpponentCrest name={fixture.opponent} logoUrl={fixture.opponentLogoUrl} size={36} />
+          <OpponentCrest
+            name={fixture.opponent}
+            logoUrl={fixture.opponentLogoUrl}
+            size={56}
+            variant={isNext ? "dark" : "light"}
+          />
           {isNext && (
             <span
               className="font-display font-bold text-xs tracking-widest uppercase px-2 py-0.5"

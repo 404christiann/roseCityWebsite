@@ -7,6 +7,8 @@ interface OpponentCrestProps {
   name: string;
   logoUrl?: string | null;
   size?: number;
+  /** Use "dark" when the crest sits on a dark/colored background (e.g. the highlighted next-match row) so the backdrop and fallback monogram stay legible. */
+  variant?: "light" | "dark";
   className?: string;
 }
 
@@ -15,7 +17,7 @@ function initial(name: string): string {
 }
 
 /** Circular opponent crest. Falls back to an initial monogram if no logo is set or the image fails to load. */
-export default function OpponentCrest({ name, logoUrl, size = 96, className = "" }: OpponentCrestProps) {
+export default function OpponentCrest({ name, logoUrl, size = 96, variant = "light", className = "" }: OpponentCrestProps) {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -23,6 +25,7 @@ export default function OpponentCrest({ name, logoUrl, size = 96, className = ""
   }, [logoUrl]);
 
   const showImage = !!logoUrl && !failed;
+  const isDark = variant === "dark";
 
   return (
     <div
@@ -30,8 +33,10 @@ export default function OpponentCrest({ name, logoUrl, size = 96, className = ""
       style={{
         width: size,
         height: size,
-        backgroundColor: showImage ? "transparent" : "var(--color-gray-light)",
-        border: "1px solid rgba(0,0,0,0.08)",
+        backgroundColor: showImage
+          ? "transparent"
+          : isDark ? "rgba(255,255,255,0.15)" : "var(--color-gray-light)",
+        border: showImage ? "none" : isDark ? "1px solid rgba(255,255,255,0.3)" : "1px solid rgba(0,0,0,0.08)",
       }}
     >
       {showImage ? (
@@ -39,14 +44,14 @@ export default function OpponentCrest({ name, logoUrl, size = 96, className = ""
           src={logoUrl!}
           alt={`${name} crest`}
           fill
-          className="object-contain p-1.5"
+          className="object-contain"
           sizes={`${size}px`}
           onError={() => setFailed(true)}
         />
       ) : (
         <span
           className="font-display font-black uppercase leading-none"
-          style={{ fontSize: size * 0.4, color: "var(--color-gray-mid)" }}
+          style={{ fontSize: size * 0.4, color: isDark ? "rgba(255,255,255,0.85)" : "var(--color-gray-mid)" }}
         >
           {initial(name)}
         </span>
