@@ -52,7 +52,7 @@ export default function ChampionsBadge() {
   return (
     <section
       ref={sectionRef}
-      className="relative overflow-hidden py-28 px-6"
+      className="relative overflow-hidden px-6 py-20 md:flex md:h-[50vh] md:min-h-[420px] md:items-center md:py-8 lg:min-h-[440px] lg:px-10"
       style={{ backgroundColor: "var(--color-green)" }}
     >
       {/* Mobile: fade bottom into black (slideshow bg) */}
@@ -71,21 +71,22 @@ export default function ChampionsBadge() {
         }}
       />
 
-      <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-12 md:gap-20 relative z-10">
+      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center gap-10 md:flex-row md:justify-center md:gap-8 lg:gap-12">
         {/* Trophy */}
-        <div ref={trophyRef} className="flex-shrink-0" style={{ opacity: 0 }}>
-          <div className="relative drop-shadow-2xl" style={{ width: "520px", height: "520px", maxWidth: "90vw", maxHeight: "90vw" }}>
+        <div ref={trophyRef} className="flex w-full flex-shrink-0 justify-center md:w-[52%]" style={{ opacity: 0 }}>
+          <div className="relative aspect-square w-[min(90vw,560px)] drop-shadow-2xl md:w-full md:max-w-[380px] lg:max-w-[410px]">
             <Image
               src="/images/home/trophy.png"
               alt="UPSL Championship Trophy"
               fill
               className="object-contain"
+              sizes="(max-width: 767px) 90vw, (max-width: 1280px) 40vw, 410px"
             />
           </div>
         </div>
 
         {/* Text block */}
-        <div ref={textRef} style={{ opacity: 0 }}>
+        <div ref={textRef} className="w-full max-w-xl md:w-[48%]" style={{ opacity: 0 }}>
           {/* Eyebrow */}
           <p
             className="font-display font-bold tracking-widest uppercase mb-4"
@@ -96,7 +97,7 @@ export default function ChampionsBadge() {
 
           <h2
             className="font-display font-black uppercase text-white leading-none"
-            style={{ fontSize: "clamp(3rem, 7vw, 6rem)" }}
+            style={{ fontSize: "clamp(3rem, 5vw, 4.5rem)" }}
           >
             2024
             <br />
@@ -109,8 +110,8 @@ export default function ChampionsBadge() {
           />
 
           <p
-            className="font-body text-white/70 mt-6 max-w-md leading-relaxed"
-            style={{ fontSize: "1.0625rem" }}
+            className="font-body mt-6 max-w-lg leading-relaxed text-white/70"
+            style={{ fontSize: "clamp(1rem, 1.25vw, 1.125rem)" }}
           >
             Rose City Futbol Club captured the 2024 UPSL SoCal North Conference
             Championship, cementing our place as Pasadena&apos;s premier club.
