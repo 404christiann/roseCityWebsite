@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AdminSaveFeedback from "@/components/admin/AdminSaveFeedback";
 import SeasonSelect from "@/components/admin/SeasonSelect";
+import OpponentCrest from "@/components/OpponentCrest";
 import type { DBSeason } from "@/lib/db-types";
 import { createClient } from "@/lib/supabase-browser";
 import { useSeasons } from "@/lib/use-seasons";
@@ -14,6 +15,8 @@ type Match = {
   date: string;
   time: string;
   opponent: string;
+  opponent_logo_url: string | null;
+  competition: string | null;
   home: boolean;
   venue: string;
   address: string | null;
@@ -23,7 +26,22 @@ type Match = {
 type FormState = Omit<Match, "id">;
 
 function emptyForm(seasonId = ""): FormState {
-  return { date: "", time: "", opponent: "", home: true, venue: "", address: "", season_id: seasonId };
+  return {
+    date: "", time: "", opponent: "", opponent_logo_url: null, competition: "",
+    home: true, venue: "", address: "", season_id: seasonId,
+  };
+}
+
+async function uploadPhoto(file: File, bucket: string): Promise<string> {
+  const supabase = createClient();
+  const extension = file.name.split(".").pop() ?? "jpg";
+  const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
+  const { error } = await supabase.storage
+    .from(bucket)
+    .upload(path, file);
+  if (error) throw new Error(error.message);
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+  return data.publicUrl;
 }
 
 // ── Main component ────────────────────────────
@@ -52,7 +70,7 @@ export default function SchedulePage() {
     const supabase = createClient();
     const { data, error: loadError } = await supabase
       .from("matches")
-      .select("id, date, time, opponent, home, venue, address, season_id")
+      .select("id, date, time, opponent, opponent_logo_url, competition, home, venue, address, season_id")
       .order("date")
       .order("time");
     if (loadError) setError(loadError.message);
@@ -92,6 +110,7 @@ export default function SchedulePage() {
     const { error: e } = await supabase.from("matches").insert([{
       ...addForm,
       address: addForm.address?.trim() || null,
+      competition: addForm.competition?.trim() || null,
     }]);
     if (e) { setError(e.message); setSaving(false); return; }
     setAddForm(emptyForm(selectedSeasonId));
@@ -105,7 +124,11 @@ export default function SchedulePage() {
 
   function startEdit(m: Match) {
     setEditingId(m.id);
-    setEditForm({ date: m.date, time: m.time, opponent: m.opponent, home: m.home, venue: m.venue, address: m.address ?? "", season_id: m.season_id });
+    setEditForm({
+      date: m.date, time: m.time, opponent: m.opponent,
+      opponent_logo_url: m.opponent_logo_url, competition: m.competition ?? "",
+      home: m.home, venue: m.venue, address: m.address ?? "", season_id: m.season_id,
+    });
   }
 
   async function handleSaveEdit() {
@@ -118,6 +141,7 @@ export default function SchedulePage() {
     const { error: e } = await supabase.from("matches").update({
       ...editForm,
       address: editForm.address?.trim() || null,
+      competition: editForm.competition?.trim() || null,
     }).eq("id", editingId);
     if (e) { setError(e.message); setSaving(false); return; }
     setEditingId(null);
@@ -263,7 +287,9 @@ export default function SchedulePage() {
                     className="flex items-center justify-between gap-4 px-5 py-4"
                     style={{ backgroundColor: "#111111" }}
                   >
-                    <div className="min-w-0">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <OpponentCrest name={m.opponent} logoUrl={m.opponent_logo_url} size={40} />
+                      <div className="min-w-0">
                       {/* Date + home/away badge */}
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-display font-bold text-white" style={{ fontSize: "1.1rem" }}>{m.date}</span>
@@ -286,10 +312,18 @@ export default function SchedulePage() {
                         {m.home ? "vs" : "@"} {m.opponent}
                       </p>
 
+                      {/* Competition */}
+                      {m.competition && (
+                        <p className="font-body truncate" style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.35)" }}>
+                          {m.competition}
+                        </p>
+                      )}
+
                       {/* Venue */}
                       <p className="font-body mt-0.5 truncate" style={{ fontSize: "0.95rem", color: "rgba(255,255,255,0.3)" }}>
                         {m.venue}{m.address ? ` · ${m.address}` : ""}
                       </p>
+                      </div>
                     </div>
 
                     {/* Actions */}
@@ -393,6 +427,25 @@ function MatchForm({
         />
       </Field>
 
+      <Field label="Competition (optional)">
+        <input
+          type="text"
+          placeholder="e.g. UPSL 2027 Premier SoCal North"
+          value={form.competition ?? ""}
+          onChange={(e) => set("competition", e.target.value)}
+          style={inputStyle}
+        />
+      </Field>
+
+      <Field label="Opponent Logo (optional)">
+        <OpponentLogoUpload
+          logoUrl={form.opponent_logo_url}
+          opponentName={form.opponent}
+          onUploaded={(url) => onChange({ ...form, opponent_logo_url: url })}
+          onRemove={() => onChange({ ...form, opponent_logo_url: null })}
+        />
+      </Field>
+
       <Field label="Home / Away" required>
         <select
           value={form.home ? "home" : "away"}
@@ -423,6 +476,76 @@ function MatchForm({
           style={inputStyle}
         />
       </Field>
+    </div>
+  );
+}
+
+function OpponentLogoUpload({
+  logoUrl,
+  opponentName,
+  onUploaded,
+  onRemove,
+}: {
+  logoUrl: string | null;
+  opponentName: string;
+  onUploaded: (url: string) => void;
+  onRemove: () => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(file: File | null) {
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      onUploaded(await uploadPhoto(file, "opponent-logos"));
+    } catch (uploadError: unknown) {
+      setError(uploadError instanceof Error ? uploadError.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <OpponentCrest name={opponentName || "?"} logoUrl={logoUrl} size={40} />
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+        className="px-3 py-2 rounded-lg font-display font-bold uppercase tracking-widest text-xs"
+        style={{
+          backgroundColor: "#1e1e1e",
+          border: "1px solid rgba(255,255,255,0.08)",
+          color: uploading ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.7)",
+          cursor: uploading ? "not-allowed" : "pointer",
+        }}
+      >
+        {uploading ? "Uploading…" : logoUrl ? "Replace" : "Upload"}
+      </button>
+      {logoUrl && !uploading && (
+        <button
+          type="button"
+          onClick={onRemove}
+          className="font-display font-bold uppercase tracking-widest text-xs"
+          style={{ color: "rgba(220,38,38,0.8)" }}
+        >
+          Remove
+        </button>
+      )}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+      />
+      {error && (
+        <p className="font-body text-xs" style={{ color: "#dc2626" }}>{error}</p>
+      )}
     </div>
   );
 }

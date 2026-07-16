@@ -41,6 +41,8 @@ export type DBMatch = {
   date: string;
   time: string;
   opponent: string;
+  opponent_logo_url: string | null;
+  competition: string | null;
   home: boolean;
   venue: string;
   address: string | null;

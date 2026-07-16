@@ -43,6 +43,7 @@ function mapStaff(row: DBStaff): Staff {
 function mapFixture(row: DBMatch): Fixture {
   return {
     date: row.date, time: row.time, opponent: row.opponent,
+    opponentLogoUrl: row.opponent_logo_url, competition: row.competition,
     home: row.home, venue: row.venue, address: row.address ?? undefined,
   };
 }

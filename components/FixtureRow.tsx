@@ -1,6 +1,7 @@
 "use client";
 
 import { Fixture } from "@/lib/data";
+import OpponentCrest from "@/components/OpponentCrest";
 
 interface Props {
   fixture: Fixture;
@@ -82,6 +83,7 @@ export default function FixtureRow({ fixture, isNext, isPast, index }: Props) {
       {/* Opponent — main focus */}
       <div className="flex-1 sm:px-6">
         <div className="flex items-center gap-3 flex-wrap">
+          <OpponentCrest name={fixture.opponent} logoUrl={fixture.opponentLogoUrl} size={36} />
           {isNext && (
             <span
               className="font-display font-bold text-xs tracking-widest uppercase px-2 py-0.5"

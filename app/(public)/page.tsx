@@ -1,7 +1,7 @@
 import dynamic from "next/dynamic";
 
 const Hero           = dynamic(() => import("@/components/Hero"),           { ssr: false });
-const Countdown      = dynamic(() => import("@/components/Countdown"),      { ssr: false });
+const NextMatchCard   = dynamic(() => import("@/components/NextMatchCard"),  { ssr: false });
 const ChampionsBadge = dynamic(() => import("@/components/ChampionsBadge"), { ssr: false });
 const PhotoSlideshow = dynamic(() => import("@/components/PhotoSlideshow"), { ssr: false });
 const ShopKitSection  = dynamic(() => import("@/components/ShopKitSectionContainer"), { ssr: false });
@@ -12,7 +12,7 @@ export default function HomePage() {
     <>
       <Hero />
       <ShopKitSection />
-      <Countdown />
+      <NextMatchCard />
       <ChampionsBadge />
       <PhotoSlideshow />
       <BehindTheRose />
