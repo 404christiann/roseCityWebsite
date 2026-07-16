@@ -5,9 +5,9 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import dynamic from "next/dynamic";
 import { shopProduct } from "@/lib/data";
+import JerseyImagePair from "@/components/JerseyImagePair";
 
 const ShopHero      = dynamic(() => import("@/components/ShopHero"),      { ssr: false });
-const ShopSlideshow = dynamic(() => import("@/components/ShopSlideshow"), { ssr: false });
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -43,7 +43,7 @@ export default function ShopPage() {
       {/* ── Hero product split ── */}
       <div className="flex flex-col md:flex-row" style={{ backgroundColor: "var(--color-white)" }}>
 
-        {/* Slideshow — left / top on mobile */}
+        {/* Kit views — left / top on mobile */}
         <div
           className="relative w-full flex-shrink-0 md:w-3/5"
           style={{ backgroundColor: "var(--color-white)" }}
@@ -60,9 +60,9 @@ export default function ShopPage() {
           </div>
           <div
             className="relative w-full overflow-hidden"
-            style={{ aspectRatio: "3/4" }}
+            style={{ aspectRatio: "5262 / 4692" }}
           >
-            <ShopSlideshow images={shopProduct.slideshowImages} />
+            <JerseyImagePair sizes="(max-width: 768px) 50vw, 30vw" />
           </div>
         </div>
 
@@ -141,7 +141,7 @@ export default function ShopPage() {
       >
         <div className="flex items-center gap-4 mb-10 md:mb-14">
           <h2
-            className="font-display font-black uppercase text-white leading-none"
+            className="font-display font-black italic uppercase text-white leading-none"
             style={{ fontSize: "clamp(1.8rem, 4vw, 3rem)" }}
           >
             Purchase Details
@@ -178,13 +178,13 @@ export default function ShopPage() {
               style={{ borderColor: "rgba(255,255,255,0.08)", backgroundColor: "rgba(255,255,255,0.02)" }}
             >
               <p
-                className="font-display font-bold tracking-widest uppercase mb-3"
+                className="font-display font-normal tracking-widest uppercase mb-3"
                 style={{ color: "var(--color-red)", fontSize: "0.72rem" }}
               >
                 {item.label}
               </p>
               <h3
-                className="font-display font-black uppercase text-white leading-none mb-4"
+                className="font-display font-black not-italic uppercase text-white leading-none mb-4"
                 style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)" }}
               >
                 {item.title}

@@ -1,88 +1,25 @@
-// ─────────────────────────────────────────────
-//  Shared nationality → ISO 3166-1 alpha-2 flag code map.
-//  Used by PlayerCard, PlayerModal, StaffCard, StaffModal.
-//  Add new nationalities here — one source of truth.
-// ─────────────────────────────────────────────
+const FLAG_BUCKET_URL =
+  `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/flags`;
 
-export const FLAG_CODES: Record<string, string> = {
-  // Americas
-  "American":     "us",
-  "Argentine":    "ar",
-  "Belizean":     "bz",
-  "Bolivian":     "bo",
-  "Brazilian":    "br",
-  "Canadian":     "ca",
-  "Chilean":      "cl",
-  "Colombian":    "co",
-  "Costa Rican":  "cr",
-  "Cuban":        "cu",
-  "Dominican":    "do",
-  "Ecuadorian":   "ec",
-  "Guatemalan":   "gt",
-  "Haitian":      "ht",
-  "Honduran":     "hn",
-  "Jamaican":     "jm",
-  "Mexican":      "mx",
-  "Nicaraguan":   "ni",
-  "Panamanian":   "pa",
-  "Paraguayan":   "py",
-  "Peruvian":     "pe",
-  "Puerto Rican": "pr",
-  "Salvadoran":   "sv",
-  "Trinidadian":  "tt",
-  "Uruguayan":    "uy",
-  "Venezuelan":   "ve",
-  // Africa
-  "Algerian":      "dz",
-  "Angolan":       "ao",
-  "Cameroonian":   "cm",
-  "Congolese":     "cd",
-  "Egyptian":      "eg",
-  "Ethiopian":     "et",
-  "Ghanaian":      "gh",
-  "Guinean":       "gn",
-  "Ivorian":       "ci",
-  "Kenyan":        "ke",
-  "Liberian":      "lr",
-  "Malian":        "ml",
-  "Moroccan":      "ma",
-  "Nigerian":      "ng",
-  "Rwandan":       "rw",
-  "Senegalese":    "sn",
-  "Sierra Leonean":"sl",
-  "South African": "za",
-  "Tanzanian":     "tz",
-  "Togolese":      "tg",
-  "Ugandan":       "ug",
-  "Zimbabwean":    "zw",
-  // Europe
-  "Austrian":   "at",
-  "Belgian":    "be",
-  "British":    "gb",
-  "Croatian":   "hr",
-  "Danish":     "dk",
-  "Dutch":      "nl",
-  "French":     "fr",
-  "German":     "de",
-  "Greek":      "gr",
-  "Irish":      "ie",
-  "Italian":    "it",
-  "Norwegian":  "no",
-  "Polish":     "pl",
-  "Portuguese": "pt",
-  "Romanian":   "ro",
-  "Serbian":    "rs",
-  "Spanish":    "es",
-  "Swedish":    "se",
-  "Swiss":      "ch",
-  "Turkish":    "tr",
-  "Ukrainian":  "ua",
-  // Asia / Pacific
-  "Australian":  "au",
-  "Chinese":     "cn",
-  "Filipino":    "ph",
-  "Indian":      "in",
-  "Indonesian":  "id",
-  "Japanese":    "jp",
-  "South Korean":"kr",
+// Nationality values used by roster records mapped to their exact bucket files.
+// Emoji aliases support older/static roster data that used a flag as nationality.
+const FLAG_FILES: Record<string, string> = {
+  American: "USA.png",
+  Cameroonian: "Cameroon.png",
+  Guatemalan: "Guatemala.png",
+  Japanese: "Japan.png",
+  Mexican: "Mexico.png",
+  Salvadoran: "ElSalvador.png",
+  "🇺🇸": "USA.png",
+  "🇨🇲": "Cameroon.png",
+  "🇬🇹": "Guatemala.png",
+  "🇯🇵": "Japan.png",
+  "🇲🇽": "Mexico.png",
+  "🇸🇻": "ElSalvador.png",
 };
+
+export function getFlagUrl(nationality: string): string | null {
+  const filename = FLAG_FILES[nationality.trim()];
+
+  return filename ? `${FLAG_BUCKET_URL}/${encodeURIComponent(filename)}` : null;
+}

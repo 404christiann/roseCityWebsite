@@ -11,10 +11,10 @@ export default function HomePage() {
   return (
     <>
       <Hero />
+      <JerseySection />
       <Countdown />
       <ChampionsBadge />
       <PhotoSlideshow />
-      <JerseySection />
       <BehindTheRose />
     </>
   );

@@ -74,7 +74,7 @@ export default function Hero() {
   }, [videoMounted]);
 
   return (
-    <section className="relative w-full h-screen min-h-[600px] overflow-hidden">
+    <section className="relative h-screen min-h-[600px] w-full overflow-hidden md:h-[50vh] md:min-h-[380px]">
       {/* Background video — rendered client-side only so iOS Safari treats it as a
           fresh element and respects the muted autoplay policy */}
       <div className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }}>
@@ -140,7 +140,7 @@ export default function Hero() {
 
       {/* Content */}
       <div
-        className="absolute inset-0 flex flex-col items-end justify-end text-center px-6 pb-28"
+        className="absolute inset-0 flex flex-col items-end justify-end px-6 pb-28 text-center md:pb-16"
         style={{ zIndex: 3 }}
       >
         <div
@@ -149,7 +149,7 @@ export default function Hero() {
           style={{ opacity: 0 }}
         >
           <Link
-            href="/schedule"
+            href="/shop"
             className="font-display font-bold text-sm tracking-widest uppercase px-8 py-4 transition-all duration-200"
             style={{ backgroundColor: "var(--color-red)", color: "#fff" }}
             onMouseEnter={(e) =>
@@ -159,7 +159,7 @@ export default function Hero() {
               ((e.currentTarget as HTMLElement).style.backgroundColor = "var(--color-red)")
             }
           >
-            Next Match →
+            Team Store
           </Link>
           <Link
             href="/roster"
@@ -172,7 +172,7 @@ export default function Hero() {
 
       {/* Scroll hint */}
       <div
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+        className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 md:hidden"
         style={{ zIndex: 4 }}
       >
         <span className="font-display text-xs tracking-widest uppercase text-white/50">

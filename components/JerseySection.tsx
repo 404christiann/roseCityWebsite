@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Image from "next/image";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { shopProduct } from "@/lib/data";
+import JerseyImagePair from "@/components/JerseyImagePair";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -49,25 +49,16 @@ export default function JerseySection() {
           className="relative w-full md:w-1/2"
           style={{ opacity: 0 }}
         >
-          {/* Mobile: aspect ratio so full image shows */}
-          <div className="relative w-full md:hidden" style={{ aspectRatio: "3/4" }}>
-            <Image
-              src="/images/shop/rosecityshirt2.jpeg"
-              alt="Rose City Thorn Edition 2026 Match Home Jersey"
-              fill
-              className="object-contain object-center"
-              sizes="100vw"
-            />
+          {/* Mobile: preserve the pair's natural combined aspect ratio. */}
+          <div
+            className="relative w-full md:hidden"
+            style={{ aspectRatio: "5262 / 4692" }}
+          >
+            <JerseyImagePair sizes="50vw" />
           </div>
-          {/* Desktop: fill the flex-stretch height from the text column */}
+          {/* Desktop: share the text column's height and align both kits at the hem. */}
           <div className="absolute inset-0 hidden md:block">
-            <Image
-              src="/images/shop/rosecityshirt2.jpeg"
-              alt="Rose City Thorn Edition 2026 Match Home Jersey"
-              fill
-              className="object-contain object-center"
-              sizes="50vw"
-            />
+            <JerseyImagePair sizes="25vw" />
           </div>
         </div>
 

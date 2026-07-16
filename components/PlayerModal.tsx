@@ -4,7 +4,8 @@ import { Dialog, DialogPanel, DialogBackdrop } from "@headlessui/react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Player, GoalkeeperStats, FieldStats } from "@/lib/data";
-import { FLAG_CODES } from "@/lib/flags";
+import NationalityFlag from "@/components/NationalityFlag";
+import { isRosterPlaceholderLogo } from "@/lib/roster-images";
 
 function isGK(stats: GoalkeeperStats | FieldStats): stats is GoalkeeperStats {
   return "saves" in stats;
@@ -19,13 +20,13 @@ interface Props {
 
 export default function PlayerModal({ player, onClose, seasonLabel = "Current Season" }: Props) {
   const stats = player.stats;
-  const flagCode = player.nationality ? FLAG_CODES[player.nationality] : null;
 
   // Build the full photo array: profile photo first, then action photos
   const allPhotos = [player.image, ...(player.actionPhotos ?? [])];
   // Open on the first action photo if one exists, otherwise the profile shot
   const [photoIdx, setPhotoIdx] = useState(player.actionPhotos?.length ? 1 : 0);
   const hasMultiple = allPhotos.length > 1;
+  const isPlaceholderLogo = isRosterPlaceholderLogo(allPhotos[photoIdx]);
 
   // Preload all photos as soon as the modal mounts so navigation is instant
   useEffect(() => {
@@ -74,7 +75,7 @@ export default function PlayerModal({ player, onClose, seasonLabel = "Current Se
               src={allPhotos[photoIdx]}
               alt={player.name}
               fill
-              className="object-cover object-top transition-opacity duration-300"
+              className={`${isPlaceholderLogo ? "object-contain" : "object-cover"} object-top transition-opacity duration-300`}
               sizes="(max-width: 768px) 100vw, 480px"
             />
             <div
@@ -171,15 +172,8 @@ export default function PlayerModal({ player, onClose, seasonLabel = "Current Se
                   </span>
                 )}
               </h2>
-              {flagCode && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={`https://flagcdn.com/w40/${flagCode}.png`}
-                  alt={player.nationality}
-                  width={34}
-                  height={25}
-                  style={{ borderRadius: 3, flexShrink: 0, marginTop: 4 }}
-                />
+              {player.nationality && (
+                <NationalityFlag nationality={player.nationality} className="mt-1" />
               )}
             </div>
 

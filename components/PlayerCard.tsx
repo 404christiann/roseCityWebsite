@@ -4,7 +4,8 @@ import { useState } from "react";
 import Image from "next/image";
 import { Player, GoalkeeperStats, FieldStats } from "@/lib/data";
 import PlayerModal from "@/components/PlayerModal";
-import { FLAG_CODES } from "@/lib/flags";
+import NationalityFlag from "@/components/NationalityFlag";
+import { isRosterPlaceholderLogo } from "@/lib/roster-images";
 
 function isGK(stats: GoalkeeperStats | FieldStats): stats is GoalkeeperStats {
   return "saves" in stats;
@@ -15,7 +16,7 @@ export default function PlayerCard({ player, seasonLabel }: { player: Player; se
   const [modalOpen, setModalOpen] = useState(false);
   const stats = player.stats;
   const gk = isGK(stats);
-  const flagCode = player.nationality ? FLAG_CODES[player.nationality] : null;
+  const isPlaceholderLogo = isRosterPlaceholderLogo(player.image);
 
   return (
     <>
@@ -31,7 +32,7 @@ export default function PlayerCard({ player, seasonLabel }: { player: Player; se
           src={player.image}
           alt={player.name}
           fill
-          className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
+          className={`${isPlaceholderLogo ? "object-contain object-top" : "object-cover object-center"} transition-transform duration-500 group-hover:scale-105`}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
         />
 
@@ -57,14 +58,10 @@ export default function PlayerCard({ player, seasonLabel }: { player: Player; se
                 {player.number}
               </span>
 
-              {flagCode && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={`https://flagcdn.com/w40/${flagCode}.png`}
-                  alt={player.nationality}
-                  width={34}
-                  height={25}
-                  style={{ display: "inline-block", borderRadius: "2px", flexShrink: 0, marginBottom: "0.18rem" }}
+              {player.nationality && (
+                <NationalityFlag
+                  nationality={player.nationality}
+                  className="mb-[0.18rem]"
                 />
               )}
             </div>

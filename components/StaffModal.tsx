@@ -3,7 +3,7 @@
 import { Dialog, DialogPanel, DialogBackdrop } from "@headlessui/react";
 import Image from "next/image";
 import { Staff } from "@/lib/data";
-import { FLAG_CODES } from "@/lib/flags";
+import NationalityFlag from "@/components/NationalityFlag";
 
 
 interface Props {
@@ -12,8 +12,6 @@ interface Props {
 }
 
 export default function StaffModal({ member, onClose }: Props) {
-  const flagCode = member.nationality ? FLAG_CODES[member.nationality] : null;
-
   return (
     <Dialog open={true} onClose={onClose} className="relative z-[100]">
 
@@ -94,15 +92,8 @@ export default function StaffModal({ member, onClose }: Props) {
               >
                 {member.name}
               </h2>
-              {flagCode && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={`https://flagcdn.com/w40/${flagCode}.png`}
-                  alt={member.nationality}
-                  width={34}
-                  height={25}
-                  style={{ borderRadius: 3, flexShrink: 0, marginTop: 4 }}
-                />
+              {member.nationality && (
+                <NationalityFlag nationality={member.nationality} className="mt-1" />
               )}
             </div>
 

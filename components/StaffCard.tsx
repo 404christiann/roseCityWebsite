@@ -4,12 +4,11 @@ import { useState } from "react";
 import Image from "next/image";
 import { Staff } from "@/lib/data";
 import StaffModal from "@/components/StaffModal";
-import { FLAG_CODES } from "@/lib/flags";
+import NationalityFlag from "@/components/NationalityFlag";
 
 
 export default function StaffCard({ member }: { member: Staff }) {
   const [modalOpen, setModalOpen] = useState(false);
-  const flagCode = member.nationality ? FLAG_CODES[member.nationality] : null;
 
   return (
     <>
@@ -43,15 +42,8 @@ export default function StaffCard({ member }: { member: Staff }) {
             >
               {member.initials}
             </div>
-            {flagCode && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={`https://flagcdn.com/w40/${flagCode}.png`}
-                alt={member.nationality}
-                width={22}
-                height={16}
-                style={{ borderRadius: 2, flexShrink: 0 }}
-              />
+            {member.nationality && (
+              <NationalityFlag nationality={member.nationality} width={22} />
             )}
           </div>
 

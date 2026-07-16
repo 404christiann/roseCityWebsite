@@ -5,20 +5,39 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 
-const navLogos = [
-  { src: "/images/logo/rosecityLogo-Photoroom.png", alt: "Rose City FC",  size: 96, scrolledSrc: null },
-  { src: "/images/logo/us_new_image.png",            alt: "USA Soccer",    size: 42, scrolledSrc: null },
+const LOGO_BASE =
+  `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/logos_v2`;
+
+const roseCityLogo = `${LOGO_BASE}/Rose%20City%20FC%20Patch%20Color.png`;
+
+const affiliationLogos = [
   {
-    src: "/images/logo/fifa_logo_white2.png",
-    alt: "FIFA",
-    size: 42,
-    scrolledSrc: "https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/logos/fifa_logo_transparent_v2.png",
+    colorSrc: `${LOGO_BASE}/US%20Soccer%20logo%20color.png`,
+    whiteSrc: `${LOGO_BASE}/US%20Soccer%20logo%20color.png`,
+    alt: "US Soccer",
+    className: "h-7 w-7 sm:h-10 sm:w-10",
+    sizes: "(max-width: 639px) 28px, 40px",
   },
   {
-    src: "/images/logo/us_cup.png",
-    alt: "U.S. Open Cup",
-    size: 42,
-    scrolledSrc: "https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/logos/U.S._Open_Cup_logo_red_color%20(1).png",
+    colorSrc: `${LOGO_BASE}/FIFA%20logo%20color.png`,
+    whiteSrc: `${LOGO_BASE}/FIFA%20logo%20white.png`,
+    alt: "FIFA",
+    className: "h-7 w-11 sm:h-10 sm:w-16",
+    sizes: "(max-width: 639px) 44px, 64px",
+  },
+  {
+    colorSrc: `${LOGO_BASE}/Lamar%20Hunt%20U.S.%20Open%20Cup%20color.png`,
+    whiteSrc: `${LOGO_BASE}/Lamar%20Hunt%20U.S.%20Open%20Cup%20white.png`,
+    alt: "Lamar Hunt U.S. Open Cup",
+    className: "h-7 w-7 sm:h-10 sm:w-10",
+    sizes: "(max-width: 639px) 28px, 40px",
+  },
+  {
+    colorSrc: `${LOGO_BASE}/UPSL%20logo%20color.png`,
+    whiteSrc: `${LOGO_BASE}/UPSL%20logo%20color.png`,
+    alt: "UPSL",
+    className: "h-7 w-7 sm:h-10 sm:w-10",
+    sizes: "(max-width: 639px) 28px, 40px",
   },
 ];
 
@@ -66,19 +85,20 @@ export default function Nav() {
           : "bg-white/95 backdrop-blur-sm shadow-sm"
       }`}
     >
-      <nav className="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between h-28">
+      <nav className="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between h-24 sm:h-28">
         {/* Logo row */}
-        <Link href="/" className="flex items-center gap-3 flex-shrink-0" aria-label="Rose City FC Home">
+        <div className="flex min-w-0 flex-shrink-0 items-center gap-2 sm:gap-3">
           {/* Rose City crest — primary */}
-          <div className="relative flex-shrink-0" style={{ width: 116, height: 116 }}>
+          <Link href="/" className="relative h-16 w-16 flex-shrink-0 sm:h-24 sm:w-24" aria-label="Rose City FC Home">
             <Image
-              src="/images/logo/rosecityLogo-Photoroom.png"
+              src={roseCityLogo}
               alt="Rose City FC"
               fill
               className="object-contain transition-all duration-300"
+              sizes="(max-width: 639px) 64px, 96px"
               priority
             />
-          </div>
+          </Link>
 
           {/* Divider */}
           <div
@@ -87,23 +107,21 @@ export default function Nav() {
           />
 
           {/* Affiliation logos — tighter cluster */}
-          <div className="flex items-center gap-2">
-            {navLogos.slice(1).map((logo) => {
-              const activeSrc = (!isHero && logo.scrolledSrc) ? logo.scrolledSrc : logo.src;
-              return (
-                <div key={logo.alt} className="relative flex-shrink-0" style={{ width: logo.size, height: logo.size }}>
-                  <Image
-                    src={activeSrc}
-                    alt={logo.alt}
-                    fill
-                    className="object-contain transition-all duration-300"
-                    priority
-                  />
-                </div>
-              );
-            })}
+          <div className="flex items-center gap-1 sm:gap-2">
+            {affiliationLogos.map((logo) => (
+              <div key={logo.alt} className={`relative flex-shrink-0 ${logo.className}`}>
+                <Image
+                  src={isHero ? logo.whiteSrc : logo.colorSrc}
+                  alt={logo.alt}
+                  fill
+                  className="object-contain transition-all duration-300"
+                  sizes={logo.sizes}
+                  priority
+                />
+              </div>
+            ))}
           </div>
-        </Link>
+        </div>
 
         {/* Desktop Links */}
         <ul className="hidden md:flex items-center gap-8">
