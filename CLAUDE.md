@@ -5,6 +5,20 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
 
 ## Current Status
 
+- Local pending rollout: the homepage Next Match section now follows the
+  crest/VS/Next Match/optional sponsor/countdown hierarchy. Per-match sponsor
+  name, logo, and optional link are managed in `/admin/schedule`; Add Match
+  carries sponsor fields from the latest scheduled match in that season.
+  Existing matches remain unsponsored. The production columns and sponsor
+  upload policies were verified on 2026-07-17; retain
+  `db/migrations/2026-07-match-sponsors.sql` for new environments.
+- Local pending rollout: homepage and `/shop` kit presentations are now
+  independently editable. Each surface has its own heading, title,
+  description, bullet points, store note, purchase button/link, and ordered
+  Kit Photos. The production surface rows, photo sets, and authenticated write
+  policies were verified on 2026-07-17. Retain the surface and RLS migrations
+  for new environments and repairs.
+
 - The admin-managed shop experience and prior public-site, roster, storefront,
   sponsor, navigation, and multi-season work are shipped on `main` through
   application commit `91d0081e`; the post-release documentation head is
@@ -26,12 +40,10 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
   both the homepage and `/shop`, preserving the transition into the photo row.
   The shared gradient and hands-off Kit Photos slideshow were browser-verified
   locally on both public routes.
-- The homepage "Next Match" section was redesigned: the live ticking countdown
-  (`components/Countdown.tsx`) was removed and replaced by
-  `components/NextMatchCard.tsx` — a static crest-vs-crest match card (Rose
-  City crest, red "VS", opponent crest, optional black competition-label
-  pill, giant red italic day-of-week, small date/kickoff/venue line, "Full
-  Schedule" CTA retained).
+- The homepage "Next Match" section is `components/NextMatchCard.tsx`: Rose
+  City crest, split-line "VS", opponent crest, large red title, optional
+  linked "Presented By" sponsor, live Days/Hours/Min/Sec countdown, and the
+  retained "Full Schedule" CTA. Rose City stays on the left.
 - Admins can upload an opponent logo and set a competition label per match
   from `/admin/schedule`. Opponent crests also render on the public
   `/schedule` fixture list (`components/FixtureRow.tsx`), sized larger on the
@@ -53,8 +65,9 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
   `e3e7e955-4e7d-4887-821b-06ccc23c2cf3`.
 - The shop slideshow is intentionally hidden, not deleted. Its switch is
   `SHOW_SHOP_HERO` in `lib/site-flags.ts`.
-- The shared 2026 kit section is editable at `/admin/shop`; the homepage and
-  `/shop` render the same database-backed component and ordered photo set.
+- The homepage and `/shop` reuse the same kit presentation component but load
+  independent database-backed content and ordered photo sets selected from
+  `/admin/shop`.
 - Multiple Kit Photos autoplay as a hands-off horizontal slideshow with no
   public arrows, dots, dragging, or swiping; a single photo remains static.
 - The Shop editor supports up to eight editable/reorderable bullet points and
@@ -100,7 +113,7 @@ npm test
 npm run build
 ```
 
-Current release-candidate result: TypeScript passed, all 148 Vitest tests passed,
+Current release-candidate result: TypeScript passed, all 153 Vitest tests passed,
 and the production build passed. The build still reports non-blocking Next.js lint
 warnings for a few raw `<img>` elements and unnecessary analytics `useMemo`
 dependencies. Destructive authenticated CRUD should only be tested with safe

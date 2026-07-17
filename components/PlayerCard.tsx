@@ -35,7 +35,7 @@ export default function PlayerCard({ player, seasonLabel }: { player: Player; se
           src={imageSrc}
           alt={player.name}
           fill
-          className={`${isPlaceholderLogo ? "object-contain object-top" : "object-cover object-center"} transition-transform duration-500 group-hover:scale-105`}
+          className={`${isPlaceholderLogo ? "object-contain object-top" : "object-cover object-center"} transition-transform duration-500 md:group-hover:scale-105`}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
         />
 
@@ -91,9 +91,9 @@ export default function PlayerCard({ player, seasonLabel }: { player: Player; se
             </p>
           </div>
 
-          {/* Stats overlay — slides up on hover */}
+          {/* Stats overlay — desktop hover only; mobile taps open the modal directly. */}
           <div
-            className="overflow-hidden"
+            className="hidden overflow-hidden md:block"
             style={{
               maxHeight: hovered ? "120px" : "0px",
               opacity: hovered ? 1 : 0,

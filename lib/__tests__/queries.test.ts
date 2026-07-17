@@ -21,6 +21,7 @@ import {
   fetchActiveSeason,
   fetchClubBranding,
   fetchShopKitContent,
+  fetchSchedule,
   fetchPlayerMatchLog,
   fetchRoster,
   fetchPlayerMatchTrend,
@@ -188,6 +189,7 @@ describe('fetchClubBranding', () => {
 describe('fetchShopKitContent', () => {
   const section = {
     id: 1,
+    surface: 'home',
     eyebrow: '2026 Kit · Available Now',
     title: 'Thorn\nEdition\n2026',
     description: 'Official kit',
@@ -198,11 +200,11 @@ describe('fetchShopKitContent', () => {
     updated_at: '2026-07-16T00:00:00Z',
   }
   const photos = [
-    { id: 'photo-a', url: 'a.jpg', sort_order: 0, created_at: '2026-07-16T00:00:00Z' },
-    { id: 'photo-b', url: 'b.jpg', sort_order: 1, created_at: '2026-07-16T00:00:00Z' },
+    { id: 'photo-a', surface: 'home', url: 'a.jpg', sort_order: 0, created_at: '2026-07-16T00:00:00Z' },
+    { id: 'photo-b', surface: 'home', url: 'b.jpg', sort_order: 1, created_at: '2026-07-16T00:00:00Z' },
   ]
 
-  it('returns the singleton section and ordered photos', async () => {
+  it('returns the homepage section and ordered photos by default', async () => {
     const sectionQuery = chain({ data: [section], error: null })
     const photosQuery = chain({ data: photos, error: null })
     mockFrom
@@ -212,8 +214,27 @@ describe('fetchShopKitContent', () => {
     await expect(fetchShopKitContent()).resolves.toEqual({ section, photos })
     expect(mockFrom).toHaveBeenNthCalledWith(1, 'shop_kit_section')
     expect(mockFrom).toHaveBeenNthCalledWith(2, 'shop_kit_photos')
+    expect(sectionQuery.eq).toHaveBeenCalledWith('surface', 'home')
     expect(sectionQuery.limit).toHaveBeenCalledWith(1)
+    expect(photosQuery.eq).toHaveBeenCalledWith('surface', 'home')
     expect(photosQuery.order).toHaveBeenCalledWith('sort_order', { ascending: true })
+  })
+
+  it('scopes both queries to the requested shop-page surface', async () => {
+    const shopSection = { ...section, id: 2, surface: 'shop' }
+    const shopPhotos = photos.map((photo) => ({ ...photo, surface: 'shop' }))
+    const sectionQuery = chain({ data: [shopSection], error: null })
+    const photosQuery = chain({ data: shopPhotos, error: null })
+    mockFrom
+      .mockReturnValueOnce(sectionQuery)
+      .mockReturnValueOnce(photosQuery)
+
+    await expect(fetchShopKitContent('shop')).resolves.toEqual({
+      section: shopSection,
+      photos: shopPhotos,
+    })
+    expect(sectionQuery.eq).toHaveBeenCalledWith('surface', 'shop')
+    expect(photosQuery.eq).toHaveBeenCalledWith('surface', 'shop')
   })
 
   it('returns an empty content shape when both tables are empty', async () => {
@@ -261,6 +282,43 @@ describe('fetchShopKitContent', () => {
 
     await expect(fetchShopKitContent())
       .rejects.toThrow('fetchShopKitContent: photos unavailable')
+  })
+})
+
+describe('fetchSchedule sponsor mapping', () => {
+  it('maps optional per-match sponsor fields into the public fixture model', async () => {
+    mockFrom.mockReturnValue(chain({
+      data: [{
+        id: 'match-sponsored',
+        date: '2027-03-10',
+        time: '19:00',
+        opponent: 'Pasadena Athletic',
+        opponent_logo_url: 'opponent.png',
+        competition: null,
+        sponsor_name: 'Tepito Coffee',
+        sponsor_logo_url: 'tepito.png',
+        sponsor_link: 'https://example.com/tepito',
+        home: true,
+        venue: 'Rose City Stadium',
+        address: null,
+        season_id: 'season-2027',
+      }],
+      error: null,
+    }))
+
+    await expect(fetchSchedule()).resolves.toEqual([{
+      date: '2027-03-10',
+      time: '19:00',
+      opponent: 'Pasadena Athletic',
+      opponentLogoUrl: 'opponent.png',
+      competition: null,
+      sponsorName: 'Tepito Coffee',
+      sponsorLogoUrl: 'tepito.png',
+      sponsorLink: 'https://example.com/tepito',
+      home: true,
+      venue: 'Rose City Stadium',
+      address: undefined,
+    }])
   })
 })
 

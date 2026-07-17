@@ -43,6 +43,9 @@ export type DBMatch = {
   opponent: string;
   opponent_logo_url: string | null;
   competition: string | null;
+  sponsor_name: string | null;
+  sponsor_logo_url: string | null;
+  sponsor_link: string | null;
   home: boolean;
   venue: string;
   address: string | null;
@@ -97,8 +100,11 @@ export type DBGoalkeeperMatchStats = {
   rating: number | null;
 };
 
+export type ShopKitSurface = "home" | "shop";
+
 export type DBShopKitSection = {
   id: number;
+  surface: ShopKitSurface;
   eyebrow: string;
   title: string;
   description: string;
@@ -111,6 +117,7 @@ export type DBShopKitSection = {
 
 export type DBShopKitPhoto = {
   id: string;
+  surface: ShopKitSurface;
   url: string;
   sort_order: number;
   created_at: string;

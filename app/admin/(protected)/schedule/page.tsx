@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import AdminSaveFeedback from "@/components/admin/AdminSaveFeedback";
 import SeasonSelect from "@/components/admin/SeasonSelect";
@@ -7,6 +8,7 @@ import OpponentCrest from "@/components/OpponentCrest";
 import type { DBSeason } from "@/lib/db-types";
 import { createClient } from "@/lib/supabase-browser";
 import { useSeasons } from "@/lib/use-seasons";
+import { carrySponsorFromLatestMatch } from "@/lib/match-sponsor";
 
 // ── Types ─────────────────────────────────────
 
@@ -17,6 +19,9 @@ type Match = {
   opponent: string;
   opponent_logo_url: string | null;
   competition: string | null;
+  sponsor_name: string | null;
+  sponsor_logo_url: string | null;
+  sponsor_link: string | null;
   home: boolean;
   venue: string;
   address: string | null;
@@ -28,6 +33,7 @@ type FormState = Omit<Match, "id">;
 function emptyForm(seasonId = ""): FormState {
   return {
     date: "", time: "", opponent: "", opponent_logo_url: null, competition: "",
+    sponsor_name: null, sponsor_logo_url: null, sponsor_link: null,
     home: true, venue: "", address: "", season_id: seasonId,
   };
 }
@@ -70,7 +76,7 @@ export default function SchedulePage() {
     const supabase = createClient();
     const { data, error: loadError } = await supabase
       .from("matches")
-      .select("id, date, time, opponent, opponent_logo_url, competition, home, venue, address, season_id")
+      .select("id, date, time, opponent, opponent_logo_url, competition, sponsor_name, sponsor_logo_url, sponsor_link, home, venue, address, season_id")
       .order("date")
       .order("time");
     if (loadError) setError(loadError.message);
@@ -82,8 +88,11 @@ export default function SchedulePage() {
 
   useEffect(() => {
     setEditingId(null);
-    setAddForm((form) => ({ ...form, season_id: selectedSeasonId }));
-  }, [selectedSeasonId]);
+    setAddForm({
+      ...emptyForm(selectedSeasonId),
+      ...carrySponsorFromLatestMatch(matches, selectedSeasonId),
+    });
+  }, [matches, selectedSeasonId]);
 
   function flash() {
     setSaved(true);
@@ -98,6 +107,17 @@ export default function SchedulePage() {
     if (!form.time)     return "Time is required.";
     if (!form.opponent.trim()) return "Opponent is required.";
     if (!form.venue.trim())    return "Venue is required.";
+    if (form.sponsor_logo_url && !form.sponsor_name?.trim()) {
+      return "Sponsor name is required when a sponsor logo is uploaded.";
+    }
+    if (form.sponsor_link?.trim()) {
+      try {
+        const sponsorUrl = new URL(form.sponsor_link);
+        if (!['http:', 'https:'].includes(sponsorUrl.protocol)) throw new Error();
+      } catch {
+        return "Sponsor website link must be a valid http or https address.";
+      }
+    }
     return null;
   }
 
@@ -111,9 +131,15 @@ export default function SchedulePage() {
       ...addForm,
       address: addForm.address?.trim() || null,
       competition: addForm.competition?.trim() || null,
+      sponsor_name: addForm.sponsor_name?.trim() || null,
+      sponsor_logo_url: addForm.sponsor_logo_url?.trim() || null,
+      sponsor_link: addForm.sponsor_link?.trim() || null,
     }]);
     if (e) { setError(e.message); setSaving(false); return; }
-    setAddForm(emptyForm(selectedSeasonId));
+    setAddForm({
+      ...emptyForm(selectedSeasonId),
+      ...carrySponsorFromLatestMatch(matches, selectedSeasonId),
+    });
     setAddOpen(false);
     await load();
     flash();
@@ -127,6 +153,8 @@ export default function SchedulePage() {
     setEditForm({
       date: m.date, time: m.time, opponent: m.opponent,
       opponent_logo_url: m.opponent_logo_url, competition: m.competition ?? "",
+      sponsor_name: m.sponsor_name, sponsor_logo_url: m.sponsor_logo_url,
+      sponsor_link: m.sponsor_link,
       home: m.home, venue: m.venue, address: m.address ?? "", season_id: m.season_id,
     });
   }
@@ -142,6 +170,9 @@ export default function SchedulePage() {
       ...editForm,
       address: editForm.address?.trim() || null,
       competition: editForm.competition?.trim() || null,
+      sponsor_name: editForm.sponsor_name?.trim() || null,
+      sponsor_logo_url: editForm.sponsor_logo_url?.trim() || null,
+      sponsor_link: editForm.sponsor_link?.trim() || null,
     }).eq("id", editingId);
     if (e) { setError(e.message); setSaving(false); return; }
     setEditingId(null);
@@ -198,7 +229,14 @@ export default function SchedulePage() {
             disabled={seasonsLoading || saving}
           />
           <button
-            onClick={() => { setAddOpen((o) => !o); setAddForm(emptyForm(selectedSeasonId)); setError(null); }}
+            onClick={() => {
+              setAddOpen((open) => !open);
+              setAddForm({
+                ...emptyForm(selectedSeasonId),
+                ...carrySponsorFromLatestMatch(matches, selectedSeasonId),
+              });
+              setError(null);
+            }}
             disabled={!selectedSeasonId}
             className="flex-shrink-0 px-6 py-2.5 rounded-lg font-display font-black uppercase tracking-widest text-white transition-opacity"
             style={{ backgroundColor: "#dc2626", fontSize: "1.1rem", opacity: selectedSeasonId ? 1 : 0.5 }}
@@ -316,6 +354,12 @@ export default function SchedulePage() {
                       {m.competition && (
                         <p className="font-body truncate" style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.35)" }}>
                           {m.competition}
+                        </p>
+                      )}
+
+                      {m.sponsor_logo_url && (
+                        <p className="font-body truncate" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.3)" }}>
+                          Presented by {m.sponsor_name || "match sponsor"}
                         </p>
                       )}
 
@@ -446,6 +490,55 @@ function MatchForm({
         />
       </Field>
 
+      <div
+        className="mt-2 border-t pt-4 sm:col-span-2"
+        style={{ borderColor: "rgba(255,255,255,0.08)" }}
+      >
+        <p
+          className="font-display text-xs font-black uppercase tracking-widest"
+          style={{ color: "rgba(255,255,255,0.55)" }}
+        >
+          Presented By Sponsor
+        </p>
+        <p
+          className="font-body mt-1 text-xs"
+          style={{ color: "rgba(255,255,255,0.28)" }}
+        >
+          New matches inherit these sponsor details from the latest match. Clear the logo to hide the sponsor on the homepage.
+        </p>
+      </div>
+
+      <Field label="Sponsor Name (optional)">
+        <input
+          type="text"
+          placeholder="e.g. Tepito Coffee"
+          value={form.sponsor_name ?? ""}
+          onChange={(e) => set("sponsor_name", e.target.value)}
+          style={inputStyle}
+        />
+      </Field>
+
+      <Field label="Sponsor Website Link (optional)">
+        <input
+          type="url"
+          placeholder="https://..."
+          value={form.sponsor_link ?? ""}
+          onChange={(e) => set("sponsor_link", e.target.value)}
+          style={inputStyle}
+        />
+      </Field>
+
+      <div className="sm:col-span-2">
+        <Field label="Sponsor Logo (optional)">
+          <SponsorLogoUpload
+            logoUrl={form.sponsor_logo_url}
+            sponsorName={form.sponsor_name ?? ""}
+            onUploaded={(url) => onChange({ ...form, sponsor_logo_url: url })}
+            onRemove={() => onChange({ ...form, sponsor_logo_url: null })}
+          />
+        </Field>
+      </div>
+
       <Field label="Home / Away" required>
         <select
           value={form.home ? "home" : "away"}
@@ -545,6 +638,101 @@ function OpponentLogoUpload({
       />
       {error && (
         <p className="font-body text-xs" style={{ color: "#dc2626" }}>{error}</p>
+      )}
+    </div>
+  );
+}
+
+function SponsorLogoUpload({
+  logoUrl,
+  sponsorName,
+  onUploaded,
+  onRemove,
+}: {
+  logoUrl: string | null;
+  sponsorName: string;
+  onUploaded: (url: string) => void;
+  onRemove: () => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(file: File | null) {
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      onUploaded(await uploadPhoto(file, "sponsors"));
+    } catch (uploadError: unknown) {
+      setError(uploadError instanceof Error ? uploadError.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <div
+        className="relative flex h-14 w-28 items-center justify-center overflow-hidden rounded-lg"
+        style={{
+          backgroundColor: "#FFFFFF",
+          border: "1px solid rgba(255,255,255,0.12)",
+        }}
+      >
+        {logoUrl ? (
+          <Image
+            src={logoUrl}
+            alt={sponsorName ? `${sponsorName} logo` : "Sponsor logo"}
+            fill
+            sizes="112px"
+            className="object-contain p-2"
+          />
+        ) : (
+          <span
+            className="font-display text-[0.55rem] font-bold uppercase tracking-widest"
+            style={{ color: "rgba(0,0,0,0.35)" }}
+          >
+            No Logo
+          </span>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+        className="rounded-lg px-3 py-2 font-display text-xs font-bold uppercase tracking-widest"
+        style={{
+          backgroundColor: "#1e1e1e",
+          border: "1px solid rgba(255,255,255,0.08)",
+          color: uploading ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.7)",
+          cursor: uploading ? "not-allowed" : "pointer",
+        }}
+      >
+        {uploading ? "Uploading…" : logoUrl ? "Replace" : "Upload"}
+      </button>
+      {logoUrl && !uploading && (
+        <button
+          type="button"
+          onClick={onRemove}
+          className="font-display text-xs font-bold uppercase tracking-widest"
+          style={{ color: "rgba(220,38,38,0.8)" }}
+        >
+          Remove
+        </button>
+      )}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => handleFile(event.target.files?.[0] ?? null)}
+      />
+      {error && (
+        <p className="font-body w-full text-xs" style={{ color: "#dc2626" }}>
+          {error}
+        </p>
       )}
     </div>
   );

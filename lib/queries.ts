@@ -8,6 +8,7 @@ import {
   DBSiteBranding,
   DBShopKitPhoto,
   DBShopKitSection,
+  ShopKitSurface,
   DBShopCarouselPhoto,
 } from "@/lib/db-types";
 import { DEFAULT_CLUB_LOGO_PATH } from "@/lib/club-branding";
@@ -51,6 +52,8 @@ function mapFixture(row: DBMatch): Fixture {
   return {
     date: row.date, time: row.time, opponent: row.opponent,
     opponentLogoUrl: row.opponent_logo_url, competition: row.competition,
+    sponsorName: row.sponsor_name, sponsorLogoUrl: row.sponsor_logo_url,
+    sponsorLink: row.sponsor_link,
     home: row.home, venue: row.venue, address: row.address ?? undefined,
   };
 }
@@ -134,10 +137,16 @@ export async function fetchClubBranding(): Promise<ClubBranding> {
 }
 
 /** Fetches the singleton shop kit section and its ordered photos. */
-export async function fetchShopKitContent(): Promise<ShopKitContent> {
+export async function fetchShopKitContent(
+  surface: ShopKitSurface = "home",
+): Promise<ShopKitContent> {
   const [sectionResult, photosResult] = await Promise.all([
-    supabase.from("shop_kit_section").select("*").limit(1),
-    supabase.from("shop_kit_photos").select("*").order("sort_order", { ascending: true }),
+    supabase.from("shop_kit_section").select("*").eq("surface", surface).limit(1),
+    supabase
+      .from("shop_kit_photos")
+      .select("*")
+      .eq("surface", surface)
+      .order("sort_order", { ascending: true }),
   ]);
   const error = sectionResult.error ?? photosResult.error;
   if (error) throw new Error(`fetchShopKitContent: ${error.message}`);

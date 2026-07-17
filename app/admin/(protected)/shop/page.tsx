@@ -9,6 +9,7 @@ import type {
   DBShopCarouselPhoto,
   DBShopKitPhoto,
   DBShopKitSection,
+  ShopKitSurface,
 } from "@/lib/db-types";
 import {
   fetchShopCarouselPhotos,
@@ -95,6 +96,7 @@ async function uploadPhoto(file: File, bucket: string): Promise<string> {
 type AdminTab = "content" | "kit" | "photoStrip";
 
 export default function AdminShopPage() {
+  const [selectedSurface, setSelectedSurface] = useState<ShopKitSurface>("home");
   const [activeTab, setActiveTab] = useState<AdminTab>("content");
   const [fields, setFields] = useState<SectionFields>(EMPTY_FIELDS);
   const [draftPhotos, setDraftPhotos] = useState<DraftKitPhoto[]>([]);
@@ -106,31 +108,45 @@ export default function AdminShopPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const photoStripFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    Promise.all([fetchShopKitContent(), fetchShopCarouselPhotos()])
+    setLoading(true);
+    setError(null);
+    Promise.all([fetchShopKitContent(selectedSurface), fetchShopCarouselPhotos()])
       .then(([{ section, photos }, photoStripPhotos]) => {
-        if (section) {
-          setFields(sectionToFields(section));
-        }
+        setFields(
+          section
+            ? sectionToFields(section)
+            : {
+                ...EMPTY_FIELDS,
+                bullet_points: createDraftBulletPoints(DEFAULT_KIT_BULLET_POINTS),
+              },
+        );
         setOriginalPhotos(photos);
         setDraftPhotos(photos.map((photo) => ({ id: photo.id, url: photo.url })));
         setOriginalPhotoStripPhotos(photoStripPhotos);
         setDraftPhotoStripPhotos(
           photoStripPhotos.map((photo) => ({ id: photo.id, url: photo.url })),
         );
+        setDirty(false);
       })
       .catch((loadError: unknown) => {
         setError(loadError instanceof Error ? loadError.message : "Failed to load shop content");
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [selectedSurface]);
+
+  function markDirty() {
+    setDirty(true);
+    setSaved(false);
+  }
 
   function setField(field: TextSectionField, value: string) {
     setFields((current) => ({ ...current, [field]: value }));
-    setSaved(false);
+    markDirty();
   }
 
   function setBulletPoint(index: number, value: string) {
@@ -140,7 +156,7 @@ export default function AdminShopPage() {
         pointIndex === index ? { ...point, text: value } : point,
       ),
     }));
-    setSaved(false);
+    markDirty();
   }
 
   function addBulletPoint() {
@@ -154,7 +170,7 @@ export default function AdminShopPage() {
         ],
       };
     });
-    setSaved(false);
+    markDirty();
   }
 
   function removeBulletPoint(index: number) {
@@ -164,7 +180,7 @@ export default function AdminShopPage() {
         (_, pointIndex) => pointIndex !== index,
       ),
     }));
-    setSaved(false);
+    markDirty();
   }
 
   function moveBulletPoint(index: number, delta: -1 | 1) {
@@ -180,7 +196,7 @@ export default function AdminShopPage() {
       ];
       return { ...current, bullet_points: bulletPoints };
     });
-    setSaved(false);
+    markDirty();
   }
 
   function movePhoto(index: number, delta: -1 | 1) {
@@ -191,7 +207,7 @@ export default function AdminShopPage() {
       [next[index], next[destination]] = [next[destination], next[index]];
       return next;
     });
-    setSaved(false);
+    markDirty();
   }
 
   function movePhotoStripPhoto(index: number, delta: -1 | 1) {
@@ -202,7 +218,7 @@ export default function AdminShopPage() {
       [next[index], next[destination]] = [next[destination], next[index]];
       return next;
     });
-    setSaved(false);
+    markDirty();
   }
 
   async function handleUpload(files: FileList | null) {
@@ -213,7 +229,7 @@ export default function AdminShopPage() {
 
     setUploading(true);
     setError(null);
-    setSaved(false);
+    markDirty();
     try {
       const uploaded: DraftKitPhoto[] = [];
       for (const file of selected) {
@@ -238,7 +254,7 @@ export default function AdminShopPage() {
 
     setUploading(true);
     setError(null);
-    setSaved(false);
+    markDirty();
     try {
       const uploaded: DraftPhotoStripPhoto[] = [];
       for (const file of selected) {
@@ -274,7 +290,8 @@ export default function AdminShopPage() {
       const { error: sectionError } = await supabase
         .from("shop_kit_section")
         .upsert([{
-          id: 1,
+          id: selectedSurface === "home" ? 1 : 2,
+          surface: selectedSurface,
           ...fields,
           bullet_points: cleanedBulletPoints,
           updated_at: new Date().toISOString(),
@@ -305,7 +322,7 @@ export default function AdminShopPage() {
       if (toInsert.length > 0) {
         const { error: insertError } = await supabase
           .from("shop_kit_photos")
-          .insert(toInsert);
+          .insert(toInsert.map((photo) => ({ ...photo, surface: selectedSurface })));
         if (insertError) throw new Error(insertError.message);
       }
 
@@ -338,7 +355,7 @@ export default function AdminShopPage() {
       }
 
       const [fresh, freshPhotoStrip] = await Promise.all([
-        fetchShopKitContent(),
+        fetchShopKitContent(selectedSurface),
         fetchShopCarouselPhotos(),
       ]);
       if (fresh.section) setFields(sectionToFields(fresh.section));
@@ -350,6 +367,7 @@ export default function AdminShopPage() {
       setDraftPhotoStripPhotos(
         freshPhotoStrip.map((photo) => ({ id: photo.id, url: photo.url })),
       );
+      setDirty(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (saveError: unknown) {
@@ -360,7 +378,8 @@ export default function AdminShopPage() {
   }
 
   const previewSection: DBShopKitSection = {
-    id: 1,
+    id: selectedSurface === "home" ? 1 : 2,
+    surface: selectedSurface,
     ...fields,
     bullet_points: cleanKitBulletPoints(
       fields.bullet_points.map((point) => point.text),
@@ -369,6 +388,7 @@ export default function AdminShopPage() {
   };
   const previewPhotos: DBShopKitPhoto[] = draftPhotos.map((photo, index) => ({
     id: photo.id ?? `draft-${index}`,
+    surface: selectedSurface,
     url: photo.url,
     sort_order: index,
     created_at: "",
@@ -401,7 +421,7 @@ export default function AdminShopPage() {
           className="font-body mt-1"
           style={{ fontSize: "1rem", color: "rgba(255,255,255,0.35)" }}
         >
-          Edit the shared 2026 Kit section shown on the homepage and shop page.
+          Manage independent kit content and photos for each public page.
         </p>
       </div>
 
@@ -421,6 +441,58 @@ export default function AdminShopPage() {
               border: "1px solid rgba(255,255,255,0.07)",
             }}
           >
+            <div
+              className="mb-4 grid grid-cols-2 gap-1 rounded-lg p-1"
+              style={{ backgroundColor: "rgba(255,255,255,0.04)" }}
+              aria-label="Kit placement"
+            >
+              {(
+                [
+                  { id: "home" as const, label: "Home Page" },
+                  { id: "shop" as const, label: "Shop Page" },
+                ]
+              ).map((surface) => {
+                const isSelected = selectedSurface === surface.id;
+                return (
+                  <button
+                    key={surface.id}
+                    type="button"
+                    disabled={saving || uploading}
+                    aria-pressed={isSelected}
+                    onClick={() => {
+                      if (surface.id === selectedSurface) return;
+                      if (
+                        dirty &&
+                        !window.confirm("Discard unsaved changes before switching pages?")
+                      ) {
+                        return;
+                      }
+                      setSelectedSurface(surface.id);
+                      if (surface.id === "home" && activeTab === "photoStrip") {
+                        setActiveTab("content");
+                      }
+                      setSaved(false);
+                    }}
+                    className="font-display rounded-md px-3 py-3 text-xs uppercase tracking-widest transition-colors"
+                    style={{
+                      backgroundColor: isSelected ? "#FFFFFF" : "transparent",
+                      color: isSelected ? "#141414" : "rgba(255,255,255,0.5)",
+                    }}
+                  >
+                    {surface.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <p
+              className="font-body mb-4 text-xs leading-relaxed"
+              style={{ color: "rgba(255,255,255,0.32)" }}
+            >
+              Editing the {selectedSurface === "home" ? "home page" : "shop page"} kit presentation.
+              Content and Kit Photos are saved independently.
+            </p>
+
             <div className="mb-4 flex gap-1 rounded-lg p-1" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>
               {(
                 [
@@ -435,7 +507,7 @@ export default function AdminShopPage() {
                     label: "Photo Row",
                     count: `${draftPhotoStripPhotos.length}/${MAX_PHOTO_STRIP_PHOTOS}`,
                   },
-                ]
+                ].filter((tab) => selectedSurface === "shop" || tab.id !== "photoStrip")
               ).map((tab) => {
                 const hasIssue =
                   (tab.id === "content" && !hasBulletPoint) ||
@@ -683,7 +755,7 @@ export default function AdminShopPage() {
                         setDraftPhotos((current) =>
                           current.filter((_, photoIndex) => photoIndex !== index),
                         );
-                        setSaved(false);
+                        markDirty();
                       }}
                       className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full opacity-100 transition-opacity sm:h-6 sm:w-6 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                       style={{ backgroundColor: "#E7001B" }}
@@ -813,7 +885,7 @@ export default function AdminShopPage() {
                         setDraftPhotoStripPhotos((current) =>
                           current.filter((_, photoIndex) => photoIndex !== index),
                         );
-                        setSaved(false);
+                        markDirty();
                       }}
                       className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full opacity-100 transition-opacity sm:h-6 sm:w-6 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                       style={{ backgroundColor: "#E7001B" }}
@@ -914,7 +986,11 @@ export default function AdminShopPage() {
                   cursor: saveDisabled ? "not-allowed" : "pointer",
                 }}
               >
-                {saving ? "Saving…" : uploading ? "Uploading…" : "Save Changes"}
+                {saving
+                  ? "Saving…"
+                  : uploading
+                    ? "Uploading…"
+                    : `Save ${selectedSurface === "home" ? "Home Page" : "Shop Page"}`}
               </button>
             </div>
           </section>
@@ -926,7 +1002,7 @@ export default function AdminShopPage() {
                   className="font-display font-bold uppercase tracking-widest text-white"
                   style={{ fontSize: "0.9rem" }}
                 >
-                  Live Preview
+                  {selectedSurface === "home" ? "Home Page" : "Shop Page"} Preview
                 </p>
                 <p
                   className="font-body mt-1 text-xs"
@@ -970,6 +1046,8 @@ export default function AdminShopPage() {
               )}
             </div>
 
+            {selectedSurface === "shop" && (
+            <>
             <div className="mb-3 mt-6 flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p
@@ -1007,6 +1085,8 @@ export default function AdminShopPage() {
                 </div>
               )}
             </div>
+            </>
+            )}
           </section>
         </div>
       )}

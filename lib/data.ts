@@ -61,6 +61,9 @@ export type Fixture = {
   opponent: string;
   opponentLogoUrl?: string | null;
   competition?: string | null;
+  sponsorName?: string | null;
+  sponsorLogoUrl?: string | null;
+  sponsorLink?: string | null;
   home: boolean;
   time: string;
   venue: string;

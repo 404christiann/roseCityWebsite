@@ -6,25 +6,28 @@ import {
   fetchShopKitContent,
   type ShopKitContent,
 } from "@/lib/queries";
+import type { ShopKitSurface } from "@/lib/db-types";
 
 export default function ShopKitSectionContainer({
   headingTag = "h2",
   fadeImageToWhite = false,
+  surface,
 }: {
   headingTag?: "h1" | "h2";
   fadeImageToWhite?: boolean;
+  surface: ShopKitSurface;
 }) {
   const [content, setContent] = useState<ShopKitContent | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchShopKitContent()
+    fetchShopKitContent(surface)
       .then(setContent)
       .catch((error) => {
         console.error("ShopKitSection:", error);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [surface]);
 
   if (loading) {
     return (

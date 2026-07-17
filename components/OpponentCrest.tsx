@@ -31,8 +31,8 @@ export default function OpponentCrest({ name, logoUrl, size = 96, variant = "lig
     <div
       className={`relative flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center ${className}`}
       style={{
-        width: size,
-        height: size,
+        width: `var(--opponent-crest-size, ${size}px)`,
+        height: `var(--opponent-crest-size, ${size}px)`,
         backgroundColor: showImage
           ? "transparent"
           : isDark ? "rgba(255,255,255,0.15)" : "var(--color-gray-light)",
@@ -51,7 +51,7 @@ export default function OpponentCrest({ name, logoUrl, size = 96, variant = "lig
       ) : (
         <span
           className="font-display font-black uppercase leading-none"
-          style={{ fontSize: size * 0.4, color: isDark ? "rgba(255,255,255,0.85)" : "var(--color-gray-mid)" }}
+          style={{ fontSize: `calc(var(--opponent-crest-size, ${size}px) * 0.4)`, color: isDark ? "rgba(255,255,255,0.85)" : "var(--color-gray-mid)" }}
         >
           {initial(name)}
         </span>

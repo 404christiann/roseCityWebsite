@@ -234,7 +234,7 @@ export default function PlayerModal({ player, onClose, seasonLabel = "Current Se
 }
 
 function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | FieldStats; seasonLabel: string }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const gk = isGK(stats);
 
   const gridStats = gk
@@ -438,7 +438,7 @@ function CollapsibleStats({ stats, seasonLabel }: { stats: GoalkeeperStats | Fie
 }
 
 function CollapsibleBio({ bio }: { bio: string }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
 
   return (
     <>

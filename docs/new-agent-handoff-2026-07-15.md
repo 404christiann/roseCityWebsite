@@ -34,6 +34,18 @@ push — see "Working Rules" below.
 
 ## Current Product State
 
+Pending local rollout: the homepage Next Match presentation has an optional
+per-match linked sponsor and restored Days/Hours/Min/Sec countdown. Sponsor
+fields are edited in `/admin/schedule` and carried from the latest match when
+creating a new one. Production sponsor columns and upload policies were
+verified on 2026-07-17; existing matches intentionally remain unsponsored.
+
+Pending local rollout: homepage and `/shop` kit presentations have been split
+into independent `home` and `shop` content/photo sets. The admin selects the
+surface before editing. Production surface rows, photo sets, and authenticated
+write policies were verified on 2026-07-17. The migration remains the setup
+path for new environments.
+
 The public website and protected Supabase admin portal are production Next.js
 applications deployed by Vercel. The visual refresh and multi-season admin work
 described in older handoffs are complete; do not restart those phases.
@@ -97,9 +109,9 @@ roster queries or admin actions.
 - Homepage hero CTA is `Team Store`, links to `/shop`, and has no arrow.
 - The two-image 2026 kit treatment is used on the homepage immediately after
   the video and on `/shop`; images come from the public Supabase `shop` bucket.
-- `/admin/shop` edits the shared kit content, purchase link, and ordered photo
-  set. Its scaled preview uses the same public component, and the editor adapts
-  to mobile admin layouts.
+- `/admin/shop` independently edits the homepage or shop-page kit content,
+  purchase link, and ordered photo set. Its scaled preview uses the same public
+  component, and the editor adapts to mobile admin layouts.
 - Shop form labels use plain language for non-technical club managers.
 - Save actions throughout the admin portal use the shared subtle
   saving/success feedback treatment.
@@ -141,8 +153,8 @@ roster queries or admin actions.
 
 ## Admin-Managed Shop Data - Complete
 
-- `shop_kit_section` stores the single shared text and purchase-link record.
-- `shop_kit_photos` stores one to six ordered public image URLs. Multiple Kit
+- `shop_kit_section` stores separate `home` and `shop` text/purchase-link records.
+- `shop_kit_photos` stores one to six ordered public image URLs per surface. Multiple Kit
   Photos autoplay horizontally with no public controls; one photo remains static.
 - The homepage and `/shop` both use `ShopKitSectionContainer` and the same
   `ShopKitSection` presentation component.
@@ -179,10 +191,10 @@ roster queries or admin actions.
 
 ## Verification
 
-Current release-candidate checks (2026-07-16, Kit Photos slideshow and fade):
+Current release-candidate checks (2026-07-17, fixture, shop, and roster updates):
 
 ```text
-npm test                         148/148 tests passed across 7 files
+npm test                         153/153 tests passed across 8 files
 npx tsc --noEmit --pretty false passed
 npm run build                    passed
 ```

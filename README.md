@@ -17,12 +17,13 @@ Built with:
 The platform includes:
 
 - a cinematic homepage
-- a homepage "Next Match" card with team crests and an optional competition
-  label, replacing an earlier live countdown timer
+- a homepage "Next Match" card with team crests, optional per-match sponsor,
+  and a live countdown
 - active and historical season-aware rosters
 - fixture and schedule management, including opponent-logo uploads
 - player, match, and season statistics
-- a database-backed shop section shared by the homepage and shop page
+- independently managed database-backed kit presentations for the homepage
+  and shop page
 - a protected admin portal for roster, schedule, seasons, stats, shop, and branding
 - footer social and partner links
 
@@ -48,13 +49,14 @@ Core brand colors:
 
 ## Shop Experience
 
-- The homepage and `/shop` render the same `ShopKitSection` component.
-- Content and one to six ordered photos come from Supabase. Multiple Kit Photos
+- The homepage and `/shop` reuse the same `ShopKitSection` component while
+  loading separate content and photo sets.
+- Each presentation's content and one to six ordered photos come from Supabase. Multiple Kit Photos
   autoplay as a hands-off slideshow with no public controls; one photo remains static.
-- `/admin/shop` lets approved club managers edit the section with plain-language
-  labels, manage up to eight ordered product bullet points, edit multiline
-  store information, upload/reorder photos, and preview the exact public
-  component.
+- `/admin/shop` lets approved club managers switch between Homepage and Shop
+  Page, then independently edit each presentation with plain-language labels,
+  manage up to eight ordered product bullet points, edit multiline store
+  information, upload/reorder photos, and preview the exact public component.
 - The admin editor adapts to mobile layouts.
 - The cinematic shop slideshow remains implemented but is temporarily hidden
   with `SHOW_SHOP_HERO = false` in `lib/site-flags.ts`.
@@ -63,7 +65,10 @@ The shop schema, grants, row-level security, seed content, and Storage policies
 are recorded in `db/migrations/2026-07-shop-kit-section.sql`. The production
 database setup is already complete; do not rerun it by default. Existing
 environments need the additive `db/migrations/2026-07-shop-kit-details.sql`
-before bullet points and store information can be saved.
+before bullet points and store information can be saved. The independent
+homepage/shop production rows and policies were verified on 2026-07-17;
+`db/migrations/2026-07-shop-kit-surfaces.sql` remains the setup path for new
+environments and copies existing content without removing data.
 
 ## Shop Page Photo Row
 
@@ -101,12 +106,13 @@ Branding save; it does not change the existing crest file.
 
 ## Next Match Card
 
-- The homepage "Next Match" section is a static crest-vs-crest card
-  (`components/NextMatchCard.tsx`): Rose City crest, red "VS", opponent
-  crest, an optional black competition-label pill, a giant red italic
-  day-of-week word, and a small date/kickoff/venue line.
+- The homepage "Next Match" section (`components/NextMatchCard.tsx`) presents
+  Rose City on the left, the opponent crest on the right, a large red title,
+  an optional linked match sponsor, and a live Days/Hours/Min/Sec countdown.
 - `/admin/schedule` lets club managers upload an opponent logo and set an
-  optional competition label per match. Logos without an upload fall back to
+  optional competition label per match. It also manages sponsor name, logo,
+  and optional website link; new matches prefill only sponsor fields from the
+  latest match in the selected season. Logos without an upload fall back to
   an initial-monogram circle via the shared `components/OpponentCrest.tsx`,
   which is also used to show opponent crests on the public `/schedule`
   fixture list.
@@ -114,6 +120,12 @@ Branding save; it does not change the existing crest file.
   `matches.opponent_logo_url` and `matches.competition` are recorded in
   `db/migrations/2026-07-next-match-card.sql`. The production database setup
   is already complete; do not rerun it by default.
+
+Per-match sponsor columns and authenticated uploads to the public `sponsors`
+bucket are recorded in `db/migrations/2026-07-match-sponsors.sql`. Production
+was verified on 2026-07-17; apply the migration only in environments that do
+not yet have these fields and policies. Existing matches are intentionally
+left without a sponsor.
 
 ## Social Links
 
@@ -188,7 +200,7 @@ npm run build
 
 Current application baseline builds on commit `5ce20126` on `main` (prior
 baseline `91d0081e`) and adds the shared white kit fade, up-to-six Kit Photos,
-and hands-off autoplay for multiple Kit Photos. Verification is 148/148 Vitest
+and hands-off autoplay for multiple Kit Photos. Verification is 153/153 Vitest
 tests, passing TypeScript, and a passing production build. Pushes to `main`
 trigger the Vercel deployment — but never push without the user's explicit
 permission for that specific push. Post-release documentation head: `1c2b6456`.

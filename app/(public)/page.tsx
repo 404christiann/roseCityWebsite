@@ -11,9 +11,9 @@ export default function HomePage() {
   return (
     <>
       <Hero />
-      <ShopKitSection fadeImageToWhite />
-      <NextMatchCard />
+      <ShopKitSection surface="home" />
       <ChampionsBadge />
+      <NextMatchCard />
       <PhotoSlideshow />
       <BehindTheRose />
     </>
