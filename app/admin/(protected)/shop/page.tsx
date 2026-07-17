@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import AdminSaveFeedback from "@/components/admin/AdminSaveFeedback";
 import ScaledShopKitPreview from "@/components/admin/ScaledShopKitPreview";
-import ScaledShopPhotoCarouselPreview from "@/components/admin/ScaledShopPhotoCarouselPreview";
+import ScaledShopPhotoStripPreview from "@/components/admin/ScaledShopPhotoStripPreview";
 import type {
   DBShopCarouselPhoto,
   DBShopKitPhoto,
@@ -23,11 +23,11 @@ import {
   type DraftKitPhoto,
 } from "@/lib/shop-kit";
 import {
-  canAddCarouselPhoto,
-  diffCarouselPhotos,
-  MAX_CAROUSEL_PHOTOS,
-  type DraftCarouselPhoto,
-} from "@/lib/shop-carousel";
+  canAddPhotoStripPhoto,
+  diffPhotoStripPhotos,
+  MAX_PHOTO_STRIP_PHOTOS,
+  type DraftPhotoStripPhoto,
+} from "@/lib/shop-photo-strip";
 import { createClient } from "@/lib/supabase-browser";
 
 type SectionFields = {
@@ -90,34 +90,34 @@ async function uploadPhoto(file: File, bucket: string): Promise<string> {
   return data.publicUrl;
 }
 
-type AdminTab = "content" | "kit" | "carousel";
+type AdminTab = "content" | "kit" | "photoStrip";
 
 export default function AdminShopPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>("content");
   const [fields, setFields] = useState<SectionFields>(EMPTY_FIELDS);
   const [draftPhotos, setDraftPhotos] = useState<DraftKitPhoto[]>([]);
   const [originalPhotos, setOriginalPhotos] = useState<DBShopKitPhoto[]>([]);
-  const [draftCarouselPhotos, setDraftCarouselPhotos] = useState<DraftCarouselPhoto[]>([]);
-  const [originalCarouselPhotos, setOriginalCarouselPhotos] = useState<DBShopCarouselPhoto[]>([]);
+  const [draftPhotoStripPhotos, setDraftPhotoStripPhotos] = useState<DraftPhotoStripPhoto[]>([]);
+  const [originalPhotoStripPhotos, setOriginalPhotoStripPhotos] = useState<DBShopCarouselPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const carouselFileRef = useRef<HTMLInputElement>(null);
+  const photoStripFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     Promise.all([fetchShopKitContent(), fetchShopCarouselPhotos()])
-      .then(([{ section, photos }, carouselPhotos]) => {
+      .then(([{ section, photos }, photoStripPhotos]) => {
         if (section) {
           setFields(sectionToFields(section));
         }
         setOriginalPhotos(photos);
         setDraftPhotos(photos.map((photo) => ({ id: photo.id, url: photo.url })));
-        setOriginalCarouselPhotos(carouselPhotos);
-        setDraftCarouselPhotos(
-          carouselPhotos.map((photo) => ({ id: photo.id, url: photo.url })),
+        setOriginalPhotoStripPhotos(photoStripPhotos);
+        setDraftPhotoStripPhotos(
+          photoStripPhotos.map((photo) => ({ id: photo.id, url: photo.url })),
         );
       })
       .catch((loadError: unknown) => {
@@ -192,8 +192,8 @@ export default function AdminShopPage() {
     setSaved(false);
   }
 
-  function moveCarouselPhoto(index: number, delta: -1 | 1) {
-    setDraftCarouselPhotos((current) => {
+  function movePhotoStripPhoto(index: number, delta: -1 | 1) {
+    setDraftPhotoStripPhotos((current) => {
       const next = [...current];
       const destination = index + delta;
       if (destination < 0 || destination >= next.length) return current;
@@ -226,9 +226,9 @@ export default function AdminShopPage() {
     }
   }
 
-  async function handleCarouselUpload(files: FileList | null) {
+  async function handlePhotoStripUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const remaining = MAX_CAROUSEL_PHOTOS - draftCarouselPhotos.length;
+    const remaining = MAX_PHOTO_STRIP_PHOTOS - draftPhotoStripPhotos.length;
     const selected = Array.from(files).slice(0, remaining);
     if (selected.length === 0) return;
 
@@ -236,18 +236,18 @@ export default function AdminShopPage() {
     setError(null);
     setSaved(false);
     try {
-      const uploaded: DraftCarouselPhoto[] = [];
+      const uploaded: DraftPhotoStripPhoto[] = [];
       for (const file of selected) {
         uploaded.push({ id: null, url: await uploadPhoto(file, "shop") });
       }
-      setDraftCarouselPhotos((current) =>
-        [...current, ...uploaded].slice(0, MAX_CAROUSEL_PHOTOS),
+      setDraftPhotoStripPhotos((current) =>
+        [...current, ...uploaded].slice(0, MAX_PHOTO_STRIP_PHOTOS),
       );
     } catch (uploadError: unknown) {
       setError(uploadError instanceof Error ? uploadError.message : "Upload failed");
     } finally {
       setUploading(false);
-      if (carouselFileRef.current) carouselFileRef.current.value = "";
+      if (photoStripFileRef.current) photoStripFileRef.current.value = "";
     }
   }
 
@@ -305,20 +305,20 @@ export default function AdminShopPage() {
         if (insertError) throw new Error(insertError.message);
       }
 
-      const carouselDiff = diffCarouselPhotos(
-        originalCarouselPhotos,
-        draftCarouselPhotos,
+      const photoStripDiff = diffPhotoStripPhotos(
+        originalPhotoStripPhotos,
+        draftPhotoStripPhotos,
       );
 
-      if (carouselDiff.toDelete.length > 0) {
+      if (photoStripDiff.toDelete.length > 0) {
         const { error: carouselDeleteError } = await supabase
           .from("shop_carousel_photos")
           .delete()
-          .in("id", carouselDiff.toDelete);
+          .in("id", photoStripDiff.toDelete);
         if (carouselDeleteError) throw new Error(carouselDeleteError.message);
       }
 
-      for (const update of carouselDiff.toUpdate) {
+      for (const update of photoStripDiff.toUpdate) {
         const { error: carouselUpdateError } = await supabase
           .from("shop_carousel_photos")
           .update({ sort_order: update.sort_order })
@@ -326,14 +326,14 @@ export default function AdminShopPage() {
         if (carouselUpdateError) throw new Error(carouselUpdateError.message);
       }
 
-      if (carouselDiff.toInsert.length > 0) {
+      if (photoStripDiff.toInsert.length > 0) {
         const { error: carouselInsertError } = await supabase
           .from("shop_carousel_photos")
-          .insert(carouselDiff.toInsert);
+          .insert(photoStripDiff.toInsert);
         if (carouselInsertError) throw new Error(carouselInsertError.message);
       }
 
-      const [fresh, freshCarousel] = await Promise.all([
+      const [fresh, freshPhotoStrip] = await Promise.all([
         fetchShopKitContent(),
         fetchShopCarouselPhotos(),
       ]);
@@ -342,9 +342,9 @@ export default function AdminShopPage() {
       setDraftPhotos(
         fresh.photos.map((photo) => ({ id: photo.id, url: photo.url })),
       );
-      setOriginalCarouselPhotos(freshCarousel);
-      setDraftCarouselPhotos(
-        freshCarousel.map((photo) => ({ id: photo.id, url: photo.url })),
+      setOriginalPhotoStripPhotos(freshPhotoStrip);
+      setDraftPhotoStripPhotos(
+        freshPhotoStrip.map((photo) => ({ id: photo.id, url: photo.url })),
       );
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -369,7 +369,7 @@ export default function AdminShopPage() {
     sort_order: index,
     created_at: "",
   }));
-  const previewCarouselPhotos: DBShopCarouselPhoto[] = draftCarouselPhotos.map(
+  const previewPhotoStripPhotos: DBShopCarouselPhoto[] = draftPhotoStripPhotos.map(
     (photo, index) => ({
       id: photo.id ?? `draft-${index}`,
       url: photo.url,
@@ -423,9 +423,9 @@ export default function AdminShopPage() {
                   { id: "content" as const, label: "Content", count: null },
                   { id: "kit" as const, label: "Kit Photos", count: `${draftPhotos.length}/4` },
                   {
-                    id: "carousel" as const,
-                    label: "Carousel",
-                    count: `${draftCarouselPhotos.length}/${MAX_CAROUSEL_PHOTOS}`,
+                    id: "photoStrip" as const,
+                    label: "Photo Row",
+                    count: `${draftPhotoStripPhotos.length}/${MAX_PHOTO_STRIP_PHOTOS}`,
                   },
                 ]
               ).map((tab) => {
@@ -760,7 +760,7 @@ export default function AdminShopPage() {
             </div>
             )}
 
-            {activeTab === "carousel" && (
+            {activeTab === "photoStrip" && (
             <div>
             <div className="mb-2 flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -768,25 +768,25 @@ export default function AdminShopPage() {
                   className="font-display text-xs uppercase tracking-widest"
                   style={{ color: "rgba(255,255,255,0.35)" }}
                 >
-                  Shop Page Carousel
+                  Shop Page Photo Row
                 </p>
                 <p
                   className="font-body mt-1 text-xs"
                   style={{ color: "rgba(255,255,255,0.22)" }}
                 >
-                  Full-width slideshow shown on the shop page. Leave empty to hide it.
+                  Static photo row shown on the shop page. Leave empty to hide it.
                 </p>
               </div>
               <span
                 className="font-display text-xs uppercase tracking-widest"
                 style={{ color: "rgba(255,255,255,0.25)" }}
               >
-                {draftCarouselPhotos.length}/{MAX_CAROUSEL_PHOTOS}
+                {draftPhotoStripPhotos.length}/{MAX_PHOTO_STRIP_PHOTOS}
               </span>
             </div>
 
             <div className="grid grid-cols-3 gap-2 min-[420px]:flex min-[420px]:flex-wrap">
-              {draftCarouselPhotos.map((photo, index) => (
+              {draftPhotoStripPhotos.map((photo, index) => (
                 <div key={photo.id ?? photo.url} className="min-w-0 min-[420px]:w-[76px]">
                   <div
                     className="group relative aspect-square w-full overflow-hidden rounded-lg min-[420px]:h-[72px]"
@@ -794,7 +794,7 @@ export default function AdminShopPage() {
                   >
                     <Image
                       src={photo.url}
-                      alt={`Carousel photo ${index + 1}`}
+                      alt={`Photo row image ${index + 1}`}
                       fill
                       sizes="72px"
                       className="object-cover"
@@ -802,14 +802,14 @@ export default function AdminShopPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        setDraftCarouselPhotos((current) =>
+                        setDraftPhotoStripPhotos((current) =>
                           current.filter((_, photoIndex) => photoIndex !== index),
                         );
                         setSaved(false);
                       }}
                       className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full opacity-100 transition-opacity sm:h-6 sm:w-6 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                       style={{ backgroundColor: "#E7001B" }}
-                      aria-label={`Remove carousel photo ${index + 1}`}
+                      aria-label={`Remove photo row image ${index + 1}`}
                     >
                       <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
                         <path d="M1 1L9 9M9 1L1 9" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
@@ -818,16 +818,16 @@ export default function AdminShopPage() {
                   </div>
                   <div className="mt-1 flex gap-1">
                     <OrderButton
-                      label={`Move carousel photo ${index + 1} left`}
+                      label={`Move photo row image ${index + 1} left`}
                       disabled={index === 0}
-                      onClick={() => moveCarouselPhoto(index, -1)}
+                      onClick={() => movePhotoStripPhoto(index, -1)}
                     >
                       ←
                     </OrderButton>
                     <OrderButton
-                      label={`Move carousel photo ${index + 1} right`}
-                      disabled={index === draftCarouselPhotos.length - 1}
-                      onClick={() => moveCarouselPhoto(index, 1)}
+                      label={`Move photo row image ${index + 1} right`}
+                      disabled={index === draftPhotoStripPhotos.length - 1}
+                      onClick={() => movePhotoStripPhoto(index, 1)}
                     >
                       →
                     </OrderButton>
@@ -837,8 +837,8 @@ export default function AdminShopPage() {
 
               <button
                 type="button"
-                onClick={() => carouselFileRef.current?.click()}
-                disabled={uploading || !canAddCarouselPhoto(draftCarouselPhotos.length)}
+                onClick={() => photoStripFileRef.current?.click()}
+                disabled={uploading || !canAddPhotoStripPhoto(draftPhotoStripPhotos.length)}
                 className="flex aspect-square w-full flex-col items-center justify-center rounded-lg transition-colors min-[420px]:h-[72px] min-[420px]:w-[76px]"
                 style={{
                   border: "1px dashed rgba(255,255,255,0.15)",
@@ -847,12 +847,12 @@ export default function AdminShopPage() {
                     : "transparent",
                   color: "rgba(255,255,255,0.3)",
                   cursor:
-                    uploading || !canAddCarouselPhoto(draftCarouselPhotos.length)
+                    uploading || !canAddPhotoStripPhoto(draftPhotoStripPhotos.length)
                       ? "not-allowed"
                       : "pointer",
-                  opacity: canAddCarouselPhoto(draftCarouselPhotos.length) ? 1 : 0.4,
+                  opacity: canAddPhotoStripPhoto(draftPhotoStripPhotos.length) ? 1 : 0.4,
                 }}
-                aria-label="Add carousel photos"
+                aria-label="Add photo row images"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -865,21 +865,21 @@ export default function AdminShopPage() {
                 </span>
               </button>
               <input
-                ref={carouselFileRef}
+                ref={photoStripFileRef}
                 type="file"
                 accept="image/*"
                 multiple
                 className="hidden"
-                onChange={(event) => handleCarouselUpload(event.target.files)}
+                onChange={(event) => handlePhotoStripUpload(event.target.files)}
               />
             </div>
 
-            {!canAddCarouselPhoto(draftCarouselPhotos.length) && (
+            {!canAddPhotoStripPhoto(draftPhotoStripPhotos.length) && (
               <p
                 className="font-body mt-2 text-xs"
                 style={{ color: "rgba(255,255,255,0.25)" }}
               >
-                4 photo max.
+                {MAX_PHOTO_STRIP_PHOTOS} photo max.
               </p>
             )}
             </div>
@@ -968,7 +968,7 @@ export default function AdminShopPage() {
                   className="font-display font-bold uppercase tracking-widest text-white"
                   style={{ fontSize: "0.9rem" }}
                 >
-                  Shop Page Carousel Preview
+                  Shop Page Photo Row Preview
                 </p>
                 <p
                   className="font-body mt-1 text-xs"
@@ -983,8 +983,8 @@ export default function AdminShopPage() {
               className="overflow-hidden rounded-lg"
               style={{ border: "1px solid rgba(255,255,255,0.08)" }}
             >
-              {previewCarouselPhotos.length > 0 ? (
-                <ScaledShopPhotoCarouselPreview photos={previewCarouselPhotos} />
+              {previewPhotoStripPhotos.length > 0 ? (
+                <ScaledShopPhotoStripPreview photos={previewPhotoStripPhotos} />
               ) : (
                 <div
                   className="flex min-h-40 items-center justify-center p-8 text-center"
@@ -994,7 +994,7 @@ export default function AdminShopPage() {
                     className="font-body text-sm"
                     style={{ color: "rgba(255,255,255,0.35)" }}
                   >
-                    Empty — the carousel stays hidden on the shop page until you add a photo.
+                    Empty — the photo row stays hidden on the shop page until you add a photo.
                   </p>
                 </div>
               )}

@@ -1,18 +1,18 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import ShopPhotoCarousel from "@/components/ShopPhotoCarousel";
+import ShopPhotoStrip from "@/components/ShopPhotoStrip";
 import type { DBShopCarouselPhoto } from "@/lib/db-types";
 
 const DESKTOP_PREVIEW_WIDTH = 1700;
 
-interface ScaledShopPhotoCarouselPreviewProps {
+interface ScaledShopPhotoStripPreviewProps {
   photos: DBShopCarouselPhoto[];
 }
 
-export default function ScaledShopPhotoCarouselPreview({
+export default function ScaledShopPhotoStripPreview({
   photos,
-}: ScaledShopPhotoCarouselPreviewProps) {
+}: ScaledShopPhotoStripPreviewProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -60,7 +60,7 @@ export default function ScaledShopPhotoCarouselPreview({
             pointerEvents: "none",
           }}
         >
-          <ShopPhotoCarousel photos={photos} />
+          <ShopPhotoStrip photos={photos} />
         </div>
       </div>
     </div>

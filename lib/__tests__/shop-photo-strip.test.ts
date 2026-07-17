@@ -1,74 +1,72 @@
 import { describe, expect, it } from "vitest";
 import {
-  canAddCarouselPhoto,
-  carouselDisplayMode,
-  carouselPhotoAlt,
-  diffCarouselPhotos,
-  MAX_CAROUSEL_PHOTOS,
-} from "@/lib/shop-carousel";
+  canAddPhotoStripPhoto,
+  diffPhotoStripPhotos,
+  MAX_PHOTO_STRIP_PHOTOS,
+  photoStripDisplayMode,
+  photoStripPhotoAlt,
+} from "@/lib/shop-photo-strip";
 
-describe("carouselPhotoAlt", () => {
+describe("photoStripPhotoAlt", () => {
   it("numbers photos from one", () => {
-    expect(carouselPhotoAlt(0, 3)).toBe("Rose City FC gear photo 1 of 3");
+    expect(photoStripPhotoAlt(0, 3)).toBe("Rose City FC gear photo 1 of 3");
   });
 
   it("labels the final photo correctly", () => {
-    expect(carouselPhotoAlt(3, 4)).toBe("Rose City FC gear photo 4 of 4");
+    expect(photoStripPhotoAlt(5, 6)).toBe("Rose City FC gear photo 6 of 6");
   });
 
-  it("labels a single static photo", () => {
-    expect(carouselPhotoAlt(0, 1)).toBe("Rose City FC gear photo 1 of 1");
+  it("labels a single photo", () => {
+    expect(photoStripPhotoAlt(0, 1)).toBe("Rose City FC gear photo 1 of 1");
   });
 });
 
-describe("carouselDisplayMode", () => {
+describe("photoStripDisplayMode", () => {
   it.each([
     [0, "hidden"],
-    [1, "static"],
-    [2, "auto"],
-    [3, "auto"],
-    [4, "auto"],
+    [1, "shown"],
+    [2, "shown"],
+    [6, "shown"],
   ])("returns %s for %i photos", (count, expected) => {
-    expect(carouselDisplayMode(count as number)).toBe(expected);
+    expect(photoStripDisplayMode(count as number)).toBe(expected);
   });
 
   it("treats negative counts as hidden", () => {
-    expect(carouselDisplayMode(-1)).toBe("hidden");
+    expect(photoStripDisplayMode(-1)).toBe("hidden");
   });
 });
 
-describe("canAddCarouselPhoto", () => {
-  it("caps the carousel at four photos", () => {
-    expect(MAX_CAROUSEL_PHOTOS).toBe(4);
+describe("canAddPhotoStripPhoto", () => {
+  it("caps the photo strip at six photos", () => {
+    expect(MAX_PHOTO_STRIP_PHOTOS).toBe(6);
   });
 
   it.each([
     [0, true],
-    [1, true],
-    [2, true],
-    [3, true],
-    [4, false],
-    [5, false],
+    [4, true],
+    [5, true],
+    [6, false],
+    [7, false],
   ])("returns %s at %i photos", (count, expected) => {
-    expect(canAddCarouselPhoto(count as number)).toBe(expected);
+    expect(canAddPhotoStripPhoto(count as number)).toBe(expected);
   });
 });
 
-describe("diffCarouselPhotos", () => {
+describe("diffPhotoStripPhotos", () => {
   const original = [
     { id: "a", sort_order: 0 },
     { id: "b", sort_order: 1 },
   ];
 
   it("returns no writes when nothing changed", () => {
-    expect(diffCarouselPhotos(original, [
+    expect(diffPhotoStripPhotos(original, [
       { id: "a", url: "a.jpg" },
       { id: "b", url: "b.jpg" },
     ])).toEqual({ toDelete: [], toInsert: [], toUpdate: [] });
   });
 
   it("inserts a new photo at its draft position", () => {
-    expect(diffCarouselPhotos(original, [
+    expect(diffPhotoStripPhotos(original, [
       { id: "a", url: "a.jpg" },
       { id: "b", url: "b.jpg" },
       { id: null, url: "c.jpg" },
@@ -79,8 +77,8 @@ describe("diffCarouselPhotos", () => {
     });
   });
 
-  it("deletes every row when the carousel is emptied", () => {
-    expect(diffCarouselPhotos(original, [])).toEqual({
+  it("deletes every row when the photo strip is emptied", () => {
+    expect(diffPhotoStripPhotos(original, [])).toEqual({
       toDelete: ["a", "b"],
       toInsert: [],
       toUpdate: [],
@@ -92,7 +90,7 @@ describe("diffCarouselPhotos", () => {
       ...original,
       { id: "c", sort_order: 2 },
     ];
-    expect(diffCarouselPhotos(threeOriginal, [
+    expect(diffPhotoStripPhotos(threeOriginal, [
       { id: "c", url: "c.jpg" },
       { id: null, url: "d.jpg" },
       { id: "a", url: "a.jpg" },
