@@ -75,9 +75,10 @@ before bullet points and store information can be saved.
 - Uploads use the public `logos_v2/club-branding` path. Previous files are
   retained as a safety measure; saving only changes the active logo setting.
 
-Run the additive `db/migrations/2026-07-site-branding.sql` before testing a
-Branding save in an environment. It creates the singleton setting and scoped
-authenticated upload policies without changing the existing crest file.
+The production `site_branding` row, public `logos_v2` bucket, and signed-in
+upload policies were manually verified on 2026-07-16. New environments must
+run the additive `db/migrations/2026-07-site-branding.sql` before testing a
+Branding save; it does not change the existing crest file.
 
 ## Next Match Card
 
@@ -168,4 +169,4 @@ npm run build
 
 Latest application release: commit `91d0081e` on `main`, with 129/129 Vitest
 tests, passing TypeScript, and a passing production build. Pushes to `main`
-trigger the Vercel deployment.
+trigger the Vercel deployment. Post-release documentation head: `1c2b6456`.

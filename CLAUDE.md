@@ -7,7 +7,8 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
 
 - The admin-managed shop experience and prior public-site, roster, storefront,
   sponsor, navigation, and multi-season work are shipped on `main` through
-  application commit `91d0081e`.
+  application commit `91d0081e`; the post-release documentation head is
+  `1c2b6456`.
 - The homepage "Next Match" section was redesigned: the live ticking countdown
   (`components/Countdown.tsx`) was removed and replaced by
   `components/NextMatchCard.tsx` — a static crest-vs-crest match card (Rose
@@ -41,9 +42,12 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
   editable multiline store information. New environments must apply
   `db/migrations/2026-07-shop-kit-details.sql` before those saves.
 - `/admin/branding` lets an approved admin upload one shared club logo that
-  updates navigation, footer, admin
-  identity, next-match crest, player placeholders, and the browser icon. New
-  environments must apply `db/migrations/2026-07-site-branding.sql` first.
+  updates navigation, footer, admin identity, next-match crest, player
+  placeholders, and the browser icon. New environments must apply
+  `db/migrations/2026-07-site-branding.sql` first.
+- Production `site_branding`, the public `logos_v2` bucket, and the signed-in
+  Storage policies were manually verified on 2026-07-16. Do not rerun branding
+  setup against production by default.
 - Admin save actions use the shared subtle saving/success feedback treatment.
 - The only expected local worktree change after verification is the generated
   TypeScript cache `tsconfig.tsbuildinfo`; do not commit it by default.

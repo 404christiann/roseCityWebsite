@@ -19,9 +19,9 @@ Read these files in order:
 
 The latest application release is `91d0081e` (`Add admin-managed shop details
 and branding`) on `main`. It includes the Shop-details follow-up, shared club
-branding, and all earlier work through `9f39c02b`. This handoff was originally
-written at `1737959a` (`Add admin-managed shop experience`). The worktree may
-contain the generated cache file
+branding, and all earlier work through `9f39c02b`. Post-release documentation
+head is `1c2b6456`. This handoff was originally written at `1737959a` (`Add
+admin-managed shop experience`). The worktree may contain the generated cache file
 `tsconfig.tsbuildinfo`; do not treat it as product work or commit it by
 default. Always inspect `git status` and current diffs before editing because
 this repository has previously contained work from multiple agents.
@@ -163,8 +163,12 @@ roster queries or admin actions.
 - Missing player photos stay empty in storage. Legacy logo placeholders are
   normalized back to empty on save so they continue following the active crest.
 - Run the additive, idempotent
-  `db/migrations/2026-07-site-branding.sql` before testing an admin upload.
-  It does not remove or replace the current crest, and old uploads are retained.
+  `db/migrations/2026-07-site-branding.sql` before testing an admin upload in a
+  new environment. It does not remove or replace the current crest, and old
+  uploads are retained.
+- Production `site_branding`, the public `logos_v2` bucket, and the signed-in
+  Storage policies were manually verified on 2026-07-16. Do not rerun the
+  setup against production by default.
 
 ## Verification
 
@@ -215,8 +219,8 @@ Do not mutate production data merely to repeat destructive CRUD verification.
   database setup has already been completed; do not rerun it by default.
 - The Branding editor requires `site_branding` and the scoped
   `logos_v2/club-branding` upload policy from
-  `db/migrations/2026-07-site-branding.sql`; this additive migration is not yet
-  confirmed in production.
+  `db/migrations/2026-07-site-branding.sql`. Production setup is confirmed;
+  this remains a new-environment requirement.
 - Authenticated admin CRUD can receive an additional browser pass using safe
   test records if Christian explicitly requests it.
 - `PartnerStrip.tsx` may still use older local partner artwork; the completed
