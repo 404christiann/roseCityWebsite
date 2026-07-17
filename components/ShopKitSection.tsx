@@ -19,6 +19,7 @@ interface ShopKitSectionProps {
   photos: DBShopKitPhoto[];
   headingTag?: "h1" | "h2";
   animate?: boolean;
+  fadeImageToWhite?: boolean;
 }
 
 export default function ShopKitSection({
@@ -26,6 +27,7 @@ export default function ShopKitSection({
   photos,
   headingTag = "h2",
   animate = true,
+  fadeImageToWhite = false,
 }: ShopKitSectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
@@ -90,6 +92,16 @@ export default function ShopKitSection({
           <div className="absolute inset-0 hidden md:block">
             <KitImageGrid photos={kitPhotos} sizes="25vw" />
           </div>
+          {fadeImageToWhite && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[52%]"
+              style={{
+                background:
+                  "linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.52) 34%, rgba(255,255,255,0.92) 68%, #FFFFFF 92%)",
+              }}
+            />
+          )}
         </div>
 
         <div

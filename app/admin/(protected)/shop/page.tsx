@@ -15,11 +15,13 @@ import {
   fetchShopKitContent,
 } from "@/lib/queries";
 import {
+  canAddKitPhoto,
   cleanKitBulletPoints,
   DEFAULT_KIT_BULLET_POINTS,
   DEFAULT_KIT_STORE_NOTE,
   diffShopKitPhotos,
   MAX_KIT_BULLET_POINTS,
+  MAX_KIT_PHOTOS,
   type DraftKitPhoto,
 } from "@/lib/shop-kit";
 import {
@@ -205,7 +207,7 @@ export default function AdminShopPage() {
 
   async function handleUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const remaining = 4 - draftPhotos.length;
+    const remaining = Math.max(0, MAX_KIT_PHOTOS - draftPhotos.length);
     const selected = Array.from(files).slice(0, remaining);
     if (selected.length === 0) return;
 
@@ -217,7 +219,9 @@ export default function AdminShopPage() {
       for (const file of selected) {
         uploaded.push({ id: null, url: await uploadPhoto(file, "shop") });
       }
-      setDraftPhotos((current) => [...current, ...uploaded].slice(0, 4));
+      setDraftPhotos((current) =>
+        [...current, ...uploaded].slice(0, MAX_KIT_PHOTOS),
+      );
     } catch (uploadError: unknown) {
       setError(uploadError instanceof Error ? uploadError.message : "Upload failed");
     } finally {
@@ -421,7 +425,11 @@ export default function AdminShopPage() {
               {(
                 [
                   { id: "content" as const, label: "Content", count: null },
-                  { id: "kit" as const, label: "Kit Photos", count: `${draftPhotos.length}/4` },
+                  {
+                    id: "kit" as const,
+                    label: "Kit Photos",
+                    count: `${draftPhotos.length}/${MAX_KIT_PHOTOS}`,
+                  },
                   {
                     id: "photoStrip" as const,
                     label: "Photo Row",
@@ -651,7 +659,7 @@ export default function AdminShopPage() {
                 className="font-display text-xs uppercase tracking-widest"
                 style={{ color: "rgba(255,255,255,0.25)" }}
               >
-                {draftPhotos.length}/4
+                {draftPhotos.length}/{MAX_KIT_PHOTOS}
               </span>
             </div>
 
@@ -708,7 +716,7 @@ export default function AdminShopPage() {
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                disabled={uploading || draftPhotos.length >= 4}
+                disabled={uploading || !canAddKitPhoto(draftPhotos.length)}
                 className="flex aspect-square w-full flex-col items-center justify-center rounded-lg transition-colors min-[420px]:h-[72px] min-[420px]:w-[76px]"
                 style={{
                   border: "1px dashed rgba(255,255,255,0.15)",
@@ -717,10 +725,10 @@ export default function AdminShopPage() {
                     : "transparent",
                   color: "rgba(255,255,255,0.3)",
                   cursor:
-                    uploading || draftPhotos.length >= 4
+                    uploading || !canAddKitPhoto(draftPhotos.length)
                       ? "not-allowed"
                       : "pointer",
-                  opacity: draftPhotos.length >= 4 ? 0.4 : 1,
+                  opacity: canAddKitPhoto(draftPhotos.length) ? 1 : 0.4,
                 }}
                 aria-label="Add kit photos"
               >
@@ -744,12 +752,12 @@ export default function AdminShopPage() {
               />
             </div>
 
-            {draftPhotos.length >= 4 && (
+            {!canAddKitPhoto(draftPhotos.length) && (
               <p
                 className="font-body mt-2 text-xs"
                 style={{ color: "rgba(255,255,255,0.25)" }}
               >
-                4 photo max.
+                {MAX_KIT_PHOTOS} photo max.
               </p>
             )}
             {draftPhotos.length === 0 && (

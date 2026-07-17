@@ -49,7 +49,8 @@ Core brand colors:
 ## Shop Experience
 
 - The homepage and `/shop` render the same `ShopKitSection` component.
-- Content and one to four ordered photos come from Supabase.
+- Content and one to six ordered photos come from Supabase. Multiple Kit Photos
+  autoplay as a hands-off slideshow with no public controls; one photo remains static.
 - `/admin/shop` lets approved club managers edit the section with plain-language
   labels, manage up to eight ordered product bullet points, edit multiline
   store information, upload/reorder photos, and preview the exact public
@@ -63,6 +64,24 @@ are recorded in `db/migrations/2026-07-shop-kit-section.sql`. The production
 database setup is already complete; do not rerun it by default. Existing
 environments need the additive `db/migrations/2026-07-shop-kit-details.sql`
 before bullet points and store information can be saved.
+
+## Shop Page Photo Row
+
+- Below the kit section on `/shop` only (not the homepage), a static row of
+  up to six admin-uploaded photos shows all at once — no autoplay, no
+  arrows, no motion. Each photo is cropped to a fixed portrait shape so the
+  row always looks uniform and gapless regardless of source-photo
+  proportions or how many are uploaded.
+- On mobile, the row scrolls horizontally instead of wrapping, since six
+  columns don't fit a phone width.
+- Managed from a "Photo Row" tab on `/admin/shop`, next to "Content" and
+  "Kit Photos" tabs (the admin editor was split into tabs so only one
+  section's fields render at a time, instead of one very long page).
+- Backed by the `shop_carousel_photos` table (name predates the current
+  static design; kept as-is since the schema didn't need to change). See
+  `db/migrations/2026-07-shop-carousel.sql`, already run in production.
+- The kit image uses the same white fade on the homepage and `/shop`, creating
+  the intended transition into the photo row without exposing slideshow controls.
 
 ## Shared Club Logo
 
@@ -167,6 +186,9 @@ npx tsc --noEmit --pretty false
 npm run build
 ```
 
-Latest application release: commit `91d0081e` on `main`, with 129/129 Vitest
+Current application baseline builds on commit `5ce20126` on `main` (prior
+baseline `91d0081e`) and adds the shared white kit fade, up-to-six Kit Photos,
+and hands-off autoplay for multiple Kit Photos. Verification is 148/148 Vitest
 tests, passing TypeScript, and a passing production build. Pushes to `main`
-trigger the Vercel deployment. Post-release documentation head: `1c2b6456`.
+trigger the Vercel deployment — but never push without the user's explicit
+permission for that specific push. Post-release documentation head: `1c2b6456`.

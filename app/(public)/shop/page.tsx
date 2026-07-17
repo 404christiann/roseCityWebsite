@@ -36,7 +36,7 @@ export default function ShopPage() {
       {/* ── Cinematic hero slideshow ── */}
       {SHOW_SHOP_HERO && <ShopHero />}
 
-      <ShopKitSectionContainer headingTag="h1" />
+      <ShopKitSectionContainer headingTag="h1" fadeImageToWhite />
 
       <ShopPhotoStripContainer />
 

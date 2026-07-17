@@ -9,8 +9,10 @@ import {
 
 export default function ShopKitSectionContainer({
   headingTag = "h2",
+  fadeImageToWhite = false,
 }: {
   headingTag?: "h1" | "h2";
+  fadeImageToWhite?: boolean;
 }) {
   const [content, setContent] = useState<ShopKitContent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,6 +49,7 @@ export default function ShopKitSectionContainer({
       section={content.section}
       photos={content.photos}
       headingTag={headingTag}
+      fadeImageToWhite={fadeImageToWhite}
     />
   );
 }

@@ -17,14 +17,20 @@ Read these files in order:
 5. `docs/multi-season-implementation-plan.md`
 6. `db/migrations/2026-07-multi-season.sql`
 
-The latest application release is `91d0081e` (`Add admin-managed shop details
-and branding`) on `main`. It includes the Shop-details follow-up, shared club
-branding, and all earlier work through `9f39c02b`. Post-release documentation
-head is `1c2b6456`. This handoff was originally written at `1737959a` (`Add
+This application baseline builds on release `5ce20126` on `main` — a static
+shop-page photo row (see "Shop Page Photo Row" section below) — and adds the
+shared white kit fade, up-to-six Kit Photos, and hands-off autoplay when
+multiple Kit Photos exist. The earlier
+`91d0081e` (`Add admin-managed shop details and branding`) baseline, which
+itself includes the Shop-details follow-up, shared club branding, and all
+earlier work through `9f39c02b`. Post-release documentation head is
+`1c2b6456`. This handoff was originally written at `1737959a` (`Add
 admin-managed shop experience`). The worktree may contain the generated cache file
 `tsconfig.tsbuildinfo`; do not treat it as product work or commit it by
 default. Always inspect `git status` and current diffs before editing because
-this repository has previously contained work from multiple agents.
+this repository has previously contained work from multiple agents. Never
+`git push` to `main` without the user's explicit permission for that specific
+push — see "Working Rules" below.
 
 ## Current Product State
 
@@ -136,7 +142,8 @@ roster queries or admin actions.
 ## Admin-Managed Shop Data - Complete
 
 - `shop_kit_section` stores the single shared text and purchase-link record.
-- `shop_kit_photos` stores one to four ordered public image URLs.
+- `shop_kit_photos` stores one to six ordered public image URLs. Multiple Kit
+  Photos autoplay horizontally with no public controls; one photo remains static.
 - The homepage and `/shop` both use `ShopKitSectionContainer` and the same
   `ShopKitSection` presentation component.
 - `/admin/shop` supports uploads to the public `shop` bucket, photo removal and
@@ -171,6 +178,22 @@ roster queries or admin actions.
   setup against production by default.
 
 ## Verification
+
+Current release-candidate checks (2026-07-16, Kit Photos slideshow and fade):
+
+```text
+npm test                         148/148 tests passed across 7 files
+npx tsc --noEmit --pretty false passed
+npm run build                    passed
+```
+
+Latest release checks (2026-07-16, shop page photo row, commit `5ce20126`):
+
+```text
+npm test                         147/147 tests passed across 7 files
+npx tsc --noEmit --pretty false passed
+npm run build                    passed
+```
 
 Shop-details and shared-branding release (`91d0081e`):
 
@@ -268,8 +291,56 @@ Shipped on top of the `1737959a` baseline above, through commit `9f39c02b`.
   no new pure logic); the existing 117-test suite still covers everything it
   did before and still passes.
 
+## Shop Page Photo Row — 2026-07-16
+
+Shipped on top of the Next Match Card baseline above, through commit
+`5ce20126` (superseding an earlier autosliding-carousel version from
+`e47e3085` that was fully replaced, per explicit follow-up feedback, before
+release — no carousel code remains).
+
+- New static gallery on `/shop` only (never the homepage): up to six
+  admin-uploaded photos below the kit section, all shown at once, no
+  autoplay/arrows/motion. Each photo is cropped (`object-cover`) into a fixed
+  portrait column so the row stays gapless and uniform regardless of each
+  source photo's proportions or how many are uploaded — fewer photos just
+  produce a shorter, centered row rather than stretched/differently-cropped
+  columns.
+- On mobile, six fixed-shape columns don't fit a phone width, so the row
+  scrolls horizontally instead of wrapping.
+- New files: `components/ShopPhotoStrip.tsx` (presentational),
+  `components/ShopPhotoStripContainer.tsx` (client fetch, shows a "Loading
+  gallery…" state matching the roster page's loading treatment, renders
+  nothing once loaded if empty), `components/admin/
+  ScaledShopPhotoStripPreview.tsx` (admin preview, same fixed-1700px-canvas
+  scale-down technique as `ScaledShopKitPreview`), `lib/shop-photo-strip.ts`
+  (display-mode/max-count/alt-text helpers; reorder diff is a re-export of
+  `diffShopKitPhotos` from `lib/shop-kit.ts`, which was already table-agnostic).
+- Data model: reuses the existing `shop_carousel_photos` table (`id`, `url`,
+  `sort_order`, `created_at`) — kept that name rather than renaming, since
+  raising the max from 4 to 6 needed no schema change. Migration
+  `db/migrations/2026-07-shop-carousel.sql` (grants + RLS; no new Storage
+  policy needed since it reuses the public `shop` bucket's existing
+  authenticated upload policy) has already been run in production.
+- `/admin/shop` was split into three tabs — "Content", "Kit Photos", "Photo
+  Row" — so only one section's fields render at a time. This was a
+  side-effect fix for the admin page having become very long/scrolly across
+  several rounds of feature additions; tab buttons show live photo counts and
+  a small red-dot indicator for validation issues (e.g. Content tab flags if
+  every bullet point is removed).
+- Tests: `lib/__tests__/shop-photo-strip.test.ts` covers the pure helpers
+  (alt text, hidden/shown display-mode gating, max-6 clamping, and the
+  reorder diff), mirroring `shop-kit.test.ts`'s structure. Full suite is
+  147/147 passing.
+- The previous white-gap report was addressed by fading the kit image into the
+  white page with a dedicated overlay rather than continuing to adjust Photo
+  Row padding. The gradient is shared by the homepage and `/shop` and was
+  browser-verified locally alongside the hands-off Kit Photos slideshow.
+
 ## Working Rules
 
+- Never `git push` to `main` (or any branch Vercel deploys from) without the
+  user's explicit permission for that specific push. Approval to push earlier
+  in a session does not carry forward to later commits — ask again each time.
 - Do not make broad reversions or erase unrelated dirty-worktree changes.
 - Preserve the established visual system and recently tuned gradient/modal
   behavior unless Christian explicitly asks to change it.

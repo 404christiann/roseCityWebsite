@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  canAddKitPhoto,
   cleanKitBulletPoints,
   DEFAULT_KIT_BULLET_POINTS,
   DEFAULT_KIT_STORE_NOTE,
   diffShopKitPhotos,
-  gridClassForCount,
   kitPhotoAlt,
+  kitPhotoDisplayMode,
+  MAX_KIT_PHOTOS,
   normalizeKitBulletPoints,
   normalizeKitStoreNote,
   titleLines,
@@ -32,19 +34,28 @@ describe("kitPhotoAlt", () => {
   });
 
   it("labels the final photo correctly", () => {
-    expect(kitPhotoAlt("Thorn Edition 2026", 3, 4))
-      .toBe("Thorn Edition 2026 kit photo 4 of 4");
+    expect(kitPhotoAlt("Thorn Edition 2026", 5, 6))
+      .toBe("Thorn Edition 2026 kit photo 6 of 6");
   });
 });
 
-describe("gridClassForCount", () => {
+describe("kitPhotoDisplayMode", () => {
   it.each([
-    [1, "grid-cols-1"],
-    [2, "grid-cols-2"],
-    [3, "grid-cols-3"],
-    [4, "grid-cols-2 grid-rows-2"],
-  ])("returns the expected grid for %i photos", (count, expected) => {
-    expect(gridClassForCount(count)).toBe(expected);
+    [0, "static"],
+    [1, "static"],
+    [2, "slideshow"],
+    [6, "slideshow"],
+  ])("returns the expected mode for %i photos", (count, expected) => {
+    expect(kitPhotoDisplayMode(count)).toBe(expected);
+  });
+});
+
+describe("kit photo limit", () => {
+  it("allows up to six kit photos", () => {
+    expect(MAX_KIT_PHOTOS).toBe(6);
+    expect(canAddKitPhoto(5)).toBe(true);
+    expect(canAddKitPhoto(6)).toBe(false);
+    expect(canAddKitPhoto(7)).toBe(false);
   });
 });
 

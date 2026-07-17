@@ -4,6 +4,7 @@ export function titleLines(title: string): string[] {
 }
 
 export const MAX_KIT_BULLET_POINTS = 8;
+export const MAX_KIT_PHOTOS = 6;
 
 export const DEFAULT_KIT_BULLET_POINTS = [
   "Authentic match jersey",
@@ -45,18 +46,14 @@ export function kitPhotoAlt(title: string, index: number, total: number): string
   return `${plainTitle} kit photo ${index + 1} of ${total}`;
 }
 
-/** Returns the fixed Tailwind grid shape for a 1–4 photo kit display. */
-export function gridClassForCount(count: number): string {
-  switch (count) {
-    case 1:
-      return "grid-cols-1";
-    case 2:
-      return "grid-cols-2";
-    case 3:
-      return "grid-cols-3";
-    default:
-      return "grid-cols-2 grid-rows-2";
-  }
+/** Gates the admin upload control at the kit-photo maximum. */
+export function canAddKitPhoto(count: number): boolean {
+  return count < MAX_KIT_PHOTOS;
+}
+
+/** Keeps one kit photo static and turns multiple photos into autoplay. */
+export function kitPhotoDisplayMode(count: number): "static" | "slideshow" {
+  return count > 1 ? "slideshow" : "static";
 }
 
 export type DraftKitPhoto = {
