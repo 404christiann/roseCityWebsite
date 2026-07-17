@@ -5,8 +5,24 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
 
 ## Current Status
 
-- The 2026-07-15 public-site, roster, storefront, sponsor, and navigation
-  refresh is shipped on `main` through commit `9568beb1`.
+- The admin-managed shop experience and prior public-site, roster, storefront,
+  sponsor, navigation, and multi-season work are shipped on `main` through
+  commit `9f39c02b`.
+- The homepage "Next Match" section was redesigned: the live ticking countdown
+  (`components/Countdown.tsx`) was removed and replaced by
+  `components/NextMatchCard.tsx` — a static crest-vs-crest match card (Rose
+  City crest, red "VS", opponent crest, optional black competition-label
+  pill, giant red italic day-of-week, small date/kickoff/venue line, "Full
+  Schedule" CTA retained).
+- Admins can upload an opponent logo and set a competition label per match
+  from `/admin/schedule`. Opponent crests also render on the public
+  `/schedule` fixture list (`components/FixtureRow.tsx`), sized larger on the
+  highlighted next-match row with a dark-background variant for contrast.
+  Matches without an uploaded logo fall back to an initial monogram via the
+  shared `components/OpponentCrest.tsx`.
+- `matches.opponent_logo_url` and `matches.competition` (both nullable text)
+  and the public `opponent-logos` Storage bucket exist in production; see
+  `db/migrations/2026-07-next-match-card.sql`.
 - The Supabase multi-season database gate and app implementation are complete:
   - `matches.season_id` exists.
   - existing matches are backfilled and admin match creation requires a season.
@@ -21,6 +37,13 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
   `SHOW_SHOP_HERO` in `lib/site-flags.ts`.
 - The shared 2026 kit section is editable at `/admin/shop`; the homepage and
   `/shop` render the same database-backed component and ordered photo set.
+- Current unshipped Shop work adds up to eight editable/reorderable bullet
+  points and editable multiline store information. Run the additive
+  `db/migrations/2026-07-shop-kit-details.sql` before testing those saves.
+- Current unshipped Branding work adds `/admin/branding`, where an approved
+  admin can upload one shared club logo that updates navigation, footer, admin
+  identity, next-match crest, player placeholders, and the browser icon. Run
+  the additive `db/migrations/2026-07-site-branding.sql` before testing saves.
 - Admin save actions use the shared subtle saving/success feedback treatment.
 - The only expected local worktree change after verification is the generated
   TypeScript cache `tsconfig.tsbuildinfo`; do not commit it by default.
@@ -50,8 +73,8 @@ npm test
 npm run build
 ```
 
-Latest verified result: TypeScript passed, all 117 Vitest tests passed, and the
-production build passed. The build still reports non-blocking Next.js lint
+Latest current-worktree result: TypeScript passed, all 129 Vitest tests passed,
+and the production build passed. The build still reports non-blocking Next.js lint
 warnings for a few raw `<img>` elements and unnecessary analytics `useMemo`
 dependencies. Destructive authenticated CRUD should only be tested with safe
 test data or explicit approval.

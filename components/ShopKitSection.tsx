@@ -4,8 +4,12 @@ import { Fragment, useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type { DBShopKitPhoto, DBShopKitSection } from "@/lib/db-types";
-import { shopProduct } from "@/lib/data";
-import { kitPhotoAlt, titleLines } from "@/lib/shop-kit";
+import {
+  kitPhotoAlt,
+  normalizeKitBulletPoints,
+  normalizeKitStoreNote,
+  titleLines,
+} from "@/lib/shop-kit";
 import KitImageGrid from "@/components/KitImageGrid";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -31,6 +35,8 @@ export default function ShopKitSection({
     url: photo.url,
     alt: kitPhotoAlt(section.title, index, photos.length),
   }));
+  const bulletPoints = normalizeKitBulletPoints(section.bullet_points);
+  const storeNote = normalizeKitStoreNote(section.store_note).trim();
 
   useEffect(() => {
     if (!animate) return;
@@ -132,8 +138,8 @@ export default function ShopKitSection({
           </p>
 
           <ul className="mb-8 flex flex-col gap-3">
-            {shopProduct.includes.map((item) => (
-              <li key={item} className="flex items-center gap-3">
+            {bulletPoints.map((item, index) => (
+              <li key={`${item}-${index}`} className="flex items-center gap-3">
                 <span
                   className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
                   style={{ backgroundColor: "var(--color-red)" }}
@@ -146,30 +152,16 @@ export default function ShopKitSection({
                 </span>
               </li>
             ))}
-            {shopProduct.addOn && (
-              <li className="flex items-center gap-3">
-                <span
-                  className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                  style={{ backgroundColor: "var(--color-red)" }}
-                />
-                <span
-                  className="font-body text-sm"
-                  style={{ color: "rgba(0,0,0,0.6)" }}
-                >
-                  {shopProduct.addOn}
-                </span>
-              </li>
-            )}
           </ul>
 
-          <p
-            className="font-body mb-8 text-xs"
-            style={{ color: "rgba(0,0,0,0.4)" }}
-          >
-            Sold exclusively at Niky&apos;s Sports
-            <br />
-            {shopProduct.storeAddress}
-          </p>
+          {storeNote && (
+            <p
+              className="font-body mb-8 whitespace-pre-line text-xs"
+              style={{ color: "rgba(0,0,0,0.4)" }}
+            >
+              {storeNote}
+            </p>
+          )}
 
           <a
             href={section.cta_link}

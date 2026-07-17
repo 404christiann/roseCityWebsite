@@ -1,57 +1,104 @@
 # Rose City FC Website
 
-Concept rebuild of the Rose City Futbol Club website for a semi-pro UPSL team based in Pasadena, CA.
+Production website and protected club-management portal for Rose City Futbol
+Club, a semi-professional UPSL team based in Pasadena, California.
 
 Built with:
+
 - `Next.js 14` App Router
 - `TypeScript`
 - `Tailwind CSS`
 - `GSAP`
+- `Supabase` PostgreSQL, Storage, and Auth
+- `Vercel`
 
 ## What This Project Includes
 
-The site currently includes:
+The platform includes:
+
 - a cinematic homepage
-- roster and staff pages
-- fixture / schedule page
-- a shop page with a custom hero and product flow
+- a homepage "Next Match" card with team crests and an optional competition
+  label, replacing an earlier live countdown timer
+- active and historical season-aware rosters
+- fixture and schedule management, including opponent-logo uploads
+- player, match, and season statistics
+- a database-backed shop section shared by the homepage and shop page
+- a protected admin portal for roster, schedule, seasons, stats, shop, and branding
 - footer social and partner links
 
 ## Design Direction
 
 The visual language is intentionally:
-- dark, editorial, and premium
-- heavy on bold condensed typography
-- sharp-cornered UI, not rounded
+
+- editorial, club-forward, and premium on public pages
+- dense, dark, and operational in the admin portal
+- heavy on bold display typography
 - black / white / red / green brand palette
 
 Main fonts:
-- display: `Barlow Condensed`
+
+- display: local `LEMON MILK` Bold Italic
 - body: `DM Sans`
 
-## Shop Page Notes
+Core brand colors:
 
-The `/shop` page was built with separate behaviors for desktop and mobile.
+- red: `#E7001B`
+- black: `#141414`
+- white: `#FFFFFF`
 
-### Shop hero
-- Desktop uses a peek-style carousel with a reduced seam so adjacent slides feel cleaner.
-- Mobile uses a simplified full-width banner treatment so the hero fits naturally below the fixed nav.
+## Shop Experience
 
-### Product split section
-- Left side: jersey slideshow using `rosecityshirt1–6`
-- Right side: product information, included items, store note, and CTA
-- Mobile layout was adjusted so the slideshow has its own defined frame and transitions cleanly into the text section
+- The homepage and `/shop` render the same `ShopKitSection` component.
+- Content and one to four ordered photos come from Supabase.
+- `/admin/shop` lets approved club managers edit the section with plain-language
+  labels, manage up to eight ordered product bullet points, edit multiline
+  store information, upload/reorder photos, and preview the exact public
+  component.
+- The admin editor adapts to mobile layouts.
+- The cinematic shop slideshow remains implemented but is temporarily hidden
+  with `SHOW_SHOP_HERO = false` in `lib/site-flags.ts`.
 
-### Purchase section
-The lower section was refocused from a Niky’s gallery into a more useful `Purchase Details` block:
-- what’s included
-- customization
-- where to buy
-- purchase options
+The shop schema, grants, row-level security, seed content, and Storage policies
+are recorded in `db/migrations/2026-07-shop-kit-section.sql`. The production
+database setup is already complete; do not rerun it by default. Existing
+environments need the additive `db/migrations/2026-07-shop-kit-details.sql`
+before bullet points and store information can be saved.
+
+## Shared Club Logo
+
+- `/admin/branding` lets an approved club manager upload the main club logo
+  once and preview it on light and dark backgrounds.
+- The saved logo updates website navigation and footer, the Next Match card,
+  admin login/sidebar, player photo placeholders, and the browser tab icon.
+- Player records without a real photo retain an empty semantic value, so their
+  placeholder follows future logo changes without rewriting roster data.
+- Uploads use the public `logos_v2/club-branding` path. Previous files are
+  retained as a safety measure; saving only changes the active logo setting.
+
+Run the additive `db/migrations/2026-07-site-branding.sql` before testing a
+Branding save in an environment. It creates the singleton setting and scoped
+authenticated upload policies without changing the existing crest file.
+
+## Next Match Card
+
+- The homepage "Next Match" section is a static crest-vs-crest card
+  (`components/NextMatchCard.tsx`): Rose City crest, red "VS", opponent
+  crest, an optional black competition-label pill, a giant red italic
+  day-of-week word, and a small date/kickoff/venue line.
+- `/admin/schedule` lets club managers upload an opponent logo and set an
+  optional competition label per match. Logos without an upload fall back to
+  an initial-monogram circle via the shared `components/OpponentCrest.tsx`,
+  which is also used to show opponent crests on the public `/schedule`
+  fixture list.
+- Opponent logos upload to the public `opponent-logos` Storage bucket.
+  `matches.opponent_logo_url` and `matches.competition` are recorded in
+  `db/migrations/2026-07-next-match-card.sql`. The production database setup
+  is already complete; do not rerun it by default.
 
 ## Social Links
 
 Footer links currently point to:
+
 - Instagram: `https://www.instagram.com/rosecityfutbolclub/`
 - Facebook: `https://www.facebook.com/search/top?q=rose%20city%20futbol%20club`
 - TikTok: `https://www.tiktok.com/@rosecityfc`
@@ -61,19 +108,25 @@ Footer links currently point to:
 ## Project Structure
 
 Key folders:
-- [app](/Users/christianalcala/Downloads/roseCityWebsite/app) — route-level pages
-- [components](/Users/christianalcala/Downloads/roseCityWebsite/components) — reusable UI sections
-- [lib](/Users/christianalcala/Downloads/roseCityWebsite/lib) — static data
-- [public](/Users/christianalcala/Downloads/roseCityWebsite/public) — images and brand assets
-- [styles](/Users/christianalcala/Downloads/roseCityWebsite/styles) — global styling
+
+- `app/` — public and protected admin routes
+- `components/` — reusable public and admin UI
+- `lib/` — Supabase clients, queries, types, hooks, and helpers
+- `db/migrations/` — manually executed Supabase runbooks
+- `public/` — local fonts, images, and brand assets
+- `styles/` — global styling
 
 Important files:
-- [app/page.tsx](/Users/christianalcala/Downloads/roseCityWebsite/app/page.tsx) — homepage composition
-- [app/shop/page.tsx](/Users/christianalcala/Downloads/roseCityWebsite/app/shop/page.tsx) — shop page composition
-- [components/ShopHero.tsx](/Users/christianalcala/Downloads/roseCityWebsite/components/ShopHero.tsx) — custom shop hero
-- [components/ShopSlideshow.tsx](/Users/christianalcala/Downloads/roseCityWebsite/components/ShopSlideshow.tsx) — jersey/product slideshow
-- [components/Footer.tsx](/Users/christianalcala/Downloads/roseCityWebsite/components/Footer.tsx) — footer and social links
-- [lib/data.ts](/Users/christianalcala/Downloads/roseCityWebsite/lib/data.ts) — product and content data
+
+- `app/(public)/page.tsx` — homepage composition
+- `app/(public)/shop/page.tsx` — public shop page
+- `app/admin/(protected)/shop/page.tsx` — admin shop editor
+- `app/admin/(protected)/branding/page.tsx` — shared club-logo editor
+- `components/ClubBrandingProvider.tsx` — site-wide active-logo context
+- `components/ShopKitSection.tsx` — shared public kit presentation
+- `components/admin/AdminSaveFeedback.tsx` — shared save-state notification
+- `lib/queries.ts` — Supabase data queries
+- `lib/shop-kit.ts` — shop display and photo-diff helpers
 
 ## Local Development
 
@@ -95,16 +148,25 @@ Open:
 http://localhost:3000
 ```
 
-## Recommended Git Ignore
+Required environment variables:
 
-If this repo is being pushed to GitHub, make sure these are ignored:
-
-```gitignore
-node_modules/
-.next/
-.DS_Store
+```text
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+ADMIN_ALLOWED_EMAILS
 ```
 
-## Summary
+## Verification
 
-This project is a polished RCFC site concept with the strongest work currently centered around the shop experience: custom responsive hero behavior, product-focused slideshow treatment, and a cleaner purchase-information flow.
+Run before deployment:
+
+```bash
+npm test
+npx tsc --noEmit --pretty false
+npm run build
+```
+
+Latest shipped baseline: commit `9f39c02b` on `main`, with 117/117 Vitest tests,
+passing TypeScript, and a passing production build. Pushes to `main` trigger the
+Vercel deployment. The current unshipped Shop-details and shared-branding work
+passes 129/129 tests, TypeScript, and the production build.

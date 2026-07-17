@@ -6,7 +6,8 @@ import AdminSaveFeedback from "@/components/admin/AdminSaveFeedback";
 import { fetchActiveSeason } from "@/lib/queries";
 import { getPlayerSeasonSeed } from "@/lib/player-season";
 import { createClient } from "@/lib/supabase-browser";
-import { getRosterImageSrc, isRosterPlaceholderLogo, ROSE_CITY_PATCH_URL } from "@/lib/roster-images";
+import { useClubBranding } from "@/components/ClubBrandingProvider";
+import { getRosterImageSrc, isRosterPlaceholderLogo, rosterImageForStorage } from "@/lib/roster-images";
 // ── Nationalities ─────────────────────────────
 
 const NATIONALITIES = [
@@ -153,10 +154,6 @@ function emptyStaff(): StaffForm {
 
 const POSITIONS: Position[] = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
 
-// ── Default photo ─────────────────────────────
-
-const DEFAULT_PLAYER_PHOTO = ROSE_CITY_PATCH_URL;
-
 // ── Photo upload helper ───────────────────────
 
 async function uploadPhoto(file: File, bucket: string): Promise<string> {
@@ -266,7 +263,7 @@ function PlayersTab() {
     setSaving(true); setError(null);
     try {
       const supabase = createClient();
-      let photoUrl = getRosterImageSrc(addForm.photo_url);
+      let photoUrl = rosterImageForStorage(addForm.photo_url);
       if (addPhoto) photoUrl = await uploadPhoto(addPhoto, "roster-images");
 
       const { data: insertedPlayer, error: e } = await supabase.from("players").insert([{
@@ -329,7 +326,7 @@ function PlayersTab() {
     setSaving(true); setError(null);
     try {
       const supabase = createClient();
-      let photoUrl = getRosterImageSrc(editForm.photo_url);
+      let photoUrl = rosterImageForStorage(editForm.photo_url);
       if (editPhoto) photoUrl = await uploadPhoto(editPhoto, "roster-images");
 
       const { error: e } = await supabase.from("players").update({
@@ -488,6 +485,7 @@ function PlayerPositionGroup({
   toggleActive: (p: Player) => void;
 }) {
   const [open, setOpen] = useState(true);
+  const { clubLogoUrl } = useClubBranding();
 
   return (
     <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.07)" }}>
@@ -540,7 +538,7 @@ function PlayerPositionGroup({
                         <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0"
                           style={{ backgroundColor: "#1a1a1a", border: "1px solid rgba(255,255,255,0.08)" }}>
                           <img
-                            src={getRosterImageSrc(p.photo_url)}
+                            src={getRosterImageSrc(p.photo_url, clubLogoUrl)}
                             alt={p.name}
                             className={`w-full h-full ${isRosterPlaceholderLogo(p.photo_url) ? "object-contain" : "object-cover"}`}
                           />
@@ -1125,7 +1123,21 @@ function PlayerFormFields({
   position?: Position;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const preview = photoFile ? URL.createObjectURL(photoFile) : getRosterImageSrc(form.photo_url || DEFAULT_PLAYER_PHOTO);
+  const { clubLogoUrl } = useClubBranding();
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreview(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(photoFile);
+    setPhotoPreview(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [photoFile]);
+
+  const preview = photoPreview ?? getRosterImageSrc(form.photo_url, clubLogoUrl);
+  const previewIsClubLogo = !photoFile && isRosterPlaceholderLogo(form.photo_url);
 
   function set(field: string, value: string | number) {
     onChange({ ...form, [field]: value });
@@ -1140,7 +1152,7 @@ function PlayerFormFields({
           <img
             src={preview}
             alt="preview"
-            className={`w-full h-full ${isRosterPlaceholderLogo(preview) ? "object-contain" : "object-cover"}`}
+            className={`w-full h-full ${previewIsClubLogo ? "object-contain" : "object-cover"}`}
           />
         </div>
         <div>

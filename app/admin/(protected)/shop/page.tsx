@@ -12,7 +12,11 @@ import {
   fetchShopKitContent,
 } from "@/lib/queries";
 import {
+  cleanKitBulletPoints,
+  DEFAULT_KIT_BULLET_POINTS,
+  DEFAULT_KIT_STORE_NOTE,
   diffShopKitPhotos,
+  MAX_KIT_BULLET_POINTS,
   type DraftKitPhoto,
 } from "@/lib/shop-kit";
 import { createClient } from "@/lib/supabase-browser";
@@ -21,17 +25,49 @@ type SectionFields = {
   eyebrow: string;
   title: string;
   description: string;
+  bullet_points: DraftBulletPoint[];
+  store_note: string;
   cta_label: string;
   cta_link: string;
 };
+
+type TextSectionField = Exclude<keyof SectionFields, "bullet_points">;
+
+type DraftBulletPoint = {
+  id: string;
+  text: string;
+};
+
+let bulletPointId = 0;
+
+function createDraftBulletPoints(points: readonly string[]): DraftBulletPoint[] {
+  return points.map((text) => ({
+    id: `bullet-point-${bulletPointId++}`,
+    text,
+  }));
+}
 
 const EMPTY_FIELDS: SectionFields = {
   eyebrow: "",
   title: "",
   description: "",
+  bullet_points: createDraftBulletPoints(DEFAULT_KIT_BULLET_POINTS),
+  store_note: DEFAULT_KIT_STORE_NOTE,
   cta_label: "",
   cta_link: "",
 };
+
+function sectionToFields(section: DBShopKitSection): SectionFields {
+  return {
+    eyebrow: section.eyebrow,
+    title: section.title,
+    description: section.description,
+    bullet_points: createDraftBulletPoints(section.bullet_points),
+    store_note: section.store_note,
+    cta_label: section.cta_label,
+    cta_link: section.cta_link,
+  };
+}
 
 async function uploadPhoto(file: File, bucket: string): Promise<string> {
   const supabase = createClient();
@@ -60,13 +96,7 @@ export default function AdminShopPage() {
     fetchShopKitContent()
       .then(({ section, photos }) => {
         if (section) {
-          setFields({
-            eyebrow: section.eyebrow,
-            title: section.title,
-            description: section.description,
-            cta_label: section.cta_label,
-            cta_link: section.cta_link,
-          });
+          setFields(sectionToFields(section));
         }
         setOriginalPhotos(photos);
         setDraftPhotos(photos.map((photo) => ({ id: photo.id, url: photo.url })));
@@ -77,8 +107,58 @@ export default function AdminShopPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  function setField(field: keyof SectionFields, value: string) {
+  function setField(field: TextSectionField, value: string) {
     setFields((current) => ({ ...current, [field]: value }));
+    setSaved(false);
+  }
+
+  function setBulletPoint(index: number, value: string) {
+    setFields((current) => ({
+      ...current,
+      bullet_points: current.bullet_points.map((point, pointIndex) =>
+        pointIndex === index ? { ...point, text: value } : point,
+      ),
+    }));
+    setSaved(false);
+  }
+
+  function addBulletPoint() {
+    setFields((current) => {
+      if (current.bullet_points.length >= MAX_KIT_BULLET_POINTS) return current;
+      return {
+        ...current,
+        bullet_points: [
+          ...current.bullet_points,
+          ...createDraftBulletPoints([""]),
+        ],
+      };
+    });
+    setSaved(false);
+  }
+
+  function removeBulletPoint(index: number) {
+    setFields((current) => ({
+      ...current,
+      bullet_points: current.bullet_points.filter(
+        (_, pointIndex) => pointIndex !== index,
+      ),
+    }));
+    setSaved(false);
+  }
+
+  function moveBulletPoint(index: number, delta: -1 | 1) {
+    setFields((current) => {
+      const destination = index + delta;
+      if (destination < 0 || destination >= current.bullet_points.length) {
+        return current;
+      }
+      const bulletPoints = [...current.bullet_points];
+      [bulletPoints[index], bulletPoints[destination]] = [
+        bulletPoints[destination],
+        bulletPoints[index],
+      ];
+      return { ...current, bullet_points: bulletPoints };
+    });
     setSaved(false);
   }
 
@@ -119,6 +199,14 @@ export default function AdminShopPage() {
   async function handleSave() {
     if (draftPhotos.length === 0) return;
 
+    const cleanedBulletPoints = cleanKitBulletPoints(
+      fields.bullet_points.map((point) => point.text),
+    );
+    if (cleanedBulletPoints.length === 0) {
+      setError("Add at least one product bullet point before saving.");
+      return;
+    }
+
     setSaving(true);
     setError(null);
     setSaved(false);
@@ -129,6 +217,7 @@ export default function AdminShopPage() {
         .upsert([{
           id: 1,
           ...fields,
+          bullet_points: cleanedBulletPoints,
           updated_at: new Date().toISOString(),
         }]);
       if (sectionError) throw new Error(sectionError.message);
@@ -162,6 +251,7 @@ export default function AdminShopPage() {
       }
 
       const fresh = await fetchShopKitContent();
+      if (fresh.section) setFields(sectionToFields(fresh.section));
       setOriginalPhotos(fresh.photos);
       setDraftPhotos(
         fresh.photos.map((photo) => ({ id: photo.id, url: photo.url })),
@@ -178,6 +268,9 @@ export default function AdminShopPage() {
   const previewSection: DBShopKitSection = {
     id: 1,
     ...fields,
+    bullet_points: cleanKitBulletPoints(
+      fields.bullet_points.map((point) => point.text),
+    ),
     updated_at: "",
   };
   const previewPhotos: DBShopKitPhoto[] = draftPhotos.map((photo, index) => ({
@@ -186,7 +279,11 @@ export default function AdminShopPage() {
     sort_order: index,
     created_at: "",
   }));
-  const saveDisabled = saving || uploading || draftPhotos.length === 0;
+  const hasBulletPoint =
+    cleanKitBulletPoints(fields.bullet_points.map((point) => point.text)).length >
+    0;
+  const saveDisabled =
+    saving || uploading || draftPhotos.length === 0 || !hasBulletPoint;
 
   return (
     <div className="mx-auto min-w-0 max-w-7xl overflow-hidden">
@@ -273,6 +370,104 @@ export default function AdminShopPage() {
                   value={fields.description}
                   onChange={(event) => setField("description", event.target.value)}
                   rows={5}
+                  style={{ ...inputStyle, resize: "vertical" }}
+                />
+              </Field>
+
+              <Field
+                label="Product Bullet Points"
+                help={`Short lines shown next to the red dots. Add up to ${MAX_KIT_BULLET_POINTS}.`}
+              >
+                <div className="space-y-2">
+                  {fields.bullet_points.map((point, index) => (
+                    <div
+                      key={point.id}
+                      className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2"
+                    >
+                      <input
+                        type="text"
+                        value={point.text}
+                        maxLength={80}
+                        placeholder={`Bullet point ${index + 1}`}
+                        aria-label={`Product bullet point ${index + 1}`}
+                        onChange={(event) =>
+                          setBulletPoint(index, event.target.value)
+                        }
+                        style={inputStyle}
+                      />
+                      <div className="flex gap-1">
+                        <BulletActionButton
+                          label={`Move bullet point ${index + 1} up`}
+                          disabled={index === 0}
+                          onClick={() => moveBulletPoint(index, -1)}
+                        >
+                          ↑
+                        </BulletActionButton>
+                        <BulletActionButton
+                          label={`Move bullet point ${index + 1} down`}
+                          disabled={index === fields.bullet_points.length - 1}
+                          onClick={() => moveBulletPoint(index, 1)}
+                        >
+                          ↓
+                        </BulletActionButton>
+                        <BulletActionButton
+                          label={`Remove bullet point ${index + 1}`}
+                          onClick={() => removeBulletPoint(index)}
+                          danger
+                        >
+                          ×
+                        </BulletActionButton>
+                      </div>
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={addBulletPoint}
+                    disabled={
+                      fields.bullet_points.length >= MAX_KIT_BULLET_POINTS
+                    }
+                    className="font-display flex w-full items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-2.5 text-xs uppercase tracking-widest transition-colors"
+                    style={{
+                      borderColor: "rgba(255,255,255,0.14)",
+                      color: "rgba(255,255,255,0.5)",
+                      opacity:
+                        fields.bullet_points.length >= MAX_KIT_BULLET_POINTS
+                          ? 0.4
+                          : 1,
+                      cursor:
+                        fields.bullet_points.length >= MAX_KIT_BULLET_POINTS
+                          ? "not-allowed"
+                          : "pointer",
+                    }}
+                  >
+                    <span aria-hidden="true">+</span>
+                    Add Bullet Point ({fields.bullet_points.length}/
+                    {MAX_KIT_BULLET_POINTS})
+                  </button>
+                </div>
+                {!hasBulletPoint && (
+                  <p
+                    className="font-body mt-2 text-xs"
+                    style={{ color: "#E7001B" }}
+                  >
+                    Add at least one bullet point.
+                  </p>
+                )}
+              </Field>
+
+              <Field
+                label="Store Information"
+                help="Use Enter to place the store name and address on separate lines."
+              >
+                <textarea
+                  placeholder={DEFAULT_KIT_STORE_NOTE}
+                  value={fields.store_note}
+                  maxLength={180}
+                  onChange={(event) =>
+                    setField("store_note", event.target.value)
+                  }
+                  rows={3}
                   style={{ ...inputStyle, resize: "vertical" }}
                 />
               </Field>
@@ -546,6 +741,44 @@ function Field({
         </p>
       )}
     </div>
+  );
+}
+
+function BulletActionButton({
+  label,
+  disabled = false,
+  danger = false,
+  onClick,
+  children,
+}: {
+  label: string;
+  disabled?: boolean;
+  danger?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="flex h-10 w-8 items-center justify-center rounded-lg text-base"
+      style={{
+        backgroundColor: danger
+          ? "rgba(231,0,27,0.12)"
+          : "rgba(255,255,255,0.05)",
+        color: disabled
+          ? "rgba(255,255,255,0.12)"
+          : danger
+            ? "#E7001B"
+            : "rgba(255,255,255,0.55)",
+        cursor: disabled ? "not-allowed" : "pointer",
+      }}
+    >
+      {children}
+    </button>
   );
 }
 

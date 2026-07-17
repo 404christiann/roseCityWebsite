@@ -19,6 +19,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   fetchSeasons,
   fetchActiveSeason,
+  fetchClubBranding,
   fetchShopKitContent,
   fetchPlayerMatchLog,
   fetchRoster,
@@ -148,12 +149,50 @@ describe('fetchActiveSeason', () => {
   })
 })
 
+describe('fetchClubBranding', () => {
+  it('returns the saved club logo path', async () => {
+    const row = {
+      id: 1,
+      club_logo_path: 'club-branding/new-crest.png',
+      updated_at: '2026-07-16T00:00:00Z',
+    }
+    const q = chain({ data: [row], error: null })
+    mockFrom.mockReturnValue(q)
+
+    await expect(fetchClubBranding()).resolves.toEqual({
+      logoPath: 'club-branding/new-crest.png',
+    })
+    expect(mockFrom).toHaveBeenCalledWith('site_branding')
+    expect(q.eq).toHaveBeenCalledWith('id', 1)
+  })
+
+  it('uses the shipped crest when no branding row exists', async () => {
+    mockFrom.mockReturnValue(chain({ data: [], error: null }))
+
+    await expect(fetchClubBranding()).resolves.toEqual({
+      logoPath: 'Rose City FC Patch Color.png',
+    })
+  })
+
+  it('throws with context when the branding query fails', async () => {
+    mockFrom.mockReturnValue(chain({
+      data: null,
+      error: { message: 'branding unavailable' },
+    }))
+
+    await expect(fetchClubBranding())
+      .rejects.toThrow('fetchClubBranding: branding unavailable')
+  })
+})
+
 describe('fetchShopKitContent', () => {
   const section = {
     id: 1,
     eyebrow: '2026 Kit · Available Now',
     title: 'Thorn\nEdition\n2026',
     description: 'Official kit',
+    bullet_points: ['Authentic match jersey', 'Any name & number'],
+    store_note: "Sold at Niky's Sports\nPasadena, CA",
     cta_label: 'Buy Now →',
     cta_link: 'https://example.com',
     updated_at: '2026-07-16T00:00:00Z',
@@ -183,6 +222,27 @@ describe('fetchShopKitContent', () => {
       .mockReturnValueOnce(chain({ data: [], error: null }))
 
     await expect(fetchShopKitContent()).resolves.toEqual({ section: null, photos: [] })
+  })
+
+  it('uses the current bullet points and store note for a legacy row', async () => {
+    const { bullet_points: _bullets, store_note: _storeNote, ...legacySection } = section
+    mockFrom
+      .mockReturnValueOnce(chain({ data: [legacySection], error: null }))
+      .mockReturnValueOnce(chain({ data: photos, error: null }))
+
+    const result = await fetchShopKitContent()
+
+    expect(result.section?.bullet_points).toEqual([
+      'Authentic match jersey',
+      'Any name & number',
+      'League patch',
+      'Team sponsor badges',
+      'Raffle ticket included',
+      'Custom name + $10',
+    ])
+    expect(result.section?.store_note).toBe(
+      "Sold exclusively at Niky's Sports\n33 E Colorado Blvd, Pasadena, CA",
+    )
   })
 
   it('throws with context when the section query fails', async () => {

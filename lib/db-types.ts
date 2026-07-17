@@ -102,6 +102,8 @@ export type DBShopKitSection = {
   eyebrow: string;
   title: string;
   description: string;
+  bullet_points: string[];
+  store_note: string;
   cta_label: string;
   cta_link: string;
   updated_at: string;
@@ -112,4 +114,10 @@ export type DBShopKitPhoto = {
   url: string;
   sort_order: number;
   created_at: string;
+};
+
+export type DBSiteBranding = {
+  id: number;
+  club_logo_path: string;
+  updated_at: string;
 };

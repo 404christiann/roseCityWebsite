@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useClubBranding } from "@/components/ClubBrandingProvider";
 
 const socialLinks = [
   {
@@ -46,6 +49,7 @@ const partners = [
 ];
 
 export default function Footer() {
+  const { clubLogoUrl } = useClubBranding();
   return (
     <footer
       className="border-t border-gray-200"
@@ -79,7 +83,7 @@ export default function Footer() {
         <div className="flex flex-col items-center md:items-start gap-2">
           <div className="relative w-10 h-10">
             <Image
-              src="/images/logo/rosecityLogo-Photoroom.png"
+              src={clubLogoUrl}
               alt="Rose City FC"
               fill
               className="object-contain"

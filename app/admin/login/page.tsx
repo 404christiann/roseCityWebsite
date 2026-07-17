@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import Image from "next/image";
+import { useClubBranding } from "@/components/ClubBrandingProvider";
 
 export default function LoginPage() {
+  const { clubLogoUrl } = useClubBranding();
   const [email, setEmail]     = useState("");
   const [sent, setSent]       = useState(false);
   const [loading, setLoading] = useState(false);
@@ -39,7 +41,7 @@ export default function LoginPage() {
       {/* Logo */}
       <div className="mb-10 flex flex-col items-center gap-5">
         <Image
-          src="/images/logo/rosecityLogo.jpeg"
+          src={clubLogoUrl}
           alt="Rose City FC"
           width={100}
           height={100}

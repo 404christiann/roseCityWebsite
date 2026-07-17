@@ -5,10 +5,16 @@ import {
   DBStaff,
   DBMatch,
   DBSeason,
+  DBSiteBranding,
   DBShopKitPhoto,
   DBShopKitSection,
 } from "@/lib/db-types";
+import { DEFAULT_CLUB_LOGO_PATH } from "@/lib/club-branding";
 import { coerceRating } from "@/lib/db-utils";
+import {
+  normalizeKitBulletPoints,
+  normalizeKitStoreNote,
+} from "@/lib/shop-kit";
 
 function defaultGKStats(): GoalkeeperStats {
   return { goalsAgainst: 0, saves: 0, cleanSheets: 0, starts: 0, yellow: 0, red: 0, mins: 0 };
@@ -86,6 +92,10 @@ export type ShopKitContent = {
   photos: DBShopKitPhoto[];
 };
 
+export type ClubBranding = {
+  logoPath: string;
+};
+
 
 // ── Queries ───────────────────────────────────────────────────
 
@@ -110,6 +120,18 @@ export async function fetchActiveSeason(): Promise<DBSeason | null> {
   return ((data ?? []) as DBSeason[])[0] ?? null;
 }
 
+/** Returns the shared club-branding record with the shipped crest as fallback. */
+export async function fetchClubBranding(): Promise<ClubBranding> {
+  const { data, error } = await supabase
+    .from("site_branding")
+    .select("id, club_logo_path, updated_at")
+    .eq("id", 1)
+    .limit(1);
+  if (error) throw new Error(`fetchClubBranding: ${error.message}`);
+  const row = ((data ?? []) as DBSiteBranding[])[0] ?? null;
+  return { logoPath: row?.club_logo_path?.trim() || DEFAULT_CLUB_LOGO_PATH };
+}
+
 /** Fetches the singleton shop kit section and its ordered photos. */
 export async function fetchShopKitContent(): Promise<ShopKitContent> {
   const [sectionResult, photosResult] = await Promise.all([
@@ -118,8 +140,15 @@ export async function fetchShopKitContent(): Promise<ShopKitContent> {
   ]);
   const error = sectionResult.error ?? photosResult.error;
   if (error) throw new Error(`fetchShopKitContent: ${error.message}`);
+  const rawSection = ((sectionResult.data ?? []) as DBShopKitSection[])[0] ?? null;
   return {
-    section: ((sectionResult.data ?? []) as DBShopKitSection[])[0] ?? null,
+    section: rawSection
+      ? {
+          ...rawSection,
+          bullet_points: normalizeKitBulletPoints(rawSection.bullet_points),
+          store_note: normalizeKitStoreNote(rawSection.store_note),
+        }
+      : null,
     photos: (photosResult.data ?? []) as DBShopKitPhoto[],
   };
 }

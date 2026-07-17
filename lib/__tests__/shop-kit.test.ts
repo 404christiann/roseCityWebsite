@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  cleanKitBulletPoints,
+  DEFAULT_KIT_BULLET_POINTS,
+  DEFAULT_KIT_STORE_NOTE,
   diffShopKitPhotos,
   gridClassForCount,
   kitPhotoAlt,
+  normalizeKitBulletPoints,
+  normalizeKitStoreNote,
   titleLines,
 } from "@/lib/shop-kit";
 
@@ -40,6 +45,46 @@ describe("gridClassForCount", () => {
     [4, "grid-cols-2 grid-rows-2"],
   ])("returns the expected grid for %i photos", (count, expected) => {
     expect(gridClassForCount(count)).toBe(expected);
+  });
+});
+
+describe("editable shop details", () => {
+  it("trims bullet points, removes empty rows, and caps the layout at eight", () => {
+    expect(cleanKitBulletPoints([
+      " First ",
+      "",
+      "Second",
+      "Third",
+      "Fourth",
+      "Fifth",
+      "Sixth",
+      "Seventh",
+      "Eighth",
+      "Ninth",
+    ])).toEqual([
+      "First",
+      "Second",
+      "Third",
+      "Fourth",
+      "Fifth",
+      "Sixth",
+      "Seventh",
+      "Eighth",
+    ]);
+  });
+
+  it("uses current defaults when a legacy row has no bullet-point column", () => {
+    expect(normalizeKitBulletPoints(undefined)).toEqual(
+      DEFAULT_KIT_BULLET_POINTS,
+    );
+  });
+
+  it("preserves an intentionally empty store note", () => {
+    expect(normalizeKitStoreNote("")).toBe("");
+  });
+
+  it("uses the current store note when a legacy row has no store-note column", () => {
+    expect(normalizeKitStoreNote(undefined)).toBe(DEFAULT_KIT_STORE_NOTE);
   });
 });
 

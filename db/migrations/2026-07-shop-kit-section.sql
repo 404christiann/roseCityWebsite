@@ -14,6 +14,15 @@ CREATE TABLE IF NOT EXISTS public.shop_kit_section (
   eyebrow     text NOT NULL DEFAULT '',
   title       text NOT NULL DEFAULT '',
   description text NOT NULL DEFAULT '',
+  bullet_points text[] NOT NULL DEFAULT ARRAY[
+    'Authentic match jersey',
+    'Any name & number',
+    'League patch',
+    'Team sponsor badges',
+    'Raffle ticket included',
+    'Custom name + $10'
+  ]::text[],
+  store_note  text NOT NULL DEFAULT E'Sold exclusively at Niky''s Sports\n33 E Colorado Blvd, Pasadena, CA',
   cta_label   text NOT NULL DEFAULT '',
   cta_link    text NOT NULL DEFAULT '',
   updated_at  timestamptz NOT NULL DEFAULT now()
@@ -103,6 +112,8 @@ INSERT INTO public.shop_kit_section (
   eyebrow,
   title,
   description,
+  bullet_points,
+  store_note,
   cta_label,
   cta_link
 ) VALUES (
@@ -110,6 +121,15 @@ INSERT INTO public.shop_kit_section (
   '2026 Kit · Available Now',
   E'Thorn\nEdition\n2026',
   'The official 2026 match home jersey. Nike Dri-FIT technology, authentic match construction, featuring the Rose City crest, league patch, and team sponsors.',
+  ARRAY[
+    'Authentic match jersey',
+    'Any name & number',
+    'League patch',
+    'Team sponsor badges',
+    'Raffle ticket included',
+    'Custom name + $10'
+  ]::text[],
+  E'Sold exclusively at Niky''s Sports\n33 E Colorado Blvd, Pasadena, CA',
   'Buy Now →',
   'https://www.nikys-sports.com/products/nike-rose-city-fc-home-mens-dri-fit-soccer-jersey'
 )

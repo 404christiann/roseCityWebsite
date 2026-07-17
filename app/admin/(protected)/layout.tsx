@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
 import Image from "next/image";
+import { useClubBranding } from "@/components/ClubBrandingProvider";
 
 const NAV_ITEMS = [
   {
@@ -81,6 +82,16 @@ const NAV_ITEMS = [
     ),
   },
   {
+    label: "Branding",
+    href: "/admin/branding",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M12 3l7 3v5c0 4.6-2.9 8.3-7 10-4.1-1.7-7-5.4-7-10V6l7-3z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+        <circle cx="12" cy="11" r="3" stroke="currentColor" strokeWidth="2"/>
+      </svg>
+    ),
+  },
+  {
     label: "Analytics",
     href: "/admin/analytics",
     icon: (
@@ -95,6 +106,7 @@ const NAV_ITEMS = [
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router   = useRouter();
+  const { clubLogoUrl } = useClubBranding();
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -142,7 +154,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
           style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
         >
           <Image
-            src="/images/logo/rosecityLogo.jpeg"
+            src={clubLogoUrl}
             alt="Rose City FC"
             width={36}
             height={36}

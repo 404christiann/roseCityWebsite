@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { ROSE_CITY_PATCH_URL } from "@/lib/roster-images";
+import { useClubBranding } from "@/components/ClubBrandingProvider";
 import { SHOW_SHOP_HERO } from "@/lib/site-flags";
 
 const LOGO_BASE =
@@ -49,6 +49,7 @@ const navLinks = [
 ];
 
 export default function Nav() {
+  const { clubLogoUrl } = useClubBranding();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -91,7 +92,7 @@ export default function Nav() {
           {/* Rose City crest — primary */}
           <Link href="/" className="relative h-16 w-16 flex-shrink-0 sm:h-24 sm:w-24" aria-label="Rose City FC Home">
             <Image
-              src={ROSE_CITY_PATCH_URL}
+              src={clubLogoUrl}
               alt="Rose City FC"
               fill
               className="object-contain transition-all duration-300"

@@ -27,7 +27,7 @@ Gate 0 and the application phases are complete:
 - New players receive active-season seed rows, season deletion is guarded, and
   player activation/deactivation preserves the expected current/historical
   roster behavior.
-- Latest verification passed: 117 Vitest tests, TypeScript, and production
+- Latest verification passed: 129 Vitest tests, TypeScript, and production
   build.
 
 Phase 8 production mutations remain an optional manual verification step and
@@ -201,7 +201,7 @@ Add query tests:
 
 Add one integration scenario for `fetchActiveSeason()`.
 
-The current suite has 117 passing tests across five files, including player
+The current suite has 129 passing tests across six files, including player
 season and activation lifecycle coverage. There is no browser component-test
 harness for the admin pages, so UI behavior still benefits from bounded manual
 verification.

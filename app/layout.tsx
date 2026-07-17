@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { ClubBrandingProvider } from "@/components/ClubBrandingProvider";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
   description:
     "Rose City Futbol Club — 2024 UPSL Champions. Semi-professional soccer based in Pasadena, CA.",
   icons: {
-    icon: "/images/logo/rosecityLogo.jpeg",
+    icon: "/club-logo",
   },
 };
 
@@ -24,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {children}
+        <ClubBrandingProvider>{children}</ClubBrandingProvider>
         <Script defer src="/_vercel/insights/script.js" />
       </body>
     </html>

@@ -6,18 +6,20 @@ import { Player, GoalkeeperStats, FieldStats } from "@/lib/data";
 import PlayerModal from "@/components/PlayerModal";
 import NationalityFlag from "@/components/NationalityFlag";
 import { getRosterImageSrc, isRosterPlaceholderLogo } from "@/lib/roster-images";
+import { useClubBranding } from "@/components/ClubBrandingProvider";
 
 function isGK(stats: GoalkeeperStats | FieldStats): stats is GoalkeeperStats {
   return "saves" in stats;
 }
 
 export default function PlayerCard({ player, seasonLabel }: { player: Player; seasonLabel?: string }) {
+  const { clubLogoUrl } = useClubBranding();
   const [hovered, setHovered] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const stats = player.stats;
   const gk = isGK(stats);
   const isPlaceholderLogo = isRosterPlaceholderLogo(player.image);
-  const imageSrc = getRosterImageSrc(player.image);
+  const imageSrc = getRosterImageSrc(player.image, clubLogoUrl);
 
   return (
     <>

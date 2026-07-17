@@ -17,11 +17,15 @@ Read these files in order:
 5. `docs/multi-season-implementation-plan.md`
 6. `db/migrations/2026-07-multi-season.sql`
 
-The shipped baseline before the admin-managed shop release was `9568beb1` on
-`main`. The worktree may contain the generated cache file
-`tsconfig.tsbuildinfo`; do not treat it as product work or commit it by default.
-Always inspect `git status` and current diffs before editing because this
-repository has previously contained work from multiple agents.
+The latest shipped change is `9f39c02b` (`Enlarge and clean up opponent crests
+on the public schedule list`) on `main`. This handoff was originally written
+at `1737959a` (`Add admin-managed shop experience`); everything below the
+"Current Product State" heading still applies as of `9f39c02b` — see the
+"Next Match Card And Opponent Logos — 2026-07-16" section below for what
+shipped on top of it. The worktree may contain the generated cache file
+`tsconfig.tsbuildinfo`; do not treat it as product work or commit it by
+default. Always inspect `git status` and current diffs before editing because
+this repository has previously contained work from multiple agents.
 
 ## Current Product State
 
@@ -130,9 +134,60 @@ roster queries or admin actions.
   hardcode a redirect.
 - Pushes to `main` trigger Vercel deployment.
 
+## Admin-Managed Shop Data - Complete
+
+- `shop_kit_section` stores the single shared text and purchase-link record.
+- `shop_kit_photos` stores one to four ordered public image URLs.
+- The homepage and `/shop` both use `ShopKitSectionContainer` and the same
+  `ShopKitSection` presentation component.
+- `/admin/shop` supports uploads to the public `shop` bucket, photo removal and
+  ordering, draft preview, and responsive mobile administration.
+- Current unshipped work adds one to eight editable/reorderable product bullet
+  points and editable multiline store information to the same editor and exact
+  public preview.
+- `db/migrations/2026-07-shop-kit-section.sql` records the tables, grants, RLS
+  policies, seed content, and storage policies for future environments.
+- Production setup is complete. Do not rerun the migration against production
+  unless the schema has been re-verified and Christian explicitly requests it.
+- The new `bullet_points` and `store_note` columns are an additive follow-up.
+  Run `db/migrations/2026-07-shop-kit-details.sql` before testing those saves;
+  do not rerun the original Shop migration.
+
+## Shared Club Branding - Current Unshipped Work
+
+- `/admin/branding` provides one plain-language main-logo upload workflow with
+  file validation, light/dark previews, and the shared save feedback.
+- `site_branding` is a singleton public-read/authenticated-write record. The
+  active logo is stored as a `logos_v2` object path rather than a fixed URL.
+- `ClubBrandingProvider` supplies navigation, footer, admin login/sidebar,
+  next-match crest, and roster placeholder views.
+- `/club-logo` dynamically redirects the browser icon to the active crest.
+- Missing player photos stay empty in storage. Legacy logo placeholders are
+  normalized back to empty on save so they continue following the active crest.
+- Run the additive, idempotent
+  `db/migrations/2026-07-site-branding.sql` before testing an admin upload.
+  It does not remove or replace the current crest, and old uploads are retained.
+
 ## Verification
 
-Latest release checks for the admin-managed shop work:
+Current unshipped Shop-details and shared-branding worktree:
+
+```text
+npm test                         129/129 tests passed across 6 files
+npx tsc --noEmit --pretty false passed
+npm run build                    passed
+```
+
+Latest release checks (2026-07-16, after the Next Match card / opponent-logo
+work, commit `9f39c02b`):
+
+```text
+npm test                         117/117 tests passed across 5 files
+npx tsc --noEmit --pretty false passed
+npm run build                    passed
+```
+
+Earlier release checks for the admin-managed shop work:
 
 ```text
 npm test                         117/117 tests passed across 5 files
@@ -160,11 +215,56 @@ Do not mutate production data merely to repeat destructive CRUD verification.
 - The shop tables and storage bucket require the grants and RLS policies
   recorded in `db/migrations/2026-07-shop-kit-section.sql`. The production
   database setup has already been completed; do not rerun it by default.
+- The Branding editor requires `site_branding` and the scoped
+  `logos_v2/club-branding` upload policy from
+  `db/migrations/2026-07-site-branding.sql`; this additive migration is not yet
+  confirmed in production.
 - Authenticated admin CRUD can receive an additional browser pass using safe
   test records if Christian explicitly requests it.
 - `PartnerStrip.tsx` may still use older local partner artwork; the completed
   sponsor replacement specifically applies to the footer.
 - The existing lint warnings above can be cleaned up separately.
+
+## Next Match Card And Opponent Logos — 2026-07-16
+
+Shipped on top of the `1737959a` baseline above, through commit `9f39c02b`.
+
+- The homepage "Next Match" section was redesigned from a live ticking
+  countdown to a static match card. `components/Countdown.tsx` was deleted;
+  `components/NextMatchCard.tsx` replaces it and is wired into
+  `app/(public)/page.tsx` in its place.
+- Card layout: Rose City crest (static `ROSE_CITY_PATCH_URL`, always on the
+  left regardless of home/away) — red "VS" — opponent crest — optional black
+  competition-label pill (hidden when unset) — giant red italic day-of-week
+  word — a small `Month Day · Kickoff H:MM AM/PM · Venue` line, tuned to stay
+  on one line on mobile (no weekday abbreviation, tighter tracking/font floor,
+  `whitespace-nowrap`) — "Full Schedule" CTA retained below.
+- New shared component `components/OpponentCrest.tsx`: circular crest that
+  renders an uploaded logo image with no added backdrop or border (shows the
+  crest artwork as-is), or falls back to an initial-monogram circle when no
+  logo is set or the image fails to load. Takes a `variant: "light" | "dark"`
+  prop — `"dark"` swaps the fallback monogram/backdrop to a legible
+  white-on-translucent treatment for use on colored backgrounds.
+- `components/FixtureRow.tsx` (public `/schedule` list) also renders an
+  `OpponentCrest` next to the opponent name — 56px, `dark` variant on the
+  highlighted next-match row (that row has a dark green background, so the
+  default light-variant fallback was nearly invisible there before this fix).
+- `/admin/schedule` gained an optional "Competition" text input and an
+  opponent-logo upload control on the add/edit match form (same
+  select-file → upload → store public URL pattern as `/admin/shop`), plus a
+  crest thumbnail in each match's list row.
+- Data model: `matches.opponent_logo_url` and `matches.competition`, both
+  nullable `text`. New public Storage bucket `opponent-logos`. Both were
+  created manually in Supabase per `db/migrations/2026-07-next-match-card.sql`
+  (bucket created via dashboard first, then the SQL runbook for columns,
+  grants, and storage policies) — already applied to production; do not
+  rerun by default.
+- `lib/db-types.ts` (`DBMatch`), `lib/data.ts` (`Fixture`), and
+  `lib/queries.ts` (`mapFixture`) were updated to carry the two new fields
+  through to the UI layer.
+- No new tests were added for this feature (it's presentational/admin-CRUD,
+  no new pure logic); the existing 117-test suite still covers everything it
+  did before and still passes.
 
 ## Working Rules
 

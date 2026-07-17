@@ -6,7 +6,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { fetchSchedule } from "@/lib/queries";
 import { Fixture } from "@/lib/data";
-import { ROSE_CITY_PATCH_URL } from "@/lib/roster-images";
+import { useClubBranding } from "@/components/ClubBrandingProvider";
 import OpponentCrest from "@/components/OpponentCrest";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -45,6 +45,7 @@ function formatTime(timeStr: string): string {
 }
 
 export default function NextMatchCard() {
+  const { clubLogoUrl } = useClubBranding();
   const sectionRef = useRef<HTMLElement>(null);
   const [nextFixture, setNextFixture] = useState<Fixture | null>(null);
   const [loading, setLoading] = useState(true);
@@ -118,7 +119,7 @@ export default function NextMatchCard() {
           <>
             {/* Crests + VS */}
             <div className="flex items-center justify-center gap-4 sm:gap-8 mb-6">
-              <OpponentCrest name="Rose City FC" logoUrl={ROSE_CITY_PATCH_URL} size={96} />
+              <OpponentCrest name="Rose City FC" logoUrl={clubLogoUrl} size={96} />
               <span
                 className="font-display font-black uppercase italic"
                 style={{ color: "var(--color-red)", fontSize: "clamp(1.1rem, 2.5vw, 1.6rem)" }}

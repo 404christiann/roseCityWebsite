@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { Player, GoalkeeperStats, FieldStats } from "@/lib/data";
 import NationalityFlag from "@/components/NationalityFlag";
 import { getRosterImageSrc, isRosterPlaceholderLogo } from "@/lib/roster-images";
+import { useClubBranding } from "@/components/ClubBrandingProvider";
 
 function isGK(stats: GoalkeeperStats | FieldStats): stats is GoalkeeperStats {
   return "saves" in stats;
@@ -19,14 +20,19 @@ interface Props {
 }
 
 export default function PlayerModal({ player, onClose, seasonLabel = "Current Season" }: Props) {
+  const { clubLogoUrl } = useClubBranding();
   const stats = player.stats;
 
   // Build the full photo array: profile photo first, then action photos
-  const allPhotos = [getRosterImageSrc(player.image), ...(player.actionPhotos ?? [])];
+  const allPhotos = [
+    getRosterImageSrc(player.image, clubLogoUrl),
+    ...(player.actionPhotos ?? []),
+  ];
   // Open on the first action photo if one exists, otherwise the profile shot
   const [photoIdx, setPhotoIdx] = useState(player.actionPhotos?.length ? 1 : 0);
   const hasMultiple = allPhotos.length > 1;
-  const isPlaceholderLogo = isRosterPlaceholderLogo(allPhotos[photoIdx]);
+  const isPlaceholderLogo =
+    photoIdx === 0 && isRosterPlaceholderLogo(player.image);
 
   // Preload all photos as soon as the modal mounts so navigation is instant
   useEffect(() => {
