@@ -8,6 +8,7 @@ import {
   DBSiteBranding,
   DBShopKitPhoto,
   DBShopKitSection,
+  DBShopCarouselPhoto,
 } from "@/lib/db-types";
 import { DEFAULT_CLUB_LOGO_PATH } from "@/lib/club-branding";
 import { coerceRating } from "@/lib/db-utils";
@@ -151,6 +152,16 @@ export async function fetchShopKitContent(): Promise<ShopKitContent> {
       : null,
     photos: (photosResult.data ?? []) as DBShopKitPhoto[],
   };
+}
+
+/** Fetches the ordered shop-page carousel photos. */
+export async function fetchShopCarouselPhotos(): Promise<DBShopCarouselPhoto[]> {
+  const { data, error } = await supabase
+    .from("shop_carousel_photos")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  if (error) throw new Error(`fetchShopCarouselPhotos: ${error.message}`);
+  return (data ?? []) as DBShopCarouselPhoto[];
 }
 
 /**

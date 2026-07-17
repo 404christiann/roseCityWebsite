@@ -116,6 +116,13 @@ export type DBShopKitPhoto = {
   created_at: string;
 };
 
+export type DBShopCarouselPhoto = {
+  id: string;
+  url: string;
+  sort_order: number;
+  created_at: string;
+};
+
 export type DBSiteBranding = {
   id: number;
   club_logo_path: string;

@@ -4,11 +4,14 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import AdminSaveFeedback from "@/components/admin/AdminSaveFeedback";
 import ScaledShopKitPreview from "@/components/admin/ScaledShopKitPreview";
+import ScaledShopPhotoCarouselPreview from "@/components/admin/ScaledShopPhotoCarouselPreview";
 import type {
+  DBShopCarouselPhoto,
   DBShopKitPhoto,
   DBShopKitSection,
 } from "@/lib/db-types";
 import {
+  fetchShopCarouselPhotos,
   fetchShopKitContent,
 } from "@/lib/queries";
 import {
@@ -19,6 +22,12 @@ import {
   MAX_KIT_BULLET_POINTS,
   type DraftKitPhoto,
 } from "@/lib/shop-kit";
+import {
+  canAddCarouselPhoto,
+  diffCarouselPhotos,
+  MAX_CAROUSEL_PHOTOS,
+  type DraftCarouselPhoto,
+} from "@/lib/shop-carousel";
 import { createClient } from "@/lib/supabase-browser";
 
 type SectionFields = {
@@ -81,25 +90,35 @@ async function uploadPhoto(file: File, bucket: string): Promise<string> {
   return data.publicUrl;
 }
 
+type AdminTab = "content" | "kit" | "carousel";
+
 export default function AdminShopPage() {
+  const [activeTab, setActiveTab] = useState<AdminTab>("content");
   const [fields, setFields] = useState<SectionFields>(EMPTY_FIELDS);
   const [draftPhotos, setDraftPhotos] = useState<DraftKitPhoto[]>([]);
   const [originalPhotos, setOriginalPhotos] = useState<DBShopKitPhoto[]>([]);
+  const [draftCarouselPhotos, setDraftCarouselPhotos] = useState<DraftCarouselPhoto[]>([]);
+  const [originalCarouselPhotos, setOriginalCarouselPhotos] = useState<DBShopCarouselPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const carouselFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchShopKitContent()
-      .then(({ section, photos }) => {
+    Promise.all([fetchShopKitContent(), fetchShopCarouselPhotos()])
+      .then(([{ section, photos }, carouselPhotos]) => {
         if (section) {
           setFields(sectionToFields(section));
         }
         setOriginalPhotos(photos);
         setDraftPhotos(photos.map((photo) => ({ id: photo.id, url: photo.url })));
+        setOriginalCarouselPhotos(carouselPhotos);
+        setDraftCarouselPhotos(
+          carouselPhotos.map((photo) => ({ id: photo.id, url: photo.url })),
+        );
       })
       .catch((loadError: unknown) => {
         setError(loadError instanceof Error ? loadError.message : "Failed to load shop content");
@@ -173,6 +192,17 @@ export default function AdminShopPage() {
     setSaved(false);
   }
 
+  function moveCarouselPhoto(index: number, delta: -1 | 1) {
+    setDraftCarouselPhotos((current) => {
+      const next = [...current];
+      const destination = index + delta;
+      if (destination < 0 || destination >= next.length) return current;
+      [next[index], next[destination]] = [next[destination], next[index]];
+      return next;
+    });
+    setSaved(false);
+  }
+
   async function handleUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
     const remaining = 4 - draftPhotos.length;
@@ -193,6 +223,31 @@ export default function AdminShopPage() {
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function handleCarouselUpload(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const remaining = MAX_CAROUSEL_PHOTOS - draftCarouselPhotos.length;
+    const selected = Array.from(files).slice(0, remaining);
+    if (selected.length === 0) return;
+
+    setUploading(true);
+    setError(null);
+    setSaved(false);
+    try {
+      const uploaded: DraftCarouselPhoto[] = [];
+      for (const file of selected) {
+        uploaded.push({ id: null, url: await uploadPhoto(file, "shop") });
+      }
+      setDraftCarouselPhotos((current) =>
+        [...current, ...uploaded].slice(0, MAX_CAROUSEL_PHOTOS),
+      );
+    } catch (uploadError: unknown) {
+      setError(uploadError instanceof Error ? uploadError.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (carouselFileRef.current) carouselFileRef.current.value = "";
     }
   }
 
@@ -250,11 +305,46 @@ export default function AdminShopPage() {
         if (insertError) throw new Error(insertError.message);
       }
 
-      const fresh = await fetchShopKitContent();
+      const carouselDiff = diffCarouselPhotos(
+        originalCarouselPhotos,
+        draftCarouselPhotos,
+      );
+
+      if (carouselDiff.toDelete.length > 0) {
+        const { error: carouselDeleteError } = await supabase
+          .from("shop_carousel_photos")
+          .delete()
+          .in("id", carouselDiff.toDelete);
+        if (carouselDeleteError) throw new Error(carouselDeleteError.message);
+      }
+
+      for (const update of carouselDiff.toUpdate) {
+        const { error: carouselUpdateError } = await supabase
+          .from("shop_carousel_photos")
+          .update({ sort_order: update.sort_order })
+          .eq("id", update.id);
+        if (carouselUpdateError) throw new Error(carouselUpdateError.message);
+      }
+
+      if (carouselDiff.toInsert.length > 0) {
+        const { error: carouselInsertError } = await supabase
+          .from("shop_carousel_photos")
+          .insert(carouselDiff.toInsert);
+        if (carouselInsertError) throw new Error(carouselInsertError.message);
+      }
+
+      const [fresh, freshCarousel] = await Promise.all([
+        fetchShopKitContent(),
+        fetchShopCarouselPhotos(),
+      ]);
       if (fresh.section) setFields(sectionToFields(fresh.section));
       setOriginalPhotos(fresh.photos);
       setDraftPhotos(
         fresh.photos.map((photo) => ({ id: photo.id, url: photo.url })),
+      );
+      setOriginalCarouselPhotos(freshCarousel);
+      setDraftCarouselPhotos(
+        freshCarousel.map((photo) => ({ id: photo.id, url: photo.url })),
       );
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -279,6 +369,14 @@ export default function AdminShopPage() {
     sort_order: index,
     created_at: "",
   }));
+  const previewCarouselPhotos: DBShopCarouselPhoto[] = draftCarouselPhotos.map(
+    (photo, index) => ({
+      id: photo.id ?? `draft-${index}`,
+      url: photo.url,
+      sort_order: index,
+      created_at: "",
+    }),
+  );
   const hasBulletPoint =
     cleanKitBulletPoints(fields.bullet_points.map((point) => point.text)).length >
     0;
@@ -288,10 +386,10 @@ export default function AdminShopPage() {
   return (
     <div className="mx-auto min-w-0 max-w-7xl overflow-hidden">
       <AdminSaveFeedback saving={saving} saved={saved} />
-      <div className="mb-6 sm:mb-8">
+      <div className="mb-4 sm:mb-6">
         <h1
           className="font-display font-black uppercase leading-none text-white"
-          style={{ fontSize: "clamp(2.25rem, 12vw, 3.5rem)" }}
+          style={{ fontSize: "clamp(2rem, 10vw, 2.75rem)" }}
         >
           Shop
         </h1>
@@ -313,28 +411,59 @@ export default function AdminShopPage() {
       ) : (
         <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(320px,420px)_minmax(0,1fr)]">
           <section
-            className="min-w-0 self-start rounded-xl p-4 sm:p-6"
+            className="min-w-0 self-start rounded-xl p-4 sm:p-5"
             style={{
               backgroundColor: "#141414",
               border: "1px solid rgba(255,255,255,0.07)",
             }}
           >
-            <div className="mb-6">
-              <p
-                className="font-display font-bold uppercase tracking-widest"
-                style={{ color: "#E7001B", fontSize: "0.72rem" }}
-              >
-                Shop Section Text
-              </p>
-              <p
-                className="font-body mt-1 text-sm"
-                style={{ color: "rgba(255,255,255,0.35)" }}
-              >
-                Changes remain a draft until you save.
-              </p>
+            <div className="mb-4 flex gap-1 rounded-lg p-1" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>
+              {(
+                [
+                  { id: "content" as const, label: "Content", count: null },
+                  { id: "kit" as const, label: "Kit Photos", count: `${draftPhotos.length}/4` },
+                  {
+                    id: "carousel" as const,
+                    label: "Carousel",
+                    count: `${draftCarouselPhotos.length}/${MAX_CAROUSEL_PHOTOS}`,
+                  },
+                ]
+              ).map((tab) => {
+                const hasIssue =
+                  (tab.id === "content" && !hasBulletPoint) ||
+                  (tab.id === "kit" && draftPhotos.length === 0);
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className="font-display flex-1 rounded-md px-2 py-2.5 text-[0.65rem] uppercase tracking-widest transition-colors sm:text-xs"
+                    style={{
+                      backgroundColor: isActive ? "#E7001B" : "transparent",
+                      color: isActive ? "white" : "rgba(255,255,255,0.5)",
+                    }}
+                  >
+                    {tab.label}
+                    {tab.count && (
+                      <span style={{ opacity: 0.75 }}> {tab.count}</span>
+                    )}
+                    {hasIssue && (
+                      <span
+                        aria-hidden="true"
+                        style={{ color: isActive ? "white" : "#E7001B" }}
+                      >
+                        {" "}
+                        •
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="space-y-4">
+            {activeTab === "content" && (
+            <div className="space-y-3">
               <Field
                 label="Small Heading Above the Title"
                 help='Example: "2026 Kit · Available Now"'
@@ -356,7 +485,7 @@ export default function AdminShopPage() {
                   placeholder={"Thorn\nEdition\n2026"}
                   value={fields.title}
                   onChange={(event) => setField("title", event.target.value)}
-                  rows={4}
+                  rows={3}
                   style={{ ...inputStyle, resize: "vertical" }}
                 />
               </Field>
@@ -369,7 +498,7 @@ export default function AdminShopPage() {
                   placeholder="Describe the jersey, its design, and what makes it special."
                   value={fields.description}
                   onChange={(event) => setField("description", event.target.value)}
-                  rows={5}
+                  rows={3}
                   style={{ ...inputStyle, resize: "vertical" }}
                 />
               </Field>
@@ -467,7 +596,7 @@ export default function AdminShopPage() {
                   onChange={(event) =>
                     setField("store_note", event.target.value)
                   }
-                  rows={3}
+                  rows={2}
                   style={{ ...inputStyle, resize: "vertical" }}
                 />
               </Field>
@@ -499,13 +628,11 @@ export default function AdminShopPage() {
                 </Field>
               </div>
             </div>
+            )}
 
-            <div
-              className="my-6 h-px"
-              style={{ backgroundColor: "rgba(255,255,255,0.07)" }}
-            />
-
-            <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+            {activeTab === "kit" && (
+            <div>
+            <div className="mb-2 flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p
                   className="font-display text-xs uppercase tracking-widest"
@@ -528,7 +655,7 @@ export default function AdminShopPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 min-[420px]:flex min-[420px]:flex-wrap">
+            <div className="grid grid-cols-3 gap-2 min-[420px]:flex min-[420px]:flex-wrap">
               {draftPhotos.map((photo, index) => (
                 <div key={photo.id ?? photo.url} className="min-w-0 min-[420px]:w-[76px]">
                   <div
@@ -630,9 +757,136 @@ export default function AdminShopPage() {
                 At least 1 photo is required.
               </p>
             )}
+            </div>
+            )}
+
+            {activeTab === "carousel" && (
+            <div>
+            <div className="mb-2 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p
+                  className="font-display text-xs uppercase tracking-widest"
+                  style={{ color: "rgba(255,255,255,0.35)" }}
+                >
+                  Shop Page Carousel
+                </p>
+                <p
+                  className="font-body mt-1 text-xs"
+                  style={{ color: "rgba(255,255,255,0.22)" }}
+                >
+                  Full-width slideshow shown on the shop page. Leave empty to hide it.
+                </p>
+              </div>
+              <span
+                className="font-display text-xs uppercase tracking-widest"
+                style={{ color: "rgba(255,255,255,0.25)" }}
+              >
+                {draftCarouselPhotos.length}/{MAX_CAROUSEL_PHOTOS}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 min-[420px]:flex min-[420px]:flex-wrap">
+              {draftCarouselPhotos.map((photo, index) => (
+                <div key={photo.id ?? photo.url} className="min-w-0 min-[420px]:w-[76px]">
+                  <div
+                    className="group relative aspect-square w-full overflow-hidden rounded-lg min-[420px]:h-[72px]"
+                    style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+                  >
+                    <Image
+                      src={photo.url}
+                      alt={`Carousel photo ${index + 1}`}
+                      fill
+                      sizes="72px"
+                      className="object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDraftCarouselPhotos((current) =>
+                          current.filter((_, photoIndex) => photoIndex !== index),
+                        );
+                        setSaved(false);
+                      }}
+                      className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full opacity-100 transition-opacity sm:h-6 sm:w-6 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                      style={{ backgroundColor: "#E7001B" }}
+                      aria-label={`Remove carousel photo ${index + 1}`}
+                    >
+                      <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                        <path d="M1 1L9 9M9 1L1 9" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="mt-1 flex gap-1">
+                    <OrderButton
+                      label={`Move carousel photo ${index + 1} left`}
+                      disabled={index === 0}
+                      onClick={() => moveCarouselPhoto(index, -1)}
+                    >
+                      ←
+                    </OrderButton>
+                    <OrderButton
+                      label={`Move carousel photo ${index + 1} right`}
+                      disabled={index === draftCarouselPhotos.length - 1}
+                      onClick={() => moveCarouselPhoto(index, 1)}
+                    >
+                      →
+                    </OrderButton>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => carouselFileRef.current?.click()}
+                disabled={uploading || !canAddCarouselPhoto(draftCarouselPhotos.length)}
+                className="flex aspect-square w-full flex-col items-center justify-center rounded-lg transition-colors min-[420px]:h-[72px] min-[420px]:w-[76px]"
+                style={{
+                  border: "1px dashed rgba(255,255,255,0.15)",
+                  backgroundColor: uploading
+                    ? "rgba(255,255,255,0.03)"
+                    : "transparent",
+                  color: "rgba(255,255,255,0.3)",
+                  cursor:
+                    uploading || !canAddCarouselPhoto(draftCarouselPhotos.length)
+                      ? "not-allowed"
+                      : "pointer",
+                  opacity: canAddCarouselPhoto(draftCarouselPhotos.length) ? 1 : 0.4,
+                }}
+                aria-label="Add carousel photos"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+                <span
+                  className="font-display mt-1 uppercase"
+                  style={{ fontSize: "0.55rem", letterSpacing: "0.08em" }}
+                >
+                  {uploading ? "Uploading" : "Add"}
+                </span>
+              </button>
+              <input
+                ref={carouselFileRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(event) => handleCarouselUpload(event.target.files)}
+              />
+            </div>
+
+            {!canAddCarouselPhoto(draftCarouselPhotos.length) && (
+              <p
+                className="font-body mt-2 text-xs"
+                style={{ color: "rgba(255,255,255,0.25)" }}
+              >
+                4 photo max.
+              </p>
+            )}
+            </div>
+            )}
 
             <div
-              className="mt-6 border-t pt-5"
+              className="mt-4 border-t pt-4"
               style={{ borderColor: "rgba(255,255,255,0.07)" }}
             >
               {error && (
@@ -703,6 +957,44 @@ export default function AdminShopPage() {
                     style={{ color: "rgba(255,255,255,0.35)" }}
                   >
                     Add at least one kit photo to preview the public section.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="mb-3 mt-6 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p
+                  className="font-display font-bold uppercase tracking-widest text-white"
+                  style={{ fontSize: "0.9rem" }}
+                >
+                  Shop Page Carousel Preview
+                </p>
+                <p
+                  className="font-body mt-1 text-xs"
+                  style={{ color: "rgba(255,255,255,0.3)" }}
+                >
+                  Desktop website view, scaled to fit.
+                </p>
+              </div>
+            </div>
+
+            <div
+              className="overflow-hidden rounded-lg"
+              style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+            >
+              {previewCarouselPhotos.length > 0 ? (
+                <ScaledShopPhotoCarouselPreview photos={previewCarouselPhotos} />
+              ) : (
+                <div
+                  className="flex min-h-40 items-center justify-center p-8 text-center"
+                  style={{ backgroundColor: "#141414" }}
+                >
+                  <p
+                    className="font-body text-sm"
+                    style={{ color: "rgba(255,255,255,0.35)" }}
+                  >
+                    Empty — the carousel stays hidden on the shop page until you add a photo.
                   </p>
                 </div>
               )}

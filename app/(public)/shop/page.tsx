@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import { shopProduct } from "@/lib/data";
 import { SHOW_SHOP_HERO } from "@/lib/site-flags";
 import ShopKitSectionContainer from "@/components/ShopKitSectionContainer";
+import ShopPhotoCarouselContainer from "@/components/ShopPhotoCarouselContainer";
 
 const ShopHero      = dynamic(() => import("@/components/ShopHero"),      { ssr: false });
 
@@ -36,6 +37,8 @@ export default function ShopPage() {
       {SHOW_SHOP_HERO && <ShopHero />}
 
       <ShopKitSectionContainer headingTag="h1" />
+
+      <ShopPhotoCarouselContainer />
 
       {/* ── Purchase info ── */}
       <div style={{ backgroundColor: "var(--color-black)" }}>
