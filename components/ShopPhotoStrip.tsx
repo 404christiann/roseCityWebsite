@@ -15,7 +15,7 @@ export default function ShopPhotoStrip({ photos }: ShopPhotoStripProps) {
 
   return (
     <section className="w-full" style={{ backgroundColor: "var(--color-white)" }}>
-      <div className="mx-auto max-w-7xl overflow-x-auto px-6 pt-10 lg:px-10 lg:pt-14">
+      <div className="mx-auto max-w-7xl overflow-x-auto px-6 lg:px-10">
         <div className="flex justify-start md:justify-center">
           {photos.map((photo, i) => (
             <div
