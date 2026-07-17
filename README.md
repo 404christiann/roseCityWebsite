@@ -166,7 +166,6 @@ npx tsc --noEmit --pretty false
 npm run build
 ```
 
-Latest shipped baseline: commit `9f39c02b` on `main`, with 117/117 Vitest tests,
-passing TypeScript, and a passing production build. Pushes to `main` trigger the
-Vercel deployment. The current unshipped Shop-details and shared-branding work
-passes 129/129 tests, TypeScript, and the production build.
+Latest application release: commit `91d0081e` on `main`, with 129/129 Vitest
+tests, passing TypeScript, and a passing production build. Pushes to `main`
+trigger the Vercel deployment.

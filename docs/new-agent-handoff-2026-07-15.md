@@ -17,12 +17,11 @@ Read these files in order:
 5. `docs/multi-season-implementation-plan.md`
 6. `db/migrations/2026-07-multi-season.sql`
 
-The latest shipped change is `9f39c02b` (`Enlarge and clean up opponent crests
-on the public schedule list`) on `main`. This handoff was originally written
-at `1737959a` (`Add admin-managed shop experience`); everything below the
-"Current Product State" heading still applies as of `9f39c02b` — see the
-"Next Match Card And Opponent Logos — 2026-07-16" section below for what
-shipped on top of it. The worktree may contain the generated cache file
+The latest application release is `91d0081e` (`Add admin-managed shop details
+and branding`) on `main`. It includes the Shop-details follow-up, shared club
+branding, and all earlier work through `9f39c02b`. This handoff was originally
+written at `1737959a` (`Add admin-managed shop experience`). The worktree may
+contain the generated cache file
 `tsconfig.tsbuildinfo`; do not treat it as product work or commit it by
 default. Always inspect `git status` and current diffs before editing because
 this repository has previously contained work from multiple agents.
@@ -142,9 +141,8 @@ roster queries or admin actions.
   `ShopKitSection` presentation component.
 - `/admin/shop` supports uploads to the public `shop` bucket, photo removal and
   ordering, draft preview, and responsive mobile administration.
-- Current unshipped work adds one to eight editable/reorderable product bullet
-  points and editable multiline store information to the same editor and exact
-  public preview.
+- The editor includes one to eight editable/reorderable product bullet points
+  and editable multiline store information in the exact public preview.
 - `db/migrations/2026-07-shop-kit-section.sql` records the tables, grants, RLS
   policies, seed content, and storage policies for future environments.
 - Production setup is complete. Do not rerun the migration against production
@@ -153,7 +151,7 @@ roster queries or admin actions.
   Run `db/migrations/2026-07-shop-kit-details.sql` before testing those saves;
   do not rerun the original Shop migration.
 
-## Shared Club Branding - Current Unshipped Work
+## Shared Club Branding - Complete
 
 - `/admin/branding` provides one plain-language main-logo upload workflow with
   file validation, light/dark previews, and the shared save feedback.
@@ -170,7 +168,7 @@ roster queries or admin actions.
 
 ## Verification
 
-Current unshipped Shop-details and shared-branding worktree:
+Shop-details and shared-branding release (`91d0081e`):
 
 ```text
 npm test                         129/129 tests passed across 6 files
