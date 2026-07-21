@@ -25,6 +25,13 @@ export default function supabaseLoader({ src, width, quality }) {
   const params = new URLSearchParams({
     width: String(width),
     quality: String(quality ?? 75),
+    // Without an explicit resize mode, Supabase's transform API defaults to
+    // "fill", which only changes the width and leaves height at the
+    // source's original pixel height — badly stretching every non-square
+    // image (a 900x900 crest requested at width=64 came back 64x900).
+    // "contain" scales proportionally instead, matching what Next.js
+    // expects a width-only request to do.
+    resize: "contain",
   });
 
   return `${transformedSrc}?${params.toString()}`;
