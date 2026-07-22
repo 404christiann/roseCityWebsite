@@ -1,9 +1,41 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSubscriptionMirrorRow } from "@/lib/subscription-mirror";
-import { isAdminLocked } from "@/lib/stripe-subscription-state";
+import { isAdminLocked, isPublicSiteLocked } from "@/lib/stripe-subscription-state";
+import { createServiceRoleClient } from "@/lib/supabase-service-role";
+
+const PUBLIC_LOCKABLE_PATHS = ["/", "/roster", "/schedule", "/shop"];
+
+const PUBLIC_LOCKED_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Rose City FC</title></head>
+<body>
+<h1>Rose City FC</h1>
+<p>Site temporarily unavailable — check back soon.</p>
+</body>
+</html>`;
 
 export async function middleware(request: NextRequest) {
+  const isPublicLockablePath = PUBLIC_LOCKABLE_PATHS.includes(request.nextUrl.pathname);
+
+  if (isPublicLockablePath && process.env.FORCE_PUBLIC_SITE_ONLINE !== "true") {
+    const serviceClient = createServiceRoleClient();
+    const subscriptionRow = await getSubscriptionMirrorRow(serviceClient);
+
+    if (isPublicSiteLocked(subscriptionRow)) {
+      return new NextResponse(PUBLIC_LOCKED_HTML, {
+        status: 503,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Retry-After": "86400",
+          "X-Robots-Tag": "noindex",
+        },
+      });
+    }
+
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -76,5 +108,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/", "/roster", "/schedule", "/shop"],
 };

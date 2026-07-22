@@ -43,3 +43,18 @@ export function resolvePaymentsUiState(
 export function isAdminLocked(row: SubscriptionMirrorRow, now: Date = new Date()): boolean {
   return resolvePaymentsUiState(row, now).state === "terminal";
 }
+
+const PUBLIC_SITE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function isPublicSiteLocked(row: SubscriptionMirrorRow, now: Date = new Date()): boolean {
+  if (!row || !row.status || !TERMINAL_STATUSES.has(row.status)) {
+    return false;
+  }
+
+  if (!row.current_period_end) {
+    return false;
+  }
+
+  const publicLockThreshold = new Date(row.current_period_end).getTime() + PUBLIC_SITE_GRACE_MS;
+  return now.getTime() >= publicLockThreshold;
+}

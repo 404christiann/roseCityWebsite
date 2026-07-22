@@ -377,3 +377,133 @@ Only start this once every Phase 1 scenario above has passed.
 - `app/api/stripe/webhook/route.ts`
 - `app/admin/(protected)/payments/page.tsx`
 - `app/admin/(protected)/layout.tsx`
+
+---
+
+# Part C — Public Site Lockout (Grace-Extended)
+
+**Scope:** Everything in Part A locks `/admin/*` the instant the subscription goes terminal. This section adds a second, later trigger: once a terminal subscription stays unresolved for a full **7 days past `current_period_end`**, the public-facing site (`/`, `/roster`, `/schedule`, `/shop`) also goes down, replaced by a neutral "temporarily unavailable" placeholder — no billing language, no admin contact, nothing that reveals why. This is a materially higher-stakes consequence than the admin lockout, so it gets its own resolver, its own env-var override, and its own middleware block, layered onto the same `middleware.ts` file rather than folded into the existing admin logic.
+
+## C.1 New resolver — `lib/stripe-subscription-state.ts` (addition)
+
+Add alongside `isAdminLocked`, not inside it — `isAdminLocked` keeps its exact current zero-buffer behavior, untouched:
+
+```ts
+const PUBLIC_SITE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function isPublicSiteLocked(row: SubscriptionMirrorRow, now: Date = new Date()): boolean {
+  if (!row || !row.status || !TERMINAL_STATUSES.has(row.status)) {
+    return false;
+  }
+
+  if (!row.current_period_end) {
+    return false;
+  }
+
+  const publicLockThreshold = new Date(row.current_period_end).getTime() + PUBLIC_SITE_GRACE_MS;
+  return now.getTime() >= publicLockThreshold;
+}
+```
+
+Design notes to carry into the PR description:
+- Reuses the exact same `TERMINAL_STATUSES` set as `isAdminLocked` — no new status list, no drift between the two gates over time.
+- Same fail-open semantics as `isAdminLocked` at every step: no row, null `status`, non-terminal `status`, or null `current_period_end` all resolve to `false`. The 7-day clock only ever starts once a row has genuinely gone terminal with a real `current_period_end` — never on a fresh, never-subscribed deployment (decision 8).
+- Deliberately does **not** call `resolvePaymentsUiState` internally — that function's `"terminal"` state already fires at zero buffer, and threading a second time-offset through it would make the existing, already-tested Part A function harder to reason about for no benefit. `isPublicSiteLocked` re-derives the terminal check directly from the row, keeping both functions small and independently correct.
+- `PUBLIC_SITE_GRACE_MS` is a `const`, not an env var — the 7-day buffer is a fixed product decision, not something to make configurable.
+
+### Suggested unit tests — `lib/__tests__/stripe-subscription-state.test.ts` (additions)
+
+New `describe("isPublicSiteLocked")` block, same `row()` fixture helper and `NOW`/`PAST`/`FUTURE` constants already in the file:
+
+1. `row = null` → `false` (fail-open on no row, decision 8/first-deploy).
+2. `row` present, `status: null` → `false`.
+3. `status: "active"`, `current_period_end` in the past → `false` (non-terminal status never locks, regardless of dates).
+4. `status: "canceled"`, `current_period_end: null` → `false` (fail-open on missing period-end).
+5. `status: "canceled"`, `current_period_end` = `NOW` exactly (i.e. `now === current_period_end`, zero buffer elapsed) → `false` — this is the point where `isAdminLocked` would already be `true`; confirms the two gates are genuinely decoupled.
+6. `status: "canceled"`, `current_period_end` = `NOW - 6 days` → `false` — **the key new boundary test**: still inside the 7-day grace window, admin is locked but public site is not.
+7. `status: "canceled"`, `current_period_end` = `NOW - 7 days` exactly → `true` (uses `>=`, matches the existing boundary convention from `isAdminLocked`'s own period-end test).
+8. `status: "canceled"`, `current_period_end` = `NOW - 8 days` → `true` (comfortably past the buffer).
+9. `status: "unpaid"`, `current_period_end` = `NOW - 7 days` → `true` (dunning-exhaustion path locks the public site too, same as it locks admin).
+10. `status: "past_due"`, `current_period_end` = `NOW - 30 days` → `false` (never a terminal status, never locks either gate no matter how stale).
+11. One `it.each` sweeping every non-locking fixture above (plus the `isAdminLocked`-locked-but-still-within-grace case from #6) confirming `isPublicSiteLocked` is `false` for all of them, mirroring the existing `isAdminLocked` parametrized sweep's style.
+
+`FORCE_PUBLIC_SITE_ONLINE` is not something `isPublicSiteLocked` itself checks — keep the pure function env-agnostic and dependency-free like the rest of this file (it needs to run identically in tests and in Edge middleware). The override is applied one layer up, in `middleware.ts` (C.2), so a "override env var respected" test belongs in a middleware-level test/manual check, not in this file's unit suite.
+
+## C.2 Middleware changes — `middleware.ts`
+
+New imports, added alongside the existing ones:
+
+```ts
+import { isAdminLocked, isPublicSiteLocked } from "@/lib/stripe-subscription-state";
+import { createServiceRoleClient } from "@/lib/supabase-service-role";
+```
+
+New public-route gate — insert this as its own top-level block in `middleware()`, independent of (and not interleaved with) the existing admin-route logic, since it runs on a disjoint set of paths and uses a different Supabase client. To avoid an unnecessary Supabase Auth round-trip on every public page view, check this block **before** constructing the cookie-bound `supabase` client used for the admin auth/session logic — public visitors never have an admin session, so there's no reason to pay for `auth.getUser()` on every public request:
+
+```ts
+const PUBLIC_LOCKABLE_PATHS = ["/", "/roster", "/schedule", "/shop"];
+const isPublicLockablePath = PUBLIC_LOCKABLE_PATHS.includes(request.nextUrl.pathname);
+
+if (isPublicLockablePath && process.env.FORCE_PUBLIC_SITE_ONLINE !== "true") {
+  const serviceClient = createServiceRoleClient();
+  const subscriptionRow = await getSubscriptionMirrorRow(serviceClient);
+
+  if (isPublicSiteLocked(subscriptionRow)) {
+    return new NextResponse(PUBLIC_LOCKED_HTML, {
+      status: 503,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Retry-After": "86400",
+        "X-Robots-Tag": "noindex",
+      },
+    });
+  }
+}
+```
+
+`PUBLIC_LOCKED_HTML`, defined once at module scope in `middleware.ts` (not inside the function, so it isn't rebuilt per-request):
+
+```ts
+const PUBLIC_LOCKED_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Rose City FC</title></head>
+<body>
+<h1>Rose City FC</h1>
+<p>Site temporarily unavailable — check back soon.</p>
+</body>
+</html>`;
+```
+
+**Why a hardcoded inline `NextResponse` and not a rewrite to a dedicated page route:** a rewrite target would itself have to live outside `app/(public)` (since every route inside that group is exactly what's being locked), meaning a whole extra page file, its own layout concerns, and a `rewrite()` call that still has to run this same subscription check first to decide *whether* to rewrite — no simplification, just indirection. Middleware already runs on the Edge before any page renders, has the lock decision in hand, and Next.js lets a middleware return a fully-formed `Response`/`NextResponse` directly with arbitrary status/headers/body. A static inline string is also trivially guaranteed to carry zero billing/account language, since there's no template file a future edit could accidentally enrich with dynamic data. Keep the HTML deliberately minimal — this is a placeholder, not a designed page.
+
+**Why `createServiceRoleClient()` instead of the existing cookie-bound `supabase` client for this read:** decision 7 requires the raw `status` field to stay unqueryable via Supabase's REST API by an anonymous visitor. The existing `supabase` client in `middleware.ts` only carries whatever session cookie the request has (none, for a public visitor) — reading `stripe_subscription` through it would return `null` today only because there's no `anon` grant, but the actual security property Christian wants is "no client, admin or otherwise, that a public visitor could ever construct can read this row." `createServiceRoleClient()` bypasses RLS/grants entirely and is already Edge-safe (built on plain `@supabase/supabase-js` `createClient`, no `@supabase/ssr` cookie plumbing), so it's a straight drop-in for this one read — no new client construction pattern to invent.
+
+**`config.matcher` — updated to cover both admin and the explicit public paths in one file:**
+
+```ts
+export const config = {
+  matcher: ["/admin/:path*", "/", "/roster", "/schedule", "/shop"],
+};
+```
+
+An explicit list, not a broad matcher with `/api/*`/`/_next/*` excluded afterward — this keeps `/api/stripe/webhook`, `/api/stripe/checkout`, `/api/stripe/portal`, and `/api/stripe/billing-admin` structurally unreachable by this new logic rather than relying on remembering to exclude them, matching how the *old* matcher (`["/admin/:path*"]`) already never touched `/api/*` at all. `/club-logo` is deliberately **not** added to the matcher: it's a single-image redirect endpoint, not a page a visitor reads, so serving it an HTML 503 body wouldn't meaningfully communicate anything and would just break whatever `<img>`/`next/image` reference is pointing at it during a lockout. Leaving it unmatched means the logo keeps resolving even while the rest of the site is down — a minor, deliberately-accepted inconsistency, not a gap worth extra logic for.
+
+Nothing about the existing `/admin/:path*` matcher entry, the `isAdminLocked` block, or the cookie-bound `supabase` client changes for admin routes — the two gates run side by side in the same function, on disjoint path sets, using two different Supabase client instances for two different reasons (decision 9).
+
+## C.3 Critical Files (this section only)
+
+- `middleware.ts` (already listed in Part A — now also carries the public-lock block and the expanded matcher)
+- `lib/stripe-subscription-state.ts` (already listed in Part A — now also exports `isPublicSiteLocked`)
+- `lib/__tests__/stripe-subscription-state.test.ts` (new `describe("isPublicSiteLocked")` block)
+- `.env`/Vercel Environment Variables config — new `FORCE_PUBLIC_SITE_ONLINE` var (no code file, but required for the override to exist at all)
+
+## C.4 Testing / verification
+
+- Extend `lib/__tests__/stripe-subscription-state.test.ts` with C.1's cases and re-run `npm test` — total count grows again from Part A's addition.
+- `npx tsc --noEmit --pretty false` and `npm run build` must both still pass with the updated `middleware.ts` and expanded `config.matcher`.
+- **Live boundary verification reuses the same backdating technique already used earlier in this session** (directly updating the `stripe_subscription` mirror row's `current_period_end` via the Supabase SQL editor/service-role client) rather than a fresh Stripe test-mode pass — this section changes only a comparison threshold in already-verified plumbing, not the webhook or Checkout/Portal flow. Verify at three specific backdated values against a row with a terminal `status`:
+  - `current_period_end = now` (admin already locked at this point; confirm `/`, `/roster`, `/schedule`, `/shop` still return normal `200` responses — public site not yet locked).
+  - `current_period_end = now - 6 days` (still inside grace; confirm public routes remain fully reachable).
+  - `current_period_end = now - 7 days` (confirm all four public routes now return `503` with the neutral HTML body, `Retry-After: 86400`, and `X-Robots-Tag: noindex`, while `/admin/payments` remains reachable and functional throughout every step above).
+- Separately confirm `FORCE_PUBLIC_SITE_ONLINE=true` with a row backdated past 7 days still serves the real public pages (`200`), and that toggling it off immediately restores the `503` — this override only needs to be verified locally/in Preview, not against live Stripe data, since it never touches Stripe at all.
+- Confirm `/api/stripe/webhook`, `/api/stripe/checkout`, `/api/stripe/portal`, and `/api/stripe/billing-admin` all remain reachable (not intercepted by middleware at all) throughout every state above — a quick `curl -I` against each during the locked-public-site state is sufficient, since the matcher change is what guarantees this, not any runtime branching.
