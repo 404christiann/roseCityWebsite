@@ -17,15 +17,13 @@ Read these files in order:
 5. `docs/multi-season-implementation-plan.md`
 6. `db/migrations/2026-07-multi-season.sql`
 
-This application baseline builds on release `5ce20126` on `main` — a static
-shop-page photo row (see "Shop Page Photo Row" section below) — and adds the
-shared white kit fade, up-to-six Kit Photos, and hands-off autoplay when
-multiple Kit Photos exist. The earlier
-`91d0081e` (`Add admin-managed shop details and branding`) baseline, which
-itself includes the Shop-details follow-up, shared club branding, and all
-earlier work through `9f39c02b`. Post-release documentation head is
-`1c2b6456`. This handoff was originally written at `1737959a` (`Add
-admin-managed shop experience`). The worktree may contain the generated cache file
+The current application baseline is release `5fb0b6fd` on `main`. It includes
+the homepage fixture sponsor/countdown presentation, independent homepage and
+shop-page kit content/photos, responsive player and staff cards, the static
+shop Photo Row, and all earlier multi-season, branding, and admin-managed shop
+work. This handoff was originally written at `1737959a` (`Add admin-managed
+shop experience`) and has been refreshed after each shipped release. The
+worktree may contain the generated cache file
 `tsconfig.tsbuildinfo`; do not treat it as product work or commit it by
 default. Always inspect `git status` and current diffs before editing because
 this repository has previously contained work from multiple agents. Never
@@ -34,13 +32,13 @@ push — see "Working Rules" below.
 
 ## Current Product State
 
-Pending local rollout: the homepage Next Match presentation has an optional
+Shipped in `5fb0b6fd`: the homepage Next Match presentation has an optional
 per-match linked sponsor and restored Days/Hours/Min/Sec countdown. Sponsor
 fields are edited in `/admin/schedule` and carried from the latest match when
 creating a new one. Production sponsor columns and upload policies were
 verified on 2026-07-17; existing matches intentionally remain unsponsored.
 
-Pending local rollout: homepage and `/shop` kit presentations have been split
+Shipped in `5fb0b6fd`: homepage and `/shop` kit presentations are split
 into independent `home` and `shop` content/photo sets. The admin selects the
 surface before editing. Production surface rows, photo sets, and authenticated
 write policies were verified on 2026-07-17. The migration remains the setup
@@ -108,7 +106,10 @@ roster queries or admin actions.
 - The UPSL SoCal North Conference feature is also approximately half-screen.
 - Homepage hero CTA is `Team Store`, links to `/shop`, and has no arrow.
 - The two-image 2026 kit treatment is used on the homepage immediately after
-  the video and on `/shop`; images come from the public Supabase `shop` bucket.
+  the video and on `/shop`; each surface loads its own content and ordered
+  photos from the public Supabase `shop` bucket.
+- Homepage order is Hero → Home kit presentation → trophy feature → Next Match
+  → photo slideshow → Behind the Rose.
 - `/admin/shop` independently edits the homepage or shop-page kit content,
   purchase link, and ordered photo set. Its scaled preview uses the same public
   component, and the editor adapts to mobile admin layouts.
@@ -129,11 +130,13 @@ roster queries or admin actions.
   player cards that have no headshot.
 - Roster nationality flags come from the public Supabase `flags` bucket and
   hide gracefully when no mapping or asset exists.
-- Player and technical-staff cards/modals use the white treatment. Staff roles
-  are hidden on the outer cards but remain visible inside the modal.
+- Player and technical-staff cards/modals use the white treatment. Staff cards
+  show the name, nationality flag, initials badge, and staff title.
+- Player card stats slide up only on desktop hover. Mobile cards stay visually
+  stable and open the full player modal directly when tapped.
 - Player and staff modal dimensions are bounded by a fixed-yet-responsive
   viewport height with internally scrolling details.
-- Player bio and Season Stats sections begin collapsed.
+- Player Bio and Season Stats sections begin expanded and remain collapsible.
 - Footer sponsors, except Tepito Coffee, use the public Supabase `sponsors`
   bucket. They are larger and remain fully visible without hover.
 - `Behind the Rose` responsive headings retain their one-line fixes.
@@ -169,6 +172,9 @@ roster queries or admin actions.
 - The new `bullet_points` and `store_note` columns are an additive follow-up.
   Run `db/migrations/2026-07-shop-kit-details.sql` before testing those saves;
   do not rerun the original Shop migration.
+- New environments use `db/migrations/2026-07-shop-kit-surfaces.sql` for the
+  `home`/`shop` split. `db/migrations/2026-07-shop-kit-rls-repair.sql` is the
+  safe, rerunnable repair for stale authenticated section/photo policies.
 
 ## Shared Club Branding - Complete
 
@@ -191,7 +197,7 @@ roster queries or admin actions.
 
 ## Verification
 
-Current release-candidate checks (2026-07-17, fixture, shop, and roster updates):
+Current shipped-release checks (2026-07-17, commit `5fb0b6fd`):
 
 ```text
 npm test                         153/153 tests passed across 8 files
@@ -262,20 +268,17 @@ Do not mutate production data merely to repeat destructive CRUD verification.
   sponsor replacement specifically applies to the footer.
 - The existing lint warnings above can be cleaned up separately.
 
-## Next Match Card And Opponent Logos — 2026-07-16
+## Next Match Card, Sponsor, Countdown, And Opponent Logos — 2026-07-17
 
-Shipped on top of the `1737959a` baseline above, through commit `9f39c02b`.
+The opponent-logo foundation shipped through `9f39c02b`; the current fixture
+presentation and sponsor workflow shipped in `5fb0b6fd`.
 
-- The homepage "Next Match" section was redesigned from a live ticking
-  countdown to a static match card. `components/Countdown.tsx` was deleted;
-  `components/NextMatchCard.tsx` replaces it and is wired into
-  `app/(public)/page.tsx` in its place.
-- Card layout: Rose City crest (static `ROSE_CITY_PATCH_URL`, always on the
-  left regardless of home/away) — red "VS" — opponent crest — optional black
-  competition-label pill (hidden when unset) — giant red italic day-of-week
-  word — a small `Month Day · Kickoff H:MM AM/PM · Venue` line, tuned to stay
-  on one line on mobile (no weekday abbreviation, tighter tracking/font floor,
-  `whitespace-nowrap`) — "Full Schedule" CTA retained below.
+- `components/NextMatchCard.tsx` renders Rose City on the left, a split-line
+  black "VS", the opponent crest on the right, the red "Next Match" title,
+  optional linked "Presented By" sponsor art, and a live four-part
+  Days/Hours/Minutes/Seconds countdown. The black "Full Schedule" CTA remains.
+- Team crests are 96px on mobile and 140px from the `sm` breakpoint upward.
+- The public card intentionally omits match date, kickoff time, and venue.
 - New shared component `components/OpponentCrest.tsx`: circular crest that
   renders an uploaded logo image with no added backdrop or border (shows the
   crest artwork as-is), or falls back to an initial-monogram circle when no
@@ -290,6 +293,10 @@ Shipped on top of the `1737959a` baseline above, through commit `9f39c02b`.
   opponent-logo upload control on the add/edit match form (same
   select-file → upload → store public URL pattern as `/admin/shop`), plus a
   crest thumbnail in each match's list row.
+- `/admin/schedule` also manages nullable `sponsor_name`, `sponsor_logo_url`,
+  and `sponsor_link`. New matches inherit only those sponsor fields from the
+  latest scheduled match in the selected season; admins can replace or clear
+  them. Sponsor art is hidden when no logo is set.
 - Data model: `matches.opponent_logo_url` and `matches.competition`, both
   nullable `text`. New public Storage bucket `opponent-logos`. Both were
   created manually in Supabase per `db/migrations/2026-07-next-match-card.sql`
@@ -299,9 +306,8 @@ Shipped on top of the `1737959a` baseline above, through commit `9f39c02b`.
 - `lib/db-types.ts` (`DBMatch`), `lib/data.ts` (`Fixture`), and
   `lib/queries.ts` (`mapFixture`) were updated to carry the two new fields
   through to the UI layer.
-- No new tests were added for this feature (it's presentational/admin-CRUD,
-  no new pure logic); the existing 117-test suite still covers everything it
-  did before and still passes.
+- `lib/match-sponsor.ts` isolates sponsor carry-forward behavior, covered by
+  `lib/__tests__/match-sponsor.test.ts`.
 
 ## Shop Page Photo Row — 2026-07-16
 
@@ -343,10 +349,10 @@ release — no carousel code remains).
   (alt text, hidden/shown display-mode gating, max-6 clamping, and the
   reorder diff), mirroring `shop-kit.test.ts`'s structure. Full suite is
   147/147 passing.
-- The previous white-gap report was addressed by fading the kit image into the
-  white page with a dedicated overlay rather than continuing to adjust Photo
-  Row padding. The gradient is shared by the homepage and `/shop` and was
-  browser-verified locally alongside the hands-off Kit Photos slideshow.
+- The previous white-gap report was addressed by fading the `/shop` kit image
+  into the white page with a dedicated overlay rather than continuing to
+  adjust Photo Row padding. The homepage intentionally does not use this shop
+  fade. The hands-off Kit Photos slideshow remains shared by both surfaces.
 
 ## Working Rules
 

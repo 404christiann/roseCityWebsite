@@ -198,9 +198,10 @@ npx tsc --noEmit --pretty false
 npm run build
 ```
 
-Current application baseline builds on commit `5ce20126` on `main` (prior
-baseline `91d0081e`) and adds the shared white kit fade, up-to-six Kit Photos,
-and hands-off autoplay for multiple Kit Photos. Verification is 153/153 Vitest
-tests, passing TypeScript, and a passing production build. Pushes to `main`
-trigger the Vercel deployment — but never push without the user's explicit
-permission for that specific push. Post-release documentation head: `1c2b6456`.
+Current application baseline is commit `5fb0b6fd` on `main`. It includes the
+homepage fixture sponsor/countdown presentation, independent homepage/shop kit
+content and photos, responsive player/staff card refinements, the static shop
+Photo Row, and all earlier multi-season and branding work. Verification is
+153/153 Vitest tests, passing TypeScript, and a passing production build.
+Pushes to `main` trigger the Vercel deployment — but never push without the
+user's explicit permission for that specific push.

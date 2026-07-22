@@ -10,6 +10,6 @@ Read the root `CLAUDE.md` first, then read:
 The database gate and app implementation for multi-season support are complete.
 Do not rerun completed destructive schema steps unless the user explicitly asks
 and the target database has been re-verified. Use the new-agent handoff for the
-current shipped UI, admin lifecycle contract, admin-managed shop and shared
-branding workflows,
-verification status, and known remaining work.
+current shipped UI at `5fb0b6fd`, admin lifecycle contract, independent
+homepage/shop content, match-sponsor workflow, roster-card behavior, shared
+branding workflow, verification status, and known remaining work.
