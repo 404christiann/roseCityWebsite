@@ -1,5 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getSubscriptionMirrorRow } from "@/lib/subscription-mirror";
+import { isAdminLocked } from "@/lib/stripe-subscription-state";
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -49,6 +51,18 @@ export async function middleware(request: NextRequest) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/admin/login";
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Subscription lapsed past its grace period → lock everything except
+  // Payments, so an allowed admin can still see status/reactivate.
+  const isPaymentsRoute = request.nextUrl.pathname.startsWith("/admin/payments");
+  if (isAdminRoute && !isLoginPage && !isCallbackRoute && isAllowed && !isPaymentsRoute) {
+    const subscriptionRow = await getSubscriptionMirrorRow(supabase);
+    if (isAdminLocked(subscriptionRow)) {
+      const paymentsUrl = request.nextUrl.clone();
+      paymentsUrl.pathname = "/admin/payments";
+      return NextResponse.redirect(paymentsUrl);
+    }
   }
 
   // Already logged in and hitting login page → redirect to dashboard

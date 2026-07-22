@@ -101,6 +101,16 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  {
+    label: "Payments",
+    href: "/admin/payments",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
+        <path d="M2 10h20" stroke="currentColor" strokeWidth="2"/>
+      </svg>
+    ),
+  },
 ];
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -109,13 +119,20 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   const { clubLogoUrl } = useClubBranding();
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isBillingAdmin, setIsBillingAdmin] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       setUserEmail(data.user?.email ?? null);
     });
+    fetch("/api/stripe/billing-admin")
+      .then((res) => res.json())
+      .then((data) => setIsBillingAdmin(Boolean(data.isBillingAdmin)))
+      .catch(() => setIsBillingAdmin(false));
   }, []);
+
+  const navItems = NAV_ITEMS.filter((item) => item.href !== "/admin/payments" || isBillingAdmin);
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -172,7 +189,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
 
         {/* Nav links */}
         <nav className="flex-1 py-4 px-3 flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}

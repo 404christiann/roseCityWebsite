@@ -135,3 +135,13 @@ export type DBSiteBranding = {
   club_logo_path: string;
   updated_at: string;
 };
+
+export type DBStripeSubscription = {
+  id: number;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  status: string | null;
+  cancel_at_period_end: boolean;
+  current_period_end: string | null;
+  updated_at: string;
+};
