@@ -16,19 +16,25 @@ Read these files in order:
 4. this file
 5. `docs/multi-season-implementation-plan.md`
 6. `db/migrations/2026-07-multi-season.sql`
+7. `docs/stripe-subscription-plan.md`
 
-The current application baseline is release `5fb0b6fd` on `main`. It includes
-the homepage fixture sponsor/countdown presentation, independent homepage and
-shop-page kit content/photos, responsive player and staff cards, the static
-shop Photo Row, and all earlier multi-season, branding, and admin-managed shop
-work. This handoff was originally written at `1737959a` (`Add admin-managed
-shop experience`) and has been refreshed after each shipped release. The
-worktree may contain the generated cache file
-`tsconfig.tsbuildinfo`; do not treat it as product work or commit it by
-default. Always inspect `git status` and current diffs before editing because
-this repository has previously contained work from multiple agents. Never
-`git push` to `main` without the user's explicit permission for that specific
-push — see "Working Rules" below.
+The current application baseline is release `0d4150bf` on `main`. It includes
+Stripe subscription billing (admin + public lockout), the homepage fixture
+sponsor/countdown presentation, independent homepage and shop-page kit
+content/photos, responsive player and staff cards, the static shop Photo Row,
+and all earlier multi-season, branding, and admin-managed shop work. This
+handoff was originally written at `1737959a` (`Add admin-managed shop
+experience`) and has been refreshed after each shipped release. The worktree
+may contain the generated cache file `tsconfig.tsbuildinfo`; do not treat it
+as product work or commit it by default. Always inspect `git status` and
+current diffs before editing because this repository has previously contained
+work from multiple agents. Never `git push` to `main` without the user's
+explicit permission for that specific push — see "Working Rules" below.
+
+Local dev and production currently share one Supabase project — there is no
+separate test database. Local Stripe testing with test-mode keys writes into
+the same `stripe_subscription` row production reads; clear/re-sync it
+afterward before trusting it live. See "Stripe Subscription Billing" below.
 
 ## Current Product State
 
@@ -197,7 +203,15 @@ roster queries or admin actions.
 
 ## Verification
 
-Current shipped-release checks (2026-07-17, commit `5fb0b6fd`):
+Current shipped-release checks (2026-07-22, commit `0d4150bf`):
+
+```text
+npm test                         183/183 tests passed across 10 files
+npx tsc --noEmit --pretty false passed
+npm run build                    passed
+```
+
+Previous release checks (2026-07-17, commit `5fb0b6fd`):
 
 ```text
 npm test                         153/153 tests passed across 8 files
@@ -267,6 +281,17 @@ Do not mutate production data merely to repeat destructive CRUD verification.
 - `PartnerStrip.tsx` may still use older local partner artwork; the completed
   sponsor replacement specifically applies to the footer.
 - The existing lint warnings above can be cleaned up separately.
+- The first real live Stripe charge had not yet been completed as of this
+  handoff; confirm `/admin/payments` before assuming the platform is actively
+  billed.
+- Local dev and production share one Supabase project — a genuinely isolated
+  dev Supabase project would remove the risk of local Stripe testing
+  overwriting the live `stripe_subscription` row, but is a real infrastructure
+  change, not done as part of this rollout.
+- Admin magic-link login requires the same browser/device for both requesting
+  and opening the link (Supabase PKCE flow); this is a pre-existing
+  limitation, not something introduced by the Stripe work, but worth fixing if
+  it becomes a recurring pain point for club staff logging in from phones.
 
 ## Next Match Card, Sponsor, Countdown, And Opponent Logos — 2026-07-17
 
@@ -353,6 +378,76 @@ release — no carousel code remains).
   into the white page with a dedicated overlay rather than continuing to
   adjust Photo Row padding. The homepage intentionally does not use this shop
   fade. The hands-off Kit Photos slideshow remains shared by both surfaces.
+
+## Stripe Subscription Billing — 2026-07-22
+
+Shipped through `0d4150bf`, built on `a94d4958` (core billing) and `29f3ada5`
+(public lockout).
+
+- Rose City FC pays Christian $65.00/mo (the Starter-tier price — plans
+  changed from the originally scoped $99.99 Pro price partway through live
+  setup) via a new billing-admin-only `/admin/payments` tab.
+- Stripe's hosted Checkout (subscribe) and Billing Portal (cancel,
+  undo-cancellation, update card, invoices) handle the entire payment UX —
+  there is no custom card form or cancel-confirmation modal anywhere in this
+  app.
+- `lib/stripe-subscription-state.ts` is the pure decision logic: `resolvePaymentsUiState`/
+  `isAdminLocked` implement zero-grace admin lockout (locks the instant the
+  subscription is genuinely terminal — past what was already paid for);
+  `isPublicSiteLocked` adds a *separate*, later +7-day buffer for the public
+  site. Both fail open on a missing row, null status, or missing
+  `current_period_end` — this is soft enforcement, not a hard security gate.
+- `app/api/stripe/webhook/route.ts` verifies Stripe signatures and upserts a
+  singleton `stripe_subscription` row (`id = 1`) via the service-role client
+  for `checkout.session.completed`, `customer.subscription.updated`,
+  `customer.subscription.deleted`, and `invoice.payment_failed`.
+- `middleware.ts` reads that row directly (never calling Stripe) twice: once
+  for `/admin/*` (redirects everything except `/admin/payments` once
+  terminal) and once for the explicit public path list `/`, `/roster`,
+  `/schedule`, `/shop` (serves a neutral `503` — no billing language, no
+  contact info, `X-Robots-Tag: noindex` — once 7 days past the admin-lockout
+  point). `FORCE_PUBLIC_SITE_ONLINE=true` overrides only the public check.
+  Neither check touches `/api/stripe/*`, which stay reachable in every state.
+- Before this feature ships to any environment, before the first-ever
+  Checkout completes, the `stripe_subscription` table is empty — both lockout
+  checks fail open on a missing row, so nothing locks on a fresh deploy.
+- Verified end-to-end against real Stripe test-mode data before going live:
+  subscribe, cancel-at-period-end (State 3 grace banner), undo-cancellation
+  back to State 2, terminal lockout at the admin boundary, the public 7-day
+  boundary (tested at day 0, day 6, and day 7 by backdating the mirror row),
+  and the `FORCE_PUBLIC_SITE_ONLINE` override. Three real bugs were found and
+  fixed during that pass:
+  1. `service_role` had no table-level `GRANT` on `stripe_subscription` —
+     service_role bypasses RLS *policies* but not table *grants*, so every
+     webhook write was silently rejected. Fixed in
+     `db/migrations/2026-07-stripe-subscription.sql`.
+  2. The webhook wasn't checking Supabase's write response for an error, so
+     failures (like #1) still returned `200 OK` to Stripe, meaning Stripe
+     never retried. Fixed to throw on a write error so Stripe's automatic
+     retry takes over.
+  3. On this Stripe API version (`2026-06-24.dahlia`), the Billing Portal's
+     "cancel at period end" action sets `cancel_at` rather than the legacy
+     `cancel_at_period_end` boolean. The webhook now treats either signal as
+     "scheduled to cancel."
+- Full design/decision record (every interview answer this feature was built
+  from) and the Stripe Dashboard setup steps (test mode, then go-live) are in
+  `docs/stripe-subscription-plan.md`.
+- Live Stripe keys, the live webhook
+  (`https://rosecityfutbolclub.com/api/stripe/webhook`), and live Vercel
+  Production env vars are configured and deployed. The first real live
+  charge had not yet been completed as of this handoff — the
+  `stripe_subscription` table is intentionally empty, which is the safe
+  unlocked default, not an error state.
+- **Known risk:** local dev and production share one Supabase project — there
+  is no separate test database. Local Stripe testing with test-mode keys
+  writes into the same `stripe_subscription` row production reads. Always
+  clear or re-sync that row after local Stripe testing before trusting it in
+  production — `DELETE FROM stripe_subscription WHERE id = 1;` via the
+  service-role key resets it to the safe, unlocked default.
+- **Known limitation:** admin magic-link login uses Supabase's PKCE flow,
+  which requires requesting and opening the link in the same browser/device.
+  Requesting on desktop and opening the emailed link on a phone (or the
+  reverse, or inside an email app's embedded browser) fails silently.
 
 ## Working Rules
 

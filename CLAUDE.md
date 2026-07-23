@@ -5,6 +5,42 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
 
 ## Current Status
 
+- Shipped in `0d4150bf` (built on `a94d4958`/`29f3ada5`): Stripe subscription
+  billing for the platform itself — Rose City FC pays Christian $65.00/mo
+  (the Starter-tier price, not the originally planned $99.99 Pro price) via a
+  new billing-admin-only `/admin/payments` tab. Stripe's hosted Checkout and
+  Billing Portal handle subscribe/cancel/undo-cancel/update-card; there is no
+  custom payment UI. A Supabase `stripe_subscription` singleton row, kept in
+  sync by `app/api/stripe/webhook/route.ts`, is what `middleware.ts` reads to
+  decide lockout state — it never calls the Stripe API directly.
+  - Admin lockout: once the subscription is genuinely terminal (past what was
+    already paid for, zero grace beyond that), every `/admin/*` route except
+    `/admin/payments` redirects there.
+  - Public lockout: `/`, `/roster`, `/schedule`, `/shop` get an additional
+    7-day buffer beyond the admin lockout before serving a neutral `503`
+    placeholder (no billing language, no contact info) with
+    `X-Robots-Tag: noindex`. `FORCE_PUBLIC_SITE_ONLINE=true` overrides only
+    the public lock, never the admin one.
+  - Only `BILLING_ADMIN_EMAIL` (`christianjavieralcala@gmail.com`) sees the
+    Subscribe/Manage Billing buttons; other `ADMIN_ALLOWED_EMAILS` see a
+    read-only status instead.
+  - New env vars: `BILLING_ADMIN_EMAIL`, `STRIPE_SECRET_KEY`,
+    `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`, `FORCE_PUBLIC_SITE_ONLINE`.
+  - Live Stripe keys, the live webhook
+    (`https://rosecityfutbolclub.com/api/stripe/webhook`), and live Vercel
+    Production env vars are configured and deployed. As of this handoff the
+    first real live charge had not yet been completed — the
+    `stripe_subscription` table is intentionally empty (`no_subscription`,
+    unlocked), not an error state.
+  - Full design/decision record and the Stripe Dashboard setup steps (test
+    mode, then go-live) are in `docs/stripe-subscription-plan.md`.
+  - Known risk: local dev and production currently share one Supabase
+    project. Local Stripe testing with test-mode keys writes into the same
+    `stripe_subscription` row production reads — clear or re-sync that row
+    after any future local Stripe testing before trusting it in production.
+  - Known limitation: admin magic-link login uses Supabase's PKCE flow, which
+    requires requesting and opening the link in the same browser/device;
+    requesting on one device and opening the email on another will fail.
 - Shipped in `5fb0b6fd`: the homepage Next Match section follows the
   crest/VS/Next Match/optional sponsor/countdown hierarchy. Per-match sponsor
   name, logo, and optional link are managed in `/admin/schedule`; Add Match
@@ -19,10 +55,11 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
   policies were verified on 2026-07-17. Retain the surface and RLS migrations
   for new environments and repairs.
 
-- The current application baseline is `5fb0b6fd` on `main`. It includes the
-  fixture sponsor/countdown work, independent homepage/shop kit content,
-  responsive roster-card refinements, and all earlier admin-managed shop,
-  branding, navigation, and multi-season work.
+- The current application baseline is `0d4150bf` on `main`. It includes
+  Stripe subscription billing (admin + public lockout), the fixture
+  sponsor/countdown work, independent homepage/shop kit content, responsive
+  roster-card refinements, and all earlier admin-managed shop, branding,
+  navigation, and multi-season work.
 - The shop page gained a static "Photo Row" gallery below the kit section on
   `/shop` only (never the homepage): up to six admin-uploaded photos, all
   shown at once with no motion, each cropped to a fixed portrait shape so the
@@ -91,11 +128,16 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
 - The only expected local worktree change after verification is the generated
   TypeScript cache `tsconfig.tsbuildinfo`; do not commit it by default.
 - A full continuation packet lives at
-  `docs/new-agent-handoff-2026-07-15.md`.
+  `docs/new-agent-handoff-2026-07-15.md`. The Stripe billing design/decision
+  record and Dashboard setup steps live at `docs/stripe-subscription-plan.md`.
 
 ## Project Rules
 
 - Do not revert broad worktree changes. Multiple agents have touched this repo.
+- Local dev and production share one Supabase project — there is no separate
+  test database. Before/after any local Stripe test-mode webhook testing,
+  clear or re-sync the `stripe_subscription` row (it's a singleton, `id = 1`)
+  so stale test data never gets read by the live site.
 - Preserve the local Lemon Milk font setup in `public/fonts/lemon-milk/`.
 - Keep brand tokens aligned with current CSS/Tailwind:
   - red: `#E7001B`
@@ -120,8 +162,11 @@ npm test
 npm run build
 ```
 
-Current shipped-release result (`5fb0b6fd`): TypeScript passed, all 153 Vitest tests passed,
+Current shipped-release result (`0d4150bf`): TypeScript passed, all 183 Vitest tests passed,
 and the production build passed. The build still reports non-blocking Next.js lint
 warnings for a few raw `<img>` elements and unnecessary analytics `useMemo`
 dependencies. Destructive authenticated CRUD should only be tested with safe
-test data or explicit approval.
+test data or explicit approval. The Stripe integration was verified end-to-end
+in test mode (subscribe, cancel, undo-cancel, admin lockout, public lockout at
+the 7-day boundary) before going live; see `docs/stripe-subscription-plan.md`
+for the full verification record.

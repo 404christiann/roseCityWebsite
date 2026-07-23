@@ -24,7 +24,7 @@ The platform includes:
 - player, match, and season statistics
 - independently managed database-backed kit presentations for the homepage
   and shop page
-- a protected admin portal for roster, schedule, seasons, stats, shop, and branding
+- a protected admin portal for roster, schedule, seasons, stats, shop, branding, and platform billing
 - footer social and partner links
 
 ## Design Direction
@@ -127,6 +127,29 @@ was verified on 2026-07-17; apply the migration only in environments that do
 not yet have these fields and policies. Existing matches are intentionally
 left without a sponsor.
 
+## Platform Billing
+
+- Rose City FC pays Christian $65.00/mo for this platform via `/admin/payments`,
+  visible to everyone on `ADMIN_ALLOWED_EMAILS` but only actionable by the
+  single `BILLING_ADMIN_EMAIL`; other admins see a read-only status.
+- Stripe's hosted Checkout and Billing Portal handle subscribe, cancel,
+  undo-cancellation, card updates, and invoices — there's no custom payment
+  UI anywhere in this app.
+- A Supabase `stripe_subscription` singleton row is kept in sync by
+  `app/api/stripe/webhook/route.ts`; `middleware.ts` reads it (never calling
+  Stripe directly) to decide lockout state.
+- If the subscription lapses, `/admin/*` soft-locks behind `/admin/payments`
+  immediately (zero grace, since that's exactly what was already paid for).
+  The public site (`/`, `/roster`, `/schedule`, `/shop`) gets an *additional*
+  7-day buffer before it also locks, serving a neutral `503` placeholder with
+  no billing language and `X-Robots-Tag: noindex`. `FORCE_PUBLIC_SITE_ONLINE=true`
+  overrides only the public lock, as a manual courtesy switch.
+- Full design/decision record and the Stripe Dashboard setup steps (test mode,
+  then go-live) are in `docs/stripe-subscription-plan.md`.
+- Local dev and production share one Supabase project. Local Stripe testing
+  with test-mode keys writes into the same `stripe_subscription` row
+  production reads — clear or re-sync it afterward before trusting it live.
+
 ## Social Links
 
 Footer links currently point to:
@@ -159,6 +182,10 @@ Important files:
 - `components/admin/AdminSaveFeedback.tsx` — shared save-state notification
 - `lib/queries.ts` — Supabase data queries
 - `lib/shop-kit.ts` — shop display and photo-diff helpers
+- `app/admin/(protected)/payments/page.tsx` — Subscribe/Manage Billing (billing-admin only)
+- `app/api/stripe/webhook/route.ts` — verifies Stripe signatures, syncs the subscription mirror
+- `lib/stripe-subscription-state.ts` — pure admin (0-day) and public (+7-day) lockout logic
+- `middleware.ts` — admin auth/allowlist/lockout and public-route subscription lockout
 
 ## Local Development
 
@@ -185,7 +212,13 @@ Required environment variables:
 ```text
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
 ADMIN_ALLOWED_EMAILS
+BILLING_ADMIN_EMAIL
+STRIPE_SECRET_KEY
+STRIPE_PRICE_ID
+STRIPE_WEBHOOK_SECRET
+FORCE_PUBLIC_SITE_ONLINE   # optional
 ```
 
 ## Verification
@@ -198,10 +231,11 @@ npx tsc --noEmit --pretty false
 npm run build
 ```
 
-Current application baseline is commit `5fb0b6fd` on `main`. It includes the
-homepage fixture sponsor/countdown presentation, independent homepage/shop kit
-content and photos, responsive player/staff card refinements, the static shop
-Photo Row, and all earlier multi-season and branding work. Verification is
-153/153 Vitest tests, passing TypeScript, and a passing production build.
-Pushes to `main` trigger the Vercel deployment — but never push without the
-user's explicit permission for that specific push.
+Current application baseline is commit `0d4150bf` on `main`. It includes
+Stripe subscription billing (admin + public lockout), the homepage fixture
+sponsor/countdown presentation, independent homepage/shop kit content and
+photos, responsive player/staff card refinements, the static shop Photo Row,
+and all earlier multi-season and branding work. Verification is 183/183
+Vitest tests, passing TypeScript, and a passing production build. Pushes to
+`main` trigger the Vercel deployment — but never push without the user's
+explicit permission for that specific push.
