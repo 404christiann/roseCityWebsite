@@ -41,18 +41,37 @@ const affiliationLogos = [
   },
 ];
 
-const navLinks = [
+type NavLink = {
+  label: string;
+  href: string;
+  children?: { label: string; href: string }[];
+};
+
+const navLinks: NavLink[] = [
   { label: "Home", href: "/" },
   { label: "Roster", href: "/roster" },
+  {
+    label: "Club",
+    href: "/club",
+    children: [
+      { label: "About Club", href: "/club/about" },
+      { label: "Club Logo", href: "/club/logo" },
+    ],
+  },
   { label: "Schedule", href: "/schedule" },
   { label: "Shop", href: "/shop" },
 ];
+
+function isLinkActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export default function Nav() {
   const { clubLogoUrl } = useClubBranding();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [expandedMobileLink, setExpandedMobileLink] = useState<string | null>(null);
   const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -63,6 +82,7 @@ export default function Nav() {
 
   useEffect(() => {
     setMenuOpen(false);
+    setExpandedMobileLink(null);
   }, [pathname]);
 
   // Transparent nav only on desktop for shop (mobile shop hero is compact, not full-bleed)
@@ -74,8 +94,12 @@ export default function Nav() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  // /club/logo is a full-page dark infographic — the nav stays in its
+  // transparent/white-text state throughout, since it never needs to
+  // contrast against a light background there.
+  const isAlwaysTransparentPage = pathname === "/club/logo";
   const isDarkHeroPage = pathname === "/" || (pathname === "/shop" && SHOW_SHOP_HERO && !isMobile);
-  const isHero = isDarkHeroPage && !scrolled;
+  const isHero = isAlwaysTransparentPage || (isDarkHeroPage && !scrolled);
 
   return (
     <header
@@ -127,12 +151,12 @@ export default function Nav() {
         {/* Desktop Links */}
         <ul className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => {
-            const isActive = pathname === link.href;
+            const isActive = isLinkActive(pathname, link.href);
             return (
-              <li key={link.href}>
+              <li key={link.href} className="relative group">
                 <Link
                   href={link.href}
-                  className="font-body text-sm font-semibold tracking-widest uppercase transition-colors duration-300 relative group"
+                  className="font-body text-sm font-semibold tracking-widest uppercase transition-colors duration-300 relative group/link inline-flex items-center gap-1.5"
                   style={{
                     color: isActive
                       ? isHero
@@ -144,14 +168,73 @@ export default function Nav() {
                   }}
                 >
                   {link.label}
+                  {link.children && (
+                    <svg
+                      width="9"
+                      height="9"
+                      viewBox="0 0 10 10"
+                      fill="none"
+                      className="transition-transform duration-200 group-hover:rotate-180"
+                      style={{ opacity: isHero ? 0.85 : 0.55 }}
+                    >
+                      <path
+                        d="M2 3.5L5 6.5L8 3.5"
+                        stroke="currentColor"
+                        strokeWidth="1.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
                   {/* Active / hover underline */}
                   <span
                     className={`absolute -bottom-1 left-0 h-0.5 transition-all duration-300 ${
-                      isActive ? "w-full" : "w-0 group-hover:w-full"
+                      isActive ? "w-full" : "w-0 group-hover/link:w-full"
                     }`}
                     style={{ backgroundColor: isHero ? "var(--color-red)" : "var(--color-black)" }}
                   />
                 </Link>
+
+                {/* Dropdown — mirrors the nav's own transparent/opaque state */}
+                {link.children && (
+                  <div className="absolute left-1/2 top-full w-max -translate-x-1/2 pt-3 opacity-0 pointer-events-none transition-opacity duration-200 group-hover:opacity-100 group-hover:pointer-events-auto">
+                    <div
+                      className="overflow-hidden rounded-lg"
+                      style={{
+                        backgroundColor: isHero ? "rgba(20,20,20,0.82)" : "#ffffff",
+                        backdropFilter: isHero ? "blur(10px)" : undefined,
+                        WebkitBackdropFilter: isHero ? "blur(10px)" : undefined,
+                        border: isHero
+                          ? "1px solid rgba(255,255,255,0.14)"
+                          : "1px solid rgba(20,20,20,0.08)",
+                        boxShadow: isHero
+                          ? "0 16px 32px rgba(0,0,0,0.4)"
+                          : "0 16px 32px rgba(20,20,20,0.12)",
+                      }}
+                    >
+                      {link.children.map((child) => {
+                        const isChildActive = pathname === child.href;
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            className={`block px-5 py-3 font-body text-xs font-semibold tracking-widest uppercase transition-colors duration-200 ${
+                              isHero
+                                ? isChildActive
+                                  ? "text-white"
+                                  : "text-white/80 hover:text-white"
+                                : isChildActive
+                                ? "text-[var(--color-red)]"
+                                : "text-[var(--color-black)] hover:text-[var(--color-red)]"
+                            }`}
+                          >
+                            {child.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </li>
             );
           })}
@@ -175,24 +258,78 @@ export default function Nav() {
       {/* Mobile Menu Drawer */}
       <div
         className={`md:hidden bg-white border-t border-gray-100 overflow-hidden transition-all duration-300 ${
-          menuOpen ? "max-h-80 opacity-100" : "max-h-0 opacity-0"
+          menuOpen ? "max-h-[30rem] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
         <ul className="flex flex-col px-8 py-6 gap-6">
           {navLinks.map((link) => {
-            const isActive = pathname === link.href;
+            const isActive = isLinkActive(pathname, link.href);
+            const isExpanded = expandedMobileLink === link.href;
             return (
               <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className={`font-body text-lg font-semibold tracking-widest uppercase block py-1 ${
-                    isActive
-                      ? "text-[var(--color-red)]"
-                      : "text-[var(--color-black)]"
-                  }`}
-                >
-                  {link.label}
-                </Link>
+                <div className="flex items-center justify-between gap-3">
+                  <Link
+                    href={link.href}
+                    className={`font-body text-lg font-semibold tracking-widest uppercase block py-1 ${
+                      isActive
+                        ? "text-[var(--color-red)]"
+                        : "text-[var(--color-black)]"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                  {link.children && (
+                    <button
+                      type="button"
+                      aria-label={isExpanded ? `Collapse ${link.label} menu` : `Expand ${link.label} menu`}
+                      onClick={() => setExpandedMobileLink(isExpanded ? null : link.href)}
+                      className="p-2 -mr-2"
+                    >
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 10 10"
+                        fill="none"
+                        className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                        style={{ color: "var(--color-black)", opacity: 0.55 }}
+                      >
+                        <path
+                          d="M2 3.5L5 6.5L8 3.5"
+                          stroke="currentColor"
+                          strokeWidth="1.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+
+                {link.children && (
+                  <ul
+                    className={`overflow-hidden transition-all duration-300 ${
+                      isExpanded ? "max-h-40 opacity-100 mt-3" : "max-h-0 opacity-0"
+                    }`}
+                  >
+                    {link.children.map((child) => {
+                      const isChildActive = pathname === child.href;
+                      return (
+                        <li key={child.href}>
+                          <Link
+                            href={child.href}
+                            className={`font-body text-sm font-semibold tracking-widest uppercase block py-2 pl-4 border-l-2 ${
+                              isChildActive
+                                ? "text-[var(--color-red)] border-[var(--color-red)]"
+                                : "text-[var(--color-black)]/70 border-[var(--color-black)]/15"
+                            }`}
+                          >
+                            {child.label}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </li>
             );
           })}
