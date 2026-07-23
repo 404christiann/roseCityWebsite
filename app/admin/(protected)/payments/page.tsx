@@ -38,7 +38,7 @@ export default async function PaymentsPage() {
           Payments
         </h1>
         <p className="mt-2 max-w-2xl font-body text-sm leading-relaxed text-white/40">
-          Rose City FC — Pro plan, $99.99/mo.
+          Rose City FC — $65.00/mo.
         </p>
       </div>
 
@@ -76,7 +76,7 @@ export default async function PaymentsPage() {
                   type="submit"
                   className="w-full rounded-lg bg-[#E7001B] px-6 py-4 font-display text-lg font-black uppercase tracking-widest text-white transition hover:bg-[#ff0a25] sm:w-auto"
                 >
-                  Subscribe — $99.99/mo
+                  Subscribe — $65.00/mo
                 </button>
               </form>
             )}
