@@ -43,7 +43,9 @@ const affiliationLogos = [
 
 type NavLink = {
   label: string;
-  href: string;
+  // Omitted for parent items that are hover/tap-only triggers with no page
+  // of their own — "Club" exists purely to reveal its dropdown children.
+  href?: string;
   children?: { label: string; href: string }[];
 };
 
@@ -52,7 +54,6 @@ const navLinks: NavLink[] = [
   { label: "Roster", href: "/roster" },
   {
     label: "Club",
-    href: "/club",
     children: [
       { label: "About Club", href: "/club/about" },
       { label: "Club Logo", href: "/club/logo" },
@@ -64,6 +65,11 @@ const navLinks: NavLink[] = [
 
 function isLinkActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function isNavItemActive(pathname: string, link: NavLink) {
+  if (link.href) return isLinkActive(pathname, link.href);
+  return link.children?.some((child) => pathname === child.href) ?? false;
 }
 
 export default function Nav() {
@@ -151,49 +157,59 @@ export default function Nav() {
         {/* Desktop Links */}
         <ul className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => {
-            const isActive = isLinkActive(pathname, link.href);
+            const isActive = isNavItemActive(pathname, link);
+            const triggerClassName =
+              "font-body text-sm font-semibold tracking-widest uppercase transition-colors duration-300 relative group/link inline-flex items-center gap-1.5";
+            const triggerStyle = {
+              color: isActive
+                ? isHero
+                  ? "#ffffff"
+                  : "var(--color-red)"
+                : isHero
+                ? "rgba(255,255,255,0.85)"
+                : "var(--color-black)",
+            };
+            const triggerContent = (
+              <>
+                {link.label}
+                {link.children && (
+                  <svg
+                    width="9"
+                    height="9"
+                    viewBox="0 0 10 10"
+                    fill="none"
+                    className="transition-transform duration-200 group-hover:rotate-180"
+                    style={{ opacity: isHero ? 0.85 : 0.55 }}
+                  >
+                    <path
+                      d="M2 3.5L5 6.5L8 3.5"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+                {/* Active / hover underline */}
+                <span
+                  className={`absolute -bottom-1 left-0 h-0.5 transition-all duration-300 ${
+                    isActive ? "w-full" : "w-0 group-hover/link:w-full"
+                  }`}
+                  style={{ backgroundColor: isHero ? "var(--color-red)" : "var(--color-black)" }}
+                />
+              </>
+            );
             return (
-              <li key={link.href} className="relative group">
-                <Link
-                  href={link.href}
-                  className="font-body text-sm font-semibold tracking-widest uppercase transition-colors duration-300 relative group/link inline-flex items-center gap-1.5"
-                  style={{
-                    color: isActive
-                      ? isHero
-                        ? "#ffffff"
-                        : "var(--color-red)"
-                      : isHero
-                      ? "rgba(255,255,255,0.85)"
-                      : "var(--color-black)",
-                  }}
-                >
-                  {link.label}
-                  {link.children && (
-                    <svg
-                      width="9"
-                      height="9"
-                      viewBox="0 0 10 10"
-                      fill="none"
-                      className="transition-transform duration-200 group-hover:rotate-180"
-                      style={{ opacity: isHero ? 0.85 : 0.55 }}
-                    >
-                      <path
-                        d="M2 3.5L5 6.5L8 3.5"
-                        stroke="currentColor"
-                        strokeWidth="1.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  )}
-                  {/* Active / hover underline */}
-                  <span
-                    className={`absolute -bottom-1 left-0 h-0.5 transition-all duration-300 ${
-                      isActive ? "w-full" : "w-0 group-hover/link:w-full"
-                    }`}
-                    style={{ backgroundColor: isHero ? "var(--color-red)" : "var(--color-black)" }}
-                  />
-                </Link>
+              <li key={link.label} className="relative group">
+                {link.href ? (
+                  <Link href={link.href} className={triggerClassName} style={triggerStyle}>
+                    {triggerContent}
+                  </Link>
+                ) : (
+                  <span className={`${triggerClassName} cursor-default`} style={triggerStyle}>
+                    {triggerContent}
+                  </span>
+                )}
 
                 {/* Dropdown — mirrors the nav's own transparent/opaque state */}
                 {link.children && (
@@ -263,47 +279,58 @@ export default function Nav() {
       >
         <ul className="flex flex-col px-8 py-6 gap-6">
           {navLinks.map((link) => {
-            const isActive = isLinkActive(pathname, link.href);
-            const isExpanded = expandedMobileLink === link.href;
+            const isActive = isNavItemActive(pathname, link);
+            const isExpanded = expandedMobileLink === link.label;
+            const labelClassName = `font-body text-lg font-semibold tracking-widest uppercase block py-1 ${
+              isActive ? "text-[var(--color-red)]" : "text-[var(--color-black)]"
+            }`;
+            const chevron = (
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 10 10"
+                fill="none"
+                className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                style={{ color: "var(--color-black)", opacity: 0.55 }}
+              >
+                <path
+                  d="M2 3.5L5 6.5L8 3.5"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            );
             return (
-              <li key={link.href}>
-                <div className="flex items-center justify-between gap-3">
-                  <Link
-                    href={link.href}
-                    className={`font-body text-lg font-semibold tracking-widest uppercase block py-1 ${
-                      isActive
-                        ? "text-[var(--color-red)]"
-                        : "text-[var(--color-black)]"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                  {link.children && (
-                    <button
-                      type="button"
-                      aria-label={isExpanded ? `Collapse ${link.label} menu` : `Expand ${link.label} menu`}
-                      onClick={() => setExpandedMobileLink(isExpanded ? null : link.href)}
-                      className="p-2 -mr-2"
-                    >
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 10 10"
-                        fill="none"
-                        className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-                        style={{ color: "var(--color-black)", opacity: 0.55 }}
+              <li key={link.label}>
+                {link.href ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <Link href={link.href} className={labelClassName}>
+                      {link.label}
+                    </Link>
+                    {link.children && (
+                      <button
+                        type="button"
+                        aria-label={isExpanded ? `Collapse ${link.label} menu` : `Expand ${link.label} menu`}
+                        onClick={() => setExpandedMobileLink(isExpanded ? null : link.label)}
+                        className="p-2 -mr-2"
                       >
-                        <path
-                          d="M2 3.5L5 6.5L8 3.5"
-                          stroke="currentColor"
-                          strokeWidth="1.4"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  )}
-                </div>
+                        {chevron}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    aria-expanded={isExpanded}
+                    onClick={() => setExpandedMobileLink(isExpanded ? null : link.label)}
+                    className="flex items-center justify-between gap-3 w-full text-left"
+                  >
+                    <span className={labelClassName}>{link.label}</span>
+                    {chevron}
+                  </button>
+                )}
 
                 {link.children && (
                   <ul

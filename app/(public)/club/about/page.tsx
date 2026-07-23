@@ -60,13 +60,6 @@ export default function AboutClubPage() {
     <div className="min-h-screen bg-white">
       {/* Hero */}
       <div ref={heroRef} className="pt-36 pb-14 px-6 lg:px-10 max-w-7xl mx-auto" style={{ opacity: 0 }}>
-        <Link
-          href="/club"
-          className="font-body text-xs font-bold tracking-widest uppercase inline-block mb-6"
-          style={{ color: "rgba(20,20,20,0.45)" }}
-        >
-          ← The Club
-        </Link>
         <p
           className="font-display font-bold tracking-widest uppercase mb-3"
           style={{ color: "var(--color-red)", fontSize: "clamp(0.85rem, 1.5vw, 1.1rem)" }}
