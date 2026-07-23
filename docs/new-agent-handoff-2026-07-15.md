@@ -18,13 +18,15 @@ Read these files in order:
 6. `db/migrations/2026-07-multi-season.sql`
 7. `docs/stripe-subscription-plan.md`
 
-The current application baseline is release `0d4150bf` on `main`. It includes
-Stripe subscription billing (admin + public lockout), the homepage fixture
-sponsor/countdown presentation, independent homepage and shop-page kit
-content/photos, responsive player and staff cards, the static shop Photo Row,
-and all earlier multi-season, branding, and admin-managed shop work. This
-handoff was originally written at `1737959a` (`Add admin-managed shop
-experience`) and has been refreshed after each shipped release. The worktree
+The current application baseline is release `9f98c2c1` on `main`, built on
+`0d4150bf`. It includes a placeholder-content Club nav section (About Club +
+Club Logo), Stripe subscription billing (admin + public lockout), the
+homepage fixture sponsor/countdown presentation, independent homepage and
+shop-page kit content/photos, responsive player and staff cards, the static
+shop Photo Row, and all earlier multi-season, branding, and admin-managed
+shop work. This handoff was originally written at `1737959a` (`Add
+admin-managed shop experience`) and has been refreshed after each shipped
+release. The worktree
 may contain the generated cache file `tsconfig.tsbuildinfo`; do not treat it
 as product work or commit it by default. Always inspect `git status` and
 current diffs before editing because this repository has previously contained
@@ -37,6 +39,20 @@ the same `stripe_subscription` row production reads; clear/re-sync it
 afterward before trusting it live. See "Stripe Subscription Billing" below.
 
 ## Current Product State
+
+Shipped in `9f98c2c1`: a placeholder-content Club nav section. "Club" (after
+"Roster" in `components/Nav.tsx`) is **not a link** — it's a hover-triggered
+dropdown on desktop and a tap-to-expand accordion on mobile, existing only to
+reveal "About Club" (`/club/about`) and "Club Logo" (`/club/logo`); there is
+no `/club` hub route. `/club/about` is light editorial placeholder copy.
+`/club/logo` is a full-page dark (`#18181A`) crest explainer where the nav
+intentionally stays in its transparent/white-text hero state for the whole
+scroll (`isAlwaysTransparentPage` in `Nav.tsx`); it renders a single
+pre-composed annotated-crest image (`ClubLogo_initial_image.png`), five
+feature rows (Name/Rose/#23/Crown/Key, each cropping heavy transparent
+padding out of its source PNG via a measured CSS `scale()` on an
+`overflow-hidden` box), then the Pasadena map image. All copy/assets on these
+pages are placeholders — see `HANDOFF.md`'s Club section for the full record.
 
 Shipped in `5fb0b6fd`: the homepage Next Match presentation has an optional
 per-match linked sponsor and restored Days/Hours/Min/Sec countdown. Sponsor
@@ -203,7 +219,20 @@ roster queries or admin actions.
 
 ## Verification
 
-Current shipped-release checks (2026-07-22, commit `0d4150bf`):
+Current shipped-release checks (2026-07-23, commit `9f98c2c1`):
+
+```text
+npm test                         183/183 tests passed across 10 files
+npx tsc --noEmit --pretty false passed
+npm run build                    passed
+```
+
+The Club pages ship no new tests (183/183 is unchanged from `0d4150bf`); they
+were verified with `npx tsc`, `npm run build`, and browser checks of the
+hover dropdown, mobile accordion, `/club` returning 404, and both `/club/about`
+and `/club/logo` rendering correctly.
+
+Previous release checks (2026-07-22, commit `0d4150bf`):
 
 ```text
 npm test                         183/183 tests passed across 10 files
@@ -263,6 +292,10 @@ Do not mutate production data merely to repeat destructive CRUD verification.
 
 ## Remaining Work / Known Limitations
 
+- The Club pages (`/club/about`, `/club/logo`) are placeholder content with no
+  CMS/admin surface — copy lives directly in the page files, and
+  `/club/logo`'s Supabase asset URLs are hardcoded constants in
+  `app/(public)/club/logo/page.tsx`. Updating them means editing code.
 - The analytics data layer supports nullable match ratings, but the Match Stats
   admin form does not expose a rating input. Confirm rating columns and unique
   constraints in the target database before implementing it.

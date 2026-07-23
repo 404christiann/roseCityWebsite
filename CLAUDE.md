@@ -5,6 +5,22 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
 
 ## Current Status
 
+- Shipped in `9f98c2c1` (built on `0d4150bf`): a placeholder-content Club nav
+  section. "Club" (`components/Nav.tsx`, after "Roster") is **not a link** —
+  it's a hover dropdown on desktop / tap-to-expand accordion on mobile that
+  only reveals "About Club" (`/club/about`) and "Club Logo" (`/club/logo`);
+  there is no `/club` hub route (`NavLink.href` is now optional to support
+  this). `/club/about` is light editorial placeholder copy. `/club/logo` is a
+  full-page dark (`#18181A`) crest explainer — the one route where the nav
+  intentionally stays in its transparent/white-text hero state for the whole
+  page (`isAlwaysTransparentPage` in `Nav.tsx`) — built from a single
+  Christian-supplied annotated-crest image plus five feature rows
+  (Name/Rose/#23/Crown/Key) and a map image, all sourced from the `Aboutassets`
+  Supabase bucket. Every source PNG carries heavy transparent padding; each
+  `<Image>` crops it out via a measured CSS `scale()` inside an
+  `overflow-hidden` box rather than re-exporting assets. All Club copy/assets
+  are placeholders with no admin/CMS surface — see `HANDOFF.md` for the full
+  record.
 - Shipped in `0d4150bf` (built on `a94d4958`/`29f3ada5`): Stripe subscription
   billing for the platform itself — Rose City FC pays Christian $65.00/mo
   (the Starter-tier price, not the originally planned $99.99 Pro price) via a
@@ -55,11 +71,11 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
   policies were verified on 2026-07-17. Retain the surface and RLS migrations
   for new environments and repairs.
 
-- The current application baseline is `0d4150bf` on `main`. It includes
-  Stripe subscription billing (admin + public lockout), the fixture
-  sponsor/countdown work, independent homepage/shop kit content, responsive
-  roster-card refinements, and all earlier admin-managed shop, branding,
-  navigation, and multi-season work.
+- The current application baseline is `9f98c2c1` on `main` (built on
+  `0d4150bf`). It includes the Club nav section, Stripe subscription billing
+  (admin + public lockout), the fixture sponsor/countdown work, independent
+  homepage/shop kit content, responsive roster-card refinements, and all
+  earlier admin-managed shop, branding, navigation, and multi-season work.
 - The shop page gained a static "Photo Row" gallery below the kit section on
   `/shop` only (never the homepage): up to six admin-uploaded photos, all
   shown at once with no motion, each cropped to a fixed portrait shape so the
@@ -162,11 +178,12 @@ npm test
 npm run build
 ```
 
-Current shipped-release result (`0d4150bf`): TypeScript passed, all 183 Vitest tests passed,
-and the production build passed. The build still reports non-blocking Next.js lint
-warnings for a few raw `<img>` elements and unnecessary analytics `useMemo`
-dependencies. Destructive authenticated CRUD should only be tested with safe
-test data or explicit approval. The Stripe integration was verified end-to-end
-in test mode (subscribe, cancel, undo-cancel, admin lockout, public lockout at
-the 7-day boundary) before going live; see `docs/stripe-subscription-plan.md`
-for the full verification record.
+Current shipped-release result (`9f98c2c1`, built on `0d4150bf`): TypeScript
+passed, all 183 Vitest tests passed (unchanged — the Club pages ship no new
+tests), and the production build passed. The build still reports non-blocking
+Next.js lint warnings for a few raw `<img>` elements and unnecessary analytics
+`useMemo` dependencies. Destructive authenticated CRUD should only be tested
+with safe test data or explicit approval. The Stripe integration was verified
+end-to-end in test mode (subscribe, cancel, undo-cancel, admin lockout, public
+lockout at the 7-day boundary) before going live; see
+`docs/stripe-subscription-plan.md` for the full verification record.
