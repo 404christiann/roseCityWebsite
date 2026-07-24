@@ -14,6 +14,7 @@ import {
   aboutStoragePathFromPublicUrl,
   DEFAULT_ABOUT_PAGE_CONTENT,
   DEFAULT_CLUB_LOGO_PAGE_CONTENT,
+  normalizeClubLogoColorCards,
   normalizeAboutValues,
   normalizeClubLogoFeatures,
   normalizeStoryParagraphs,
@@ -29,6 +30,7 @@ type UploadTarget =
   | { kind: "aboutFeature" }
   | { kind: "logoAnnotated" }
   | { kind: "logoMap" }
+  | { kind: "logoColorCard"; index: number }
   | { kind: "logoFeaturePatch"; index: number }
   | { kind: "logoFeatureIcon"; index: number };
 
@@ -55,17 +57,21 @@ function toLogoDraft(content: DBClubLogoPageContent): DBClubLogoPageContent {
   return {
     ...content,
     features: normalizeClubLogoFeatures(content.features),
+    color_cards: normalizeClubLogoColorCards(content.color_cards),
   };
 }
 
-async function uploadAboutImage(file: File): Promise<string> {
+async function uploadAboutImage(file: File, stablePath?: string): Promise<string> {
   const supabase = createClient();
   const extension = file.name.split(".").pop() ?? "jpg";
-  const path = `content/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
-  const { error } = await supabase.storage.from("about-page").upload(path, file);
+  const path = stablePath ?? `content/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
+  const { error } = await supabase.storage.from("about-page").upload(path, file, {
+    cacheControl: stablePath ? "0" : undefined,
+    upsert: Boolean(stablePath),
+  });
   if (error) throw new Error(error.message);
   const { data } = supabase.storage.from("about-page").getPublicUrl(path);
-  return data.publicUrl;
+  return stablePath ? `${data.publicUrl}?v=${Date.now()}` : data.publicUrl;
 }
 
 export default function AdminAboutPage() {
@@ -126,7 +132,10 @@ export default function AdminAboutPage() {
     setUploading(true);
     setError(null);
     try {
-      const nextUrl = await uploadAboutImage(file);
+      const stableColorPath = target.kind === "logoColorCard"
+        ? `content/club-logo-colors/color-${target.index + 1}.png`
+        : undefined;
+      const nextUrl = await uploadAboutImage(file, stableColorPath);
       if (target.kind === "aboutFeature") {
         queueReplacedUrl(aboutDraft.feature_image_url);
         setAboutDraft((current) => ({ ...current, feature_image_url: nextUrl }));
@@ -138,6 +147,18 @@ export default function AdminAboutPage() {
       if (target.kind === "logoMap") {
         queueReplacedUrl(logoDraft.map_image_url);
         setLogoDraft((current) => ({ ...current, map_image_url: nextUrl }));
+      }
+      if (target.kind === "logoColorCard") {
+        const replacedUrl = logoDraft.color_cards[target.index]?.image_url;
+        if (replacedUrl && aboutStoragePathFromPublicUrl(replacedUrl) !== stableColorPath) {
+          queueReplacedUrl(replacedUrl);
+        }
+        setLogoDraft((current) => ({
+          ...current,
+          color_cards: current.color_cards.map((card, index) =>
+            index === target.index ? { ...card, image_url: nextUrl } : card,
+          ),
+        }));
       }
       if (target.kind === "logoFeaturePatch") {
         const replacedUrl = logoDraft.features[target.index]?.patch_url;
@@ -223,6 +244,7 @@ export default function AdminAboutPage() {
       const logoPayload = {
         ...logoDraft,
         features: normalizeClubLogoFeatures(logoDraft.features),
+        color_cards: normalizeClubLogoColorCards(logoDraft.color_cards),
         updated_at: new Date().toISOString(),
       };
 
@@ -442,6 +464,28 @@ export default function AdminAboutPage() {
                   onReplace={() => openUploader({ kind: "logoMap" })}
                   disabled={uploading || saving}
                 />
+                <div className="rounded-lg border border-white/10 p-3">
+                  <p
+                    className="font-display mb-1 text-xs uppercase tracking-widest"
+                    style={{ color: "rgba(255,255,255,0.35)" }}
+                  >
+                    Brand Color Cards
+                  </p>
+                  <p className="font-body mb-3 text-xs" style={{ color: "rgba(255,255,255,0.28)" }}>
+                    Six fixed slots render below the Pasadena map in a 3 by 2 grid.
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {logoDraft.color_cards.map((card, index) => (
+                      <ImageControl
+                        key={card.label}
+                        label={card.label}
+                        url={card.image_url}
+                        onReplace={() => openUploader({ kind: "logoColorCard", index })}
+                        disabled={uploading || saving}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 

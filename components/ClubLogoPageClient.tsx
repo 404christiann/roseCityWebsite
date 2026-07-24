@@ -20,6 +20,7 @@ export default function ClubLogoPageClient({
   const diagramRef = useRef<HTMLDivElement>(null);
   const rowsRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
+  const colorCardsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!animate) return;
@@ -50,6 +51,17 @@ export default function ClubLogoPageClient({
           duration: 0.9,
           ease: "power3.out",
           scrollTrigger: { trigger: mapRef.current, start: "top 85%" },
+        },
+      );
+      gsap.fromTo(
+        colorCardsRef.current,
+        { y: 30, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.9,
+          ease: "power3.out",
+          scrollTrigger: { trigger: colorCardsRef.current, start: "top 85%" },
         },
       );
     });
@@ -127,7 +139,7 @@ export default function ClubLogoPageClient({
 
       <div
         ref={mapRef}
-        className="max-w-sm mx-auto px-6 pb-32"
+        className="max-w-sm mx-auto px-6 pb-10"
         style={{ opacity: animate ? 0 : 1 }}
       >
         <div className="relative w-full" style={{ aspectRatio: "991 / 1281" }}>
@@ -139,6 +151,24 @@ export default function ClubLogoPageClient({
             sizes="384px"
           />
         </div>
+      </div>
+
+      <div
+        ref={colorCardsRef}
+        className="mx-auto grid max-w-3xl grid-cols-3 gap-x-5 gap-y-4 px-3 pb-32 sm:px-6 md:gap-x-8"
+        style={{ opacity: animate ? 0 : 1 }}
+      >
+        {content.color_cards.map((card) => (
+          <div key={card.label} className="relative w-full" style={{ aspectRatio: "334 / 214" }}>
+            <Image
+              src={card.image_url}
+              alt={`${card.label} brand color`}
+              fill
+              className="object-contain"
+              sizes="(max-width: 640px) 31vw, 220px"
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

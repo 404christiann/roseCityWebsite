@@ -19,6 +19,18 @@ export type ClubLogoFeature = {
   description: string;
 };
 
+export type ClubLogoColorCard = {
+  label: string;
+  image_url: string;
+};
+
+function aboutAssetUrl(path: string): string {
+  return `${ABOUT_ASSETS}/${path
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/")}`;
+}
+
 export const DEFAULT_ABOUT_PAGE_CONTENT: DBAboutPageContent = {
   id: 1,
   hero_title: "About Club",
@@ -97,11 +109,47 @@ export const DEFAULT_CLUB_LOGO_FEATURES: ClubLogoFeature[] = [
   },
 ];
 
+export const DEFAULT_CLUB_LOGO_COLOR_CARDS: ClubLogoColorCard[] = [
+  {
+    label: "Rose Parade Red",
+    image_url: aboutAssetUrl(
+      "hexColors/Rose CIty FC Brand Identity Rose Parade Red Color Black.png",
+    ),
+  },
+  {
+    label: "12AM Midnight",
+    image_url: aboutAssetUrl(
+      "hexColors/Rose CIty FC Brand Identity 12am at Midnight Color Black.png",
+    ),
+  },
+  {
+    label: "Faded White",
+    image_url: aboutAssetUrl(
+      "hexColors/Rose CIty FC Brand Identity Faded White Color Black.png",
+    ),
+  },
+  {
+    label: "Rose Stem Green",
+    image_url: aboutAssetUrl(
+      "hexColors/Rose CIty FC Brand Identity Rose Stem Color Black.png",
+    ),
+  },
+  {
+    label: "Steel",
+    image_url: aboutAssetUrl("hexColors/Rose CIty FC Brand Identity Steel Color Black.png"),
+  },
+  {
+    label: "Parrot",
+    image_url: aboutAssetUrl("hexColors/Rose CIty FC Brand Identity Parrot Colors Black.png"),
+  },
+];
+
 export const DEFAULT_CLUB_LOGO_PAGE_CONTENT: DBClubLogoPageContent = {
   id: 1,
   annotated_image_url: `${ABOUT_ASSETS}/ClubLogo_initial_image.png`,
   features: DEFAULT_CLUB_LOGO_FEATURES,
   map_image_url: `${ABOUT_ASSETS}/Rose%20City%20FC%20Official%20Pasadena%20Map%202027.png`,
+  color_cards: DEFAULT_CLUB_LOGO_COLOR_CARDS,
   updated_at: "",
 };
 
@@ -148,6 +196,24 @@ export function normalizeClubLogoFeatures(value: unknown): ClubLogoFeature[] {
     })
     .filter((item): item is ClubLogoFeature => Boolean(item));
   return features.length > 0 ? features : DEFAULT_CLUB_LOGO_FEATURES;
+}
+
+export function normalizeClubLogoColorCards(value: unknown): ClubLogoColorCard[] {
+  if (!Array.isArray(value)) return DEFAULT_CLUB_LOGO_COLOR_CARDS;
+  const cards = DEFAULT_CLUB_LOGO_COLOR_CARDS.map((fallback, index) => {
+    const item = value[index];
+    if (!item || typeof item !== "object") return fallback;
+    const record = item as Record<string, unknown>;
+    return {
+      label: typeof record.label === "string" && record.label.trim()
+        ? record.label
+        : fallback.label,
+      image_url: typeof record.image_url === "string" && record.image_url.trim()
+        ? record.image_url
+        : fallback.image_url,
+    };
+  });
+  return cards;
 }
 
 export function aboutStoragePathFromPublicUrl(url: string): string | null {

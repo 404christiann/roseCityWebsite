@@ -9,6 +9,16 @@ import { DEFAULT_SITE_SOCIAL_LINKS } from "@/lib/social-links";
 import { DEFAULT_FOOTER_SPONSORS } from "@/lib/sponsor-content";
 import { fetchSiteSocialLinks, fetchSiteSponsorLogos } from "@/lib/queries";
 
+const footerLinks = [
+  { label: "Home", href: "/" },
+  { label: "Roster", href: "/roster" },
+  { label: "Schedule", href: "/schedule" },
+  { label: "Club", href: "/club/about" },
+  { label: "Shop", href: "/shop" },
+  { label: "Tryouts", href: "mailto:tryouts@rosecityfutbolclub.com" },
+  { label: "Contact Us", href: "mailto:info@rosecityfutbolclub.com" },
+];
+
 export default function Footer() {
   const { clubLogoUrl } = useClubBranding();
   const [partners, setPartners] = useState<DBSiteSponsorLogo[]>(DEFAULT_FOOTER_SPONSORS);
@@ -84,21 +94,24 @@ export default function Footer() {
         </div>
 
         {/* Nav Links */}
-        <ul className="flex items-center gap-6">
-          {[
-            { label: "Home", href: "/" },
-            { label: "Roster", href: "/roster" },
-            { label: "Schedule", href: "/schedule" },
-            { label: "Club", href: "/club/about" },
-            { label: "Shop", href: "/shop" },
-          ].map((link) => (
+        <ul className="flex max-w-2xl flex-wrap items-center justify-center gap-x-6 gap-y-3">
+          {footerLinks.map((link) => (
             <li key={link.href}>
-              <Link
-                href={link.href}
-                className="font-display text-xs tracking-widest uppercase transition-colors duration-200 text-[#9A9A9A] hover:text-white"
-              >
-                {link.label}
-              </Link>
+              {link.href.startsWith("mailto:") ? (
+                <a
+                  href={link.href}
+                  className="font-display text-xs tracking-widest uppercase transition-colors duration-200 text-[#9A9A9A] hover:text-white"
+                >
+                  {link.label}
+                </a>
+              ) : (
+                <Link
+                  href={link.href}
+                  className="font-display text-xs tracking-widest uppercase transition-colors duration-200 text-[#9A9A9A] hover:text-white"
+                >
+                  {link.label}
+                </Link>
+              )}
             </li>
           ))}
         </ul>

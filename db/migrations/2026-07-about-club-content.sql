@@ -18,8 +18,12 @@ create table if not exists club_logo_page_content (
   annotated_image_url text not null,
   features jsonb not null default '[]'::jsonb,
   map_image_url text not null,
+  color_cards jsonb not null default '[]'::jsonb,
   updated_at timestamptz not null default now()
 );
+
+alter table club_logo_page_content
+  add column if not exists color_cards jsonb not null default '[]'::jsonb;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('about-page', 'about-page', true, 10485760, array['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
@@ -152,7 +156,8 @@ insert into club_logo_page_content (
   id,
   annotated_image_url,
   features,
-  map_image_url
+  map_image_url,
+  color_cards
 ) values (
   1,
   'https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/Aboutassets/ClubLogo_initial_image.png',
@@ -198,7 +203,63 @@ insert into club_logo_page_content (
       'description', 'Pasadena is the most prominent city in the San Gabriel Valley and derives its name from the Chippewa language meaning "Key of the Valley" and "Crown of the Valley." Pasadena is "key" to artistic, educational, and scientific institutions of global renown.'
     )
   ),
-  'https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/Aboutassets/Rose%20City%20FC%20Official%20Pasadena%20Map%202027.png'
+  'https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/Aboutassets/Rose%20City%20FC%20Official%20Pasadena%20Map%202027.png',
+  jsonb_build_array(
+    jsonb_build_object(
+      'label', 'Rose Parade Red',
+      'image_url', 'https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/Aboutassets/hexColors/Rose%20CIty%20FC%20Brand%20Identity%20Rose%20Parade%20Red%20Color%20Black.png'
+    ),
+    jsonb_build_object(
+      'label', '12AM Midnight',
+      'image_url', 'https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/Aboutassets/hexColors/Rose%20CIty%20FC%20Brand%20Identity%2012am%20at%20Midnight%20Color%20Black.png'
+    ),
+    jsonb_build_object(
+      'label', 'Faded White',
+      'image_url', 'https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/Aboutassets/hexColors/Rose%20CIty%20FC%20Brand%20Identity%20Faded%20White%20Color%20Black.png'
+    ),
+    jsonb_build_object(
+      'label', 'Rose Stem Green',
+      'image_url', 'https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/Aboutassets/hexColors/Rose%20CIty%20FC%20Brand%20Identity%20Rose%20Stem%20Color%20Black.png'
+    ),
+    jsonb_build_object(
+      'label', 'Steel',
+      'image_url', 'https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/Aboutassets/hexColors/Rose%20CIty%20FC%20Brand%20Identity%20Steel%20Color%20Black.png'
+    ),
+    jsonb_build_object(
+      'label', 'Parrot',
+      'image_url', 'https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/Aboutassets/hexColors/Rose%20CIty%20FC%20Brand%20Identity%20Parrot%20Colors%20Black.png'
+    )
+  )
 ) on conflict (id) do nothing;
+
+update club_logo_page_content
+set color_cards = jsonb_build_array(
+  jsonb_build_object(
+    'label', 'Rose Parade Red',
+    'image_url', 'https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/Aboutassets/hexColors/Rose%20CIty%20FC%20Brand%20Identity%20Rose%20Parade%20Red%20Color%20Black.png'
+  ),
+  jsonb_build_object(
+    'label', '12AM Midnight',
+    'image_url', 'https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/Aboutassets/hexColors/Rose%20CIty%20FC%20Brand%20Identity%2012am%20at%20Midnight%20Color%20Black.png'
+  ),
+  jsonb_build_object(
+    'label', 'Faded White',
+    'image_url', 'https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/Aboutassets/hexColors/Rose%20CIty%20FC%20Brand%20Identity%20Faded%20White%20Color%20Black.png'
+  ),
+  jsonb_build_object(
+    'label', 'Rose Stem Green',
+    'image_url', 'https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/Aboutassets/hexColors/Rose%20CIty%20FC%20Brand%20Identity%20Rose%20Stem%20Color%20Black.png'
+  ),
+  jsonb_build_object(
+    'label', 'Steel',
+    'image_url', 'https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/Aboutassets/hexColors/Rose%20CIty%20FC%20Brand%20Identity%20Steel%20Color%20Black.png'
+  ),
+  jsonb_build_object(
+    'label', 'Parrot',
+    'image_url', 'https://nsgtkwqkbyxkiwrhzsje.supabase.co/storage/v1/object/public/Aboutassets/hexColors/Rose%20CIty%20FC%20Brand%20Identity%20Parrot%20Colors%20Black.png'
+  )
+)
+where id = 1
+  and (color_cards is null or jsonb_array_length(color_cards) = 0);
 
 notify pgrst, 'reload schema';

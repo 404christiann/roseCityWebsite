@@ -195,6 +195,10 @@ export type DBClubLogoPageContent = {
     description: string;
   }>;
   map_image_url: string;
+  color_cards: Array<{
+    label: string;
+    image_url: string;
+  }>;
   updated_at: string;
 };
 

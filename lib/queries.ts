@@ -40,6 +40,7 @@ import {
   DEFAULT_ABOUT_PAGE_CONTENT,
   DEFAULT_CLUB_LOGO_PAGE_CONTENT,
   normalizeAboutValues,
+  normalizeClubLogoColorCards,
   normalizeClubLogoFeatures,
   normalizeStoryParagraphs,
 } from "@/lib/about-content";
@@ -331,6 +332,7 @@ export async function fetchAboutClubContent(): Promise<AboutClubContent> {
       ? {
           ...rawLogo,
           features: normalizeClubLogoFeatures(rawLogo.features),
+          color_cards: normalizeClubLogoColorCards(rawLogo.color_cards),
         }
       : DEFAULT_CLUB_LOGO_PAGE_CONTENT,
   };
