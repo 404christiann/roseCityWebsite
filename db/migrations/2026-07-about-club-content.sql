@@ -99,6 +99,26 @@ begin
     select 1 from pg_policies
     where schemaname = 'storage'
       and tablename = 'objects'
+      and policyname = 'Authenticated users can update about page images'
+  ) then
+    create policy "Authenticated users can update about page images"
+    on storage.objects
+    for update
+    to authenticated
+    using (
+      bucket_id = 'about-page'
+      and (storage.foldername(name))[1] = 'content'
+    )
+    with check (
+      bucket_id = 'about-page'
+      and (storage.foldername(name))[1] = 'content'
+    );
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
       and policyname = 'Authenticated users can delete about page images'
   ) then
     create policy "Authenticated users can delete about page images"

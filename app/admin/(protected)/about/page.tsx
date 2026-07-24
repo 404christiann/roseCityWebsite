@@ -26,6 +26,8 @@ import { deleteStorageUrls } from "@/lib/storage-cleanup";
 import { createClient } from "@/lib/supabase-browser";
 
 type AdminTab = "about" | "logo";
+type AboutPanel = "story" | "values" | "closing";
+type LogoPanel = "images" | "features" | "colors";
 type UploadTarget =
   | { kind: "aboutFeature" }
   | { kind: "logoAnnotated" }
@@ -76,6 +78,9 @@ async function uploadAboutImage(file: File, stablePath?: string): Promise<string
 
 export default function AdminAboutPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>("about");
+  const [aboutPanel, setAboutPanel] = useState<AboutPanel>("story");
+  const [logoPanel, setLogoPanel] = useState<LogoPanel>("images");
+  const [selectedLogoFeature, setSelectedLogoFeature] = useState(0);
   const [aboutDraft, setAboutDraft] = useState<DBAboutPageContent>(
     toAboutDraft(DEFAULT_ABOUT_PAGE_CONTENT),
   );
@@ -291,12 +296,12 @@ export default function AdminAboutPage() {
           Loading...
         </p>
       ) : (
-        <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(320px,460px)_minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(420px,560px)_minmax(0,1fr)]">
           <section
-            className="min-w-0 self-start rounded-xl p-4 sm:p-5"
+            className="flex min-w-0 max-h-[calc(100vh-9rem)] flex-col self-start overflow-hidden rounded-xl p-4 sm:p-5"
             style={{ backgroundColor: "#141414", border: "1px solid rgba(255,255,255,0.07)" }}
           >
-            <div className="mb-4 grid grid-cols-2 gap-1 rounded-lg p-1" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>
+            <div className="grid grid-cols-2 gap-1 rounded-lg p-1" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>
               {[
                 { id: "about" as const, label: "About" },
                 { id: "logo" as const, label: "Club Logo" },
@@ -306,7 +311,11 @@ export default function AdminAboutPage() {
                   <button
                     key={tab.id}
                     type="button"
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      if (tab.id === "about") setAboutPanel("story");
+                      if (tab.id === "logo") setLogoPanel("images");
+                    }}
                     disabled={saving || uploading}
                     className="font-display rounded-md px-3 py-3 text-xs uppercase tracking-widest transition-colors"
                     style={{
@@ -321,202 +330,292 @@ export default function AdminAboutPage() {
             </div>
 
             {activeTab === "about" ? (
-              <div className="space-y-4">
-                <Field label="Page Title">
-                  <input
-                    value={aboutDraft.hero_title}
-                    onChange={(event) => setAboutField("hero_title", event.target.value)}
-                    style={inputStyle}
-                  />
-                </Field>
-                <Field label="Story Paragraphs" help="Each line becomes one paragraph.">
-                  <textarea
-                    value={aboutDraft.story_paragraphs.join("\n")}
-                    onChange={(event) => setStoryText(event.target.value)}
-                    rows={7}
-                    style={{ ...inputStyle, resize: "vertical" }}
-                  />
-                </Field>
-                <ImageControl
-                  label="Feature Image"
-                  url={aboutDraft.feature_image_url}
-                  onReplace={() => openUploader({ kind: "aboutFeature" })}
-                  disabled={uploading || saving}
-                />
-                <Field label="Values Heading">
-                  <input
-                    value={aboutDraft.values_heading}
-                    onChange={(event) => setAboutField("values_heading", event.target.value)}
-                    style={inputStyle}
-                  />
-                </Field>
-                {aboutDraft.values.map((value, index) => (
-                  <div key={index} className="rounded-lg border border-white/10 p-3">
-                    <Field label={`Value ${index + 1} Title`}>
-                      <input
-                        value={value.title}
-                        onChange={(event) => setValue(index, "title", event.target.value)}
-                        style={inputStyle}
-                      />
-                    </Field>
-                    <Field label={`Value ${index + 1} Description`}>
-                      <textarea
-                        value={value.description}
-                        onChange={(event) => setValue(index, "description", event.target.value)}
-                        rows={2}
-                        style={{ ...inputStyle, resize: "vertical" }}
-                      />
-                    </Field>
-                  </div>
-                ))}
-                <Field label="Closing Text">
-                  <textarea
-                    value={aboutDraft.closing_text}
-                    onChange={(event) => setAboutField("closing_text", event.target.value)}
-                    rows={2}
-                    style={{ ...inputStyle, resize: "vertical" }}
-                  />
-                </Field>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="CTA Label" flush>
-                    <input
-                      value={aboutDraft.closing_cta_label}
-                      onChange={(event) => setAboutField("closing_cta_label", event.target.value)}
-                      style={inputStyle}
-                    />
-                  </Field>
-                  <Field label="CTA Link" flush>
-                    <input
-                      value={aboutDraft.closing_cta_href}
-                      onChange={(event) => setAboutField("closing_cta_href", event.target.value)}
-                      style={inputStyle}
-                    />
-                  </Field>
-                </div>
-              </div>
+              <SectionNav
+                tabs={[
+                  { id: "story", label: "Story" },
+                  { id: "values", label: "Values" },
+                  { id: "closing", label: "CTA" },
+                ]}
+                value={aboutPanel}
+                onChange={setAboutPanel}
+                disabled={saving || uploading}
+              />
             ) : (
-              <div className="space-y-4">
-                <ImageControl
-                  label="Annotated Crest Image"
-                  url={logoDraft.annotated_image_url}
-                  onReplace={() => openUploader({ kind: "logoAnnotated" })}
-                  disabled={uploading || saving}
-                />
-                {logoDraft.features.map((feature, index) => (
-                  <div key={index} className="rounded-lg border border-white/10 p-3">
-                    <Field label={`Feature ${index + 1} Title`}>
-                      <input
-                        value={feature.title}
-                        onChange={(event) => setLogoFeature(index, "title", event.target.value)}
-                        style={inputStyle}
-                      />
-                    </Field>
-                    <Field label={`Feature ${index + 1} Description`}>
-                      <textarea
-                        value={feature.description}
-                        onChange={(event) => setLogoFeature(index, "description", event.target.value)}
-                        rows={3}
-                        style={{ ...inputStyle, resize: "vertical" }}
-                      />
-                    </Field>
-                    <div className="mt-3 grid grid-cols-2 gap-3">
+              <SectionNav
+                tabs={[
+                  { id: "images", label: "Images" },
+                  { id: "features", label: "Features" },
+                  { id: "colors", label: "Colors" },
+                ]}
+                value={logoPanel}
+                onChange={setLogoPanel}
+                disabled={saving || uploading}
+              />
+            )}
+
+            <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
+              {activeTab === "about" ? (
+                <div>
+                  {aboutPanel === "story" && (
+                    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_210px]">
+                      <div className="space-y-3">
+                        <Field label="Page Title">
+                          <input
+                            value={aboutDraft.hero_title}
+                            onChange={(event) => setAboutField("hero_title", event.target.value)}
+                            style={inputStyle}
+                          />
+                        </Field>
+                        <Field label="Story Paragraphs" help="Each line becomes one paragraph.">
+                          <textarea
+                            value={aboutDraft.story_paragraphs.join("\n")}
+                            onChange={(event) => setStoryText(event.target.value)}
+                            rows={9}
+                            style={{ ...inputStyle, resize: "vertical" }}
+                          />
+                        </Field>
+                      </div>
                       <ImageControl
-                        label="Patch"
-                        url={feature.patch_url}
-                        onReplace={() => openUploader({ kind: "logoFeaturePatch", index })}
+                        label="Feature Image"
+                        url={aboutDraft.feature_image_url}
+                        onReplace={() => openUploader({ kind: "aboutFeature" })}
                         disabled={uploading || saving}
-                      />
-                      <ImageControl
-                        label="Icon"
-                        url={feature.icon_url}
-                        onReplace={() => openUploader({ kind: "logoFeatureIcon", index })}
-                        disabled={uploading || saving}
+                        compact
                       />
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-3">
-                      <Field label="Icon Size" flush>
+                  )}
+
+                  {aboutPanel === "values" && (
+                    <div className="space-y-3">
+                      <Field label="Values Heading">
                         <input
-                          type="number"
-                          min={24}
-                          max={140}
-                          value={feature.icon_size}
-                          onChange={(event) => setLogoFeature(index, "icon_size", Number(event.target.value))}
+                          value={aboutDraft.values_heading}
+                          onChange={(event) => setAboutField("values_heading", event.target.value)}
                           style={inputStyle}
                         />
                       </Field>
-                      <Field label="Icon Scale" flush>
-                        <input
-                          type="number"
-                          min={0.5}
-                          max={4}
-                          step={0.05}
-                          value={feature.icon_scale}
-                          onChange={(event) => setLogoFeature(index, "icon_scale", Number(event.target.value))}
-                          style={inputStyle}
+                      <div className="grid gap-3 lg:grid-cols-3">
+                        {aboutDraft.values.map((value, index) => (
+                          <div key={index} className="rounded-lg border border-white/10 p-3">
+                            <Field label={`Value ${index + 1} Title`}>
+                              <input
+                                value={value.title}
+                                onChange={(event) => setValue(index, "title", event.target.value)}
+                                style={inputStyle}
+                              />
+                            </Field>
+                            <Field label={`Value ${index + 1} Description`}>
+                              <textarea
+                                value={value.description}
+                                onChange={(event) => setValue(index, "description", event.target.value)}
+                                rows={5}
+                                style={{ ...inputStyle, resize: "vertical" }}
+                              />
+                            </Field>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {aboutPanel === "closing" && (
+                    <div className="grid gap-3 lg:grid-cols-2">
+                      <Field label="Closing Text">
+                        <textarea
+                          value={aboutDraft.closing_text}
+                          onChange={(event) => setAboutField("closing_text", event.target.value)}
+                          rows={5}
+                          style={{ ...inputStyle, resize: "vertical" }}
                         />
                       </Field>
+                      <div className="grid gap-3">
+                        <Field label="CTA Label" flush>
+                          <input
+                            value={aboutDraft.closing_cta_label}
+                            onChange={(event) => setAboutField("closing_cta_label", event.target.value)}
+                            style={inputStyle}
+                          />
+                        </Field>
+                        <Field label="CTA Link" flush>
+                          <input
+                            value={aboutDraft.closing_cta_href}
+                            onChange={(event) => setAboutField("closing_cta_href", event.target.value)}
+                            style={inputStyle}
+                          />
+                        </Field>
+                      </div>
                     </div>
-                  </div>
-                ))}
-                <ImageControl
-                  label="Map Image"
-                  url={logoDraft.map_image_url}
-                  onReplace={() => openUploader({ kind: "logoMap" })}
-                  disabled={uploading || saving}
-                />
-                <div className="rounded-lg border border-white/10 p-3">
-                  <p
-                    className="font-display mb-1 text-xs uppercase tracking-widest"
-                    style={{ color: "rgba(255,255,255,0.35)" }}
-                  >
-                    Brand Color Cards
-                  </p>
-                  <p className="font-body mb-3 text-xs" style={{ color: "rgba(255,255,255,0.28)" }}>
-                    Six fixed slots render below the Pasadena map in a 3 by 2 grid.
-                  </p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {logoDraft.color_cards.map((card, index) => (
-                      <ImageControl
-                        key={card.label}
-                        label={card.label}
-                        url={card.image_url}
-                        onReplace={() => openUploader({ kind: "logoColorCard", index })}
-                        disabled={uploading || saving}
-                      />
-                    ))}
-                  </div>
+                  )}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div>
+                  {logoPanel === "images" && (
+                    <div className="grid gap-3 lg:grid-cols-2">
+                      <ImageControl
+                        label="Annotated Crest Image"
+                        url={logoDraft.annotated_image_url}
+                        onReplace={() => openUploader({ kind: "logoAnnotated" })}
+                        disabled={uploading || saving}
+                        compact
+                      />
+                      <ImageControl
+                        label="Map Image"
+                        url={logoDraft.map_image_url}
+                        onReplace={() => openUploader({ kind: "logoMap" })}
+                        disabled={uploading || saving}
+                        compact
+                      />
+                    </div>
+                  )}
 
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(event) => handleImageUpload(event.target.files?.[0] ?? null)}
-            />
+                  {logoPanel === "features" && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                        {logoDraft.features.map((feature, index) => {
+                          const selected = selectedLogoFeature === index;
+                          return (
+                            <button
+                              key={feature.title}
+                              type="button"
+                              onClick={() => setSelectedLogoFeature(index)}
+                              disabled={saving || uploading}
+                              className="font-display rounded-md border px-2 py-2 text-[0.65rem] uppercase tracking-widest transition-colors"
+                              style={{
+                                backgroundColor: selected ? "white" : "rgba(255,255,255,0.04)",
+                                borderColor: selected ? "white" : "rgba(255,255,255,0.08)",
+                                color: selected ? "#141414" : "rgba(255,255,255,0.55)",
+                              }}
+                            >
+                              {feature.title.replace("The ", "")}
+                            </button>
+                          );
+                        })}
+                      </div>
 
-            {error && (
-              <p className="font-body mt-4 text-sm" style={{ color: "#E7001B" }}>
-                Error: {error}
-              </p>
-            )}
+                      {logoDraft.features[selectedLogoFeature] && (
+                        <div className="rounded-lg border border-white/10 p-3">
+                          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_210px]">
+                            <div className="space-y-3">
+                              <Field label={`Feature ${selectedLogoFeature + 1} Title`}>
+                                <input
+                                  value={logoDraft.features[selectedLogoFeature].title}
+                                  onChange={(event) => setLogoFeature(selectedLogoFeature, "title", event.target.value)}
+                                  style={inputStyle}
+                                />
+                              </Field>
+                              <Field label={`Feature ${selectedLogoFeature + 1} Description`}>
+                                <textarea
+                                  value={logoDraft.features[selectedLogoFeature].description}
+                                  onChange={(event) => setLogoFeature(selectedLogoFeature, "description", event.target.value)}
+                                  rows={8}
+                                  style={{ ...inputStyle, resize: "vertical" }}
+                                />
+                              </Field>
+                            </div>
+                            <div className="grid gap-3">
+                              <ImageControl
+                                label="Patch"
+                                url={logoDraft.features[selectedLogoFeature].patch_url}
+                                onReplace={() => openUploader({ kind: "logoFeaturePatch", index: selectedLogoFeature })}
+                                disabled={uploading || saving}
+                                compact
+                              />
+                              <ImageControl
+                                label="Icon"
+                                url={logoDraft.features[selectedLogoFeature].icon_url}
+                                onReplace={() => openUploader({ kind: "logoFeatureIcon", index: selectedLogoFeature })}
+                                disabled={uploading || saving}
+                                compact
+                              />
+                              <div className="grid grid-cols-2 gap-3">
+                                <Field label="Icon Size" flush>
+                                  <input
+                                    type="number"
+                                    min={24}
+                                    max={140}
+                                    value={logoDraft.features[selectedLogoFeature].icon_size}
+                                    onChange={(event) => setLogoFeature(selectedLogoFeature, "icon_size", Number(event.target.value))}
+                                    style={inputStyle}
+                                  />
+                                </Field>
+                                <Field label="Icon Scale" flush>
+                                  <input
+                                    type="number"
+                                    min={0.5}
+                                    max={4}
+                                    step={0.05}
+                                    value={logoDraft.features[selectedLogoFeature].icon_scale}
+                                    onChange={(event) => setLogoFeature(selectedLogoFeature, "icon_scale", Number(event.target.value))}
+                                    style={inputStyle}
+                                  />
+                                </Field>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-            <button
-              type="button"
-              onClick={() => void handleSave()}
-              disabled={saveDisabled}
-              className="font-display mt-5 w-full rounded-lg py-3 text-sm font-bold uppercase tracking-widest transition-opacity"
-              style={{
-                backgroundColor: "#E7001B",
-                color: "white",
-                opacity: saveDisabled ? 0.5 : 1,
-                cursor: saveDisabled ? "not-allowed" : "pointer",
-              }}
-            >
-              {saving ? "Saving..." : uploading ? "Uploading..." : "Save About Pages"}
-            </button>
+                  {logoPanel === "colors" && (
+                    <div className="rounded-lg border border-white/10 p-3">
+                      <p
+                        className="font-display text-xs uppercase tracking-widest"
+                        style={{ color: "rgba(255,255,255,0.35)" }}
+                      >
+                        Brand Color Cards
+                      </p>
+                      <p className="font-body mb-3 text-xs" style={{ color: "rgba(255,255,255,0.28)" }}>
+                        Six fixed slots render below the Pasadena map.
+                      </p>
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        {logoDraft.color_cards.map((card, index) => (
+                          <ImageControl
+                            key={card.label}
+                            label={card.label}
+                            url={card.image_url}
+                            onReplace={() => openUploader({ kind: "logoColorCard", index })}
+                            disabled={uploading || saving}
+                            compact
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => handleImageUpload(event.target.files?.[0] ?? null)}
+              />
+
+              {error && (
+                <p className="font-body mb-3 text-sm" style={{ color: "#E7001B" }}>
+                  Error: {error}
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={() => void handleSave()}
+                disabled={saveDisabled}
+                className="font-display w-full rounded-lg py-3 text-sm font-bold uppercase tracking-widest transition-opacity"
+                style={{
+                  backgroundColor: "#E7001B",
+                  color: "white",
+                  opacity: saveDisabled ? 0.5 : 1,
+                  cursor: saveDisabled ? "not-allowed" : "pointer",
+                }}
+              >
+                {saving ? "Saving..." : uploading ? "Uploading..." : "Save About Pages"}
+              </button>
+            </div>
           </section>
 
           <section className="min-w-0">
@@ -572,16 +671,54 @@ function Field({
   );
 }
 
+function SectionNav<T extends string>({
+  tabs,
+  value,
+  onChange,
+  disabled,
+}: {
+  tabs: Array<{ id: T; label: string }>;
+  value: T;
+  onChange: (value: T) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="mt-3 grid gap-1 rounded-lg p-1 sm:grid-cols-3" style={{ backgroundColor: "rgba(255,255,255,0.025)" }}>
+      {tabs.map((tab) => {
+        const selected = tab.id === value;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => onChange(tab.id)}
+            disabled={disabled}
+            className="font-display rounded-md px-3 py-2 text-[0.68rem] uppercase tracking-widest transition-colors"
+            style={{
+              backgroundColor: selected ? "rgba(231,0,27,0.9)" : "transparent",
+              color: selected ? "white" : "rgba(255,255,255,0.45)",
+              cursor: disabled ? "not-allowed" : "pointer",
+            }}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function ImageControl({
   label,
   url,
   onReplace,
   disabled,
+  compact = false,
 }: {
   label: string;
   url: string;
   onReplace: () => void;
   disabled: boolean;
+  compact?: boolean;
 }) {
   return (
     <div>
@@ -591,9 +728,15 @@ function ImageControl({
       >
         {label}
       </p>
-      <div className="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-2 rounded-lg border border-white/10 p-2 sm:grid-cols-[72px_minmax(0,1fr)]">
-        <div className="relative h-14 min-w-0 overflow-hidden rounded-md bg-black sm:h-16">
-          <Image src={url} alt={label} fill sizes="84px" className="object-contain" />
+      <div className={compact
+        ? "grid min-w-0 gap-2 rounded-lg border border-white/10 p-2"
+        : "grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-2 rounded-lg border border-white/10 p-2 sm:grid-cols-[72px_minmax(0,1fr)]"
+      }>
+        <div className={compact
+          ? "relative h-24 min-w-0 overflow-hidden rounded-md bg-black"
+          : "relative h-14 min-w-0 overflow-hidden rounded-md bg-black sm:h-16"
+        }>
+          <Image src={url} alt={label} fill sizes={compact ? "210px" : "84px"} className="object-contain" />
         </div>
         <div className="flex min-w-0 flex-col">
           <p
