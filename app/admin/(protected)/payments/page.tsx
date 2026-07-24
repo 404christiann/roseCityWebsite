@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase-server";
 import { getSubscriptionMirrorRow } from "@/lib/subscription-mirror";
+import { getConfiguredStripePriceLabel } from "@/lib/stripe-price";
 import { resolvePaymentsUiState } from "@/lib/stripe-subscription-state";
 
 const SUPPORT_EMAIL = "onziofutbol@gmail.com";
@@ -18,6 +19,9 @@ export default async function PaymentsPage() {
   const mirrorRow = await getSubscriptionMirrorRow(supabase);
   const uiState = resolvePaymentsUiState(mirrorRow);
   const isBillingAdmin = user?.email === process.env.BILLING_ADMIN_EMAIL;
+  const configuredPriceLabel = await getConfiguredStripePriceLabel();
+  const billingSummary = configuredPriceLabel ?? "configured monthly subscription";
+  const subscribeLabel = configuredPriceLabel ? `Subscribe — ${configuredPriceLabel}` : "Subscribe";
 
   const statusLabel =
     uiState.state === "no_subscription"
@@ -38,7 +42,7 @@ export default async function PaymentsPage() {
           Payments
         </h1>
         <p className="mt-2 max-w-2xl font-body text-sm leading-relaxed text-white/40">
-          Rose City FC — $65.00/mo.
+          Rose City FC — {billingSummary}.
         </p>
       </div>
 
@@ -76,7 +80,7 @@ export default async function PaymentsPage() {
                   type="submit"
                   className="w-full rounded-lg bg-[#E7001B] px-6 py-4 font-display text-lg font-black uppercase tracking-widest text-white transition hover:bg-[#ff0a25] sm:w-auto"
                 >
-                  Subscribe — $65.00/mo
+                  {subscribeLabel}
                 </button>
               </form>
             )}

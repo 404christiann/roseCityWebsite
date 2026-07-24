@@ -24,13 +24,14 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
   `db/migrations/2026-07-about-club-content.sql` in environments missing those
   singleton rows.
 - Shipped in `0d4150bf` (built on `a94d4958`/`29f3ada5`): Stripe subscription
-  billing for the platform itself — Rose City FC pays Christian $65.00/mo
-  (the Starter-tier price, not the originally planned $99.99 Pro price) via a
-  new billing-admin-only `/admin/payments` tab. Stripe's hosted Checkout and
-  Billing Portal handle subscribe/cancel/undo-cancel/update-card; there is no
-  custom payment UI. A Supabase `stripe_subscription` singleton row, kept in
-  sync by `app/api/stripe/webhook/route.ts`, is what `middleware.ts` reads to
-  decide lockout state — it never calls the Stripe API directly.
+  billing for the platform itself. Checkout uses `STRIPE_PRICE_ID`, and
+  `/admin/payments` retrieves that Stripe Price so the displayed amount follows
+  future Price ID changes instead of hardcoding the old Starter-tier amount.
+  Stripe's hosted Checkout and Billing Portal handle
+  subscribe/cancel/undo-cancel/update-card; there is no custom payment UI. A
+  Supabase `stripe_subscription` singleton row, kept in sync by
+  `app/api/stripe/webhook/route.ts`, is what `middleware.ts` reads to decide
+  lockout state — it never calls the Stripe API directly.
   - Admin lockout: once the subscription is genuinely terminal (past what was
     already paid for, zero grace beyond that), every `/admin/*` route except
     `/admin/payments` redirects there.

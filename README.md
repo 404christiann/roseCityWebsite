@@ -178,9 +178,11 @@ left without a sponsor.
 
 ## Platform Billing
 
-- Rose City FC pays Christian $65.00/mo for this platform via `/admin/payments`,
-  visible to everyone on `ADMIN_ALLOWED_EMAILS` but only actionable by the
-  single `BILLING_ADMIN_EMAIL`; other admins see a read-only status.
+- Rose City FC pays Christian for this platform via `/admin/payments`, visible
+  to everyone on `ADMIN_ALLOWED_EMAILS` but only actionable by the single
+  `BILLING_ADMIN_EMAIL`; other admins see a read-only status.
+- Checkout uses `STRIPE_PRICE_ID`, and `/admin/payments` retrieves that Stripe
+  Price to display the current subscription amount dynamically.
 - Stripe's hosted Checkout and Billing Portal handle subscribe, cancel,
   undo-cancellation, card updates, and invoices — there's no custom payment
   UI anywhere in this app.

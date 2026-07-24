@@ -462,9 +462,10 @@ release — no carousel code remains).
 Shipped through `0d4150bf`, built on `a94d4958` (core billing) and `29f3ada5`
 (public lockout).
 
-- Rose City FC pays Christian $65.00/mo (the Starter-tier price — plans
-  changed from the originally scoped $99.99 Pro price partway through live
-  setup) via a new billing-admin-only `/admin/payments` tab.
+- Rose City FC pays Christian via a billing-admin-only `/admin/payments` tab.
+  Checkout uses `STRIPE_PRICE_ID`, and the Payments page retrieves that Stripe
+  Price to display the current subscription amount dynamically rather than
+  hardcoding the old Starter-tier amount.
 - Stripe's hosted Checkout (subscribe) and Billing Portal (cancel,
   undo-cancellation, update card, invoices) handle the entire payment UX —
   there is no custom card form or cancel-confirmation modal anywhere in this
