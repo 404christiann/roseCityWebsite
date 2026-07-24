@@ -21,6 +21,8 @@ import {
   fetchActiveSeason,
   fetchClubBranding,
   fetchShopKitContent,
+  fetchShopPurchaseDetails,
+  fetchSiteSocialLinks,
   fetchSchedule,
   fetchPlayerMatchLog,
   fetchRoster,
@@ -190,6 +192,7 @@ describe('fetchShopKitContent', () => {
   const section = {
     id: 1,
     surface: 'home',
+    kit_variant: 'home',
     eyebrow: '2026 Kit · Available Now',
     title: 'Thorn\nEdition\n2026',
     description: 'Official kit',
@@ -200,8 +203,22 @@ describe('fetchShopKitContent', () => {
     updated_at: '2026-07-16T00:00:00Z',
   }
   const photos = [
-    { id: 'photo-a', surface: 'home', url: 'a.jpg', sort_order: 0, created_at: '2026-07-16T00:00:00Z' },
-    { id: 'photo-b', surface: 'home', url: 'b.jpg', sort_order: 1, created_at: '2026-07-16T00:00:00Z' },
+    {
+      id: 'photo-a',
+      surface: 'home',
+      kit_variant: 'home',
+      url: 'a.jpg',
+      sort_order: 0,
+      created_at: '2026-07-16T00:00:00Z',
+    },
+    {
+      id: 'photo-b',
+      surface: 'home',
+      kit_variant: 'home',
+      url: 'b.jpg',
+      sort_order: 1,
+      created_at: '2026-07-16T00:00:00Z',
+    },
   ]
 
   it('returns the homepage section and ordered photos by default', async () => {
@@ -215,26 +232,34 @@ describe('fetchShopKitContent', () => {
     expect(mockFrom).toHaveBeenNthCalledWith(1, 'shop_kit_section')
     expect(mockFrom).toHaveBeenNthCalledWith(2, 'shop_kit_photos')
     expect(sectionQuery.eq).toHaveBeenCalledWith('surface', 'home')
+    expect(sectionQuery.eq).toHaveBeenCalledWith('kit_variant', 'home')
     expect(sectionQuery.limit).toHaveBeenCalledWith(1)
     expect(photosQuery.eq).toHaveBeenCalledWith('surface', 'home')
+    expect(photosQuery.eq).toHaveBeenCalledWith('kit_variant', 'home')
     expect(photosQuery.order).toHaveBeenCalledWith('sort_order', { ascending: true })
   })
 
-  it('scopes both queries to the requested shop-page surface', async () => {
-    const shopSection = { ...section, id: 2, surface: 'shop' }
-    const shopPhotos = photos.map((photo) => ({ ...photo, surface: 'shop' }))
+  it('scopes both queries to the requested shop-page away kit', async () => {
+    const shopSection = { ...section, id: 4, surface: 'shop', kit_variant: 'away' }
+    const shopPhotos = photos.map((photo) => ({
+      ...photo,
+      surface: 'shop',
+      kit_variant: 'away',
+    }))
     const sectionQuery = chain({ data: [shopSection], error: null })
     const photosQuery = chain({ data: shopPhotos, error: null })
     mockFrom
       .mockReturnValueOnce(sectionQuery)
       .mockReturnValueOnce(photosQuery)
 
-    await expect(fetchShopKitContent('shop')).resolves.toEqual({
+    await expect(fetchShopKitContent('shop', 'away')).resolves.toEqual({
       section: shopSection,
       photos: shopPhotos,
     })
     expect(sectionQuery.eq).toHaveBeenCalledWith('surface', 'shop')
+    expect(sectionQuery.eq).toHaveBeenCalledWith('kit_variant', 'away')
     expect(photosQuery.eq).toHaveBeenCalledWith('surface', 'shop')
+    expect(photosQuery.eq).toHaveBeenCalledWith('kit_variant', 'away')
   })
 
   it('returns an empty content shape when both tables are empty', async () => {
@@ -285,6 +310,95 @@ describe('fetchShopKitContent', () => {
   })
 })
 
+describe('fetchShopPurchaseDetails', () => {
+  const purchaseDetails = {
+    id: 1,
+    heading: 'Purchase Details',
+    cards: [
+      {
+        label: "What's Included",
+        title: 'Match jersey package',
+        body: 'Authentic jersey package.',
+      },
+    ],
+    cta_eyebrow: 'Ready To Order',
+    cta_text: "Buy online now or stop by Niky's Sports in Pasadena.",
+    cta_label: 'Buy Now →',
+    cta_link: 'https://example.com/buy',
+    updated_at: '2026-07-24T00:00:00Z',
+  }
+
+  it('returns the singleton purchase-details row', async () => {
+    const query = chain({ data: [purchaseDetails], error: null })
+    mockFrom.mockReturnValueOnce(query)
+
+    await expect(fetchShopPurchaseDetails()).resolves.toEqual(purchaseDetails)
+    expect(mockFrom).toHaveBeenCalledWith('shop_purchase_details')
+    expect(query.eq).toHaveBeenCalledWith('id', 1)
+    expect(query.limit).toHaveBeenCalledWith(1)
+  })
+
+  it('falls back to default purchase details when the table is empty', async () => {
+    mockFrom.mockReturnValueOnce(chain({ data: [], error: null }))
+
+    const result = await fetchShopPurchaseDetails()
+
+    expect(result.heading).toBe('Purchase Details')
+    expect(result.cards).toHaveLength(4)
+    expect(result.cta_label).toBe('Buy Now →')
+  })
+
+  it('throws with context when the query fails', async () => {
+    mockFrom.mockReturnValueOnce(chain({
+      data: null,
+      error: { message: 'purchase unavailable' },
+    }))
+
+    await expect(fetchShopPurchaseDetails())
+      .rejects.toThrow('fetchShopPurchaseDetails: purchase unavailable')
+  })
+})
+
+describe('fetchSiteSocialLinks', () => {
+  it('returns normalized social links in footer order', async () => {
+    const query = chain({
+      data: [
+        {
+          id: 'instagram',
+          label: 'Instagram',
+          href: 'https://example.com/instagram',
+          icon: '/images/logo/instagramLogo.svg',
+          sort_order: 0,
+          updated_at: '2026-07-24T00:00:00Z',
+        },
+      ],
+      error: null,
+    })
+    mockFrom.mockReturnValueOnce(query)
+
+    const result = await fetchSiteSocialLinks()
+
+    expect(mockFrom).toHaveBeenCalledWith('site_social_links')
+    expect(query.order).toHaveBeenCalledWith('sort_order', { ascending: true })
+    expect(result).toHaveLength(5)
+    expect(result[0].href).toBe('https://example.com/instagram')
+    expect(result[1].id).toBe('facebook')
+  })
+
+  it('falls back to default social links when the query fails', async () => {
+    mockFrom.mockReturnValueOnce(chain({
+      data: null,
+      error: { message: 'social links unavailable' },
+    }))
+
+    const result = await fetchSiteSocialLinks()
+
+    expect(result).toHaveLength(5)
+    expect(result[0].id).toBe('instagram')
+    expect(result[0].href).toContain('instagram.com')
+  })
+})
+
 describe('fetchSchedule sponsor mapping', () => {
   it('maps optional per-match sponsor fields into the public fixture model', async () => {
     mockFrom.mockReturnValue(chain({
@@ -301,6 +415,8 @@ describe('fetchSchedule sponsor mapping', () => {
         home: true,
         venue: 'Rose City Stadium',
         address: null,
+        rose_city_score: 2,
+        opponent_score: 1,
         season_id: 'season-2027',
       }],
       error: null,
@@ -318,6 +434,8 @@ describe('fetchSchedule sponsor mapping', () => {
       home: true,
       venue: 'Rose City Stadium',
       address: undefined,
+      roseCityScore: 2,
+      opponentScore: 1,
     }])
   })
 })

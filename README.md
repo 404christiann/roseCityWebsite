@@ -17,15 +17,15 @@ Built with:
 The platform includes:
 
 - a cinematic homepage
-- a homepage "Next Match" card with team crests, optional per-match sponsor,
-  and a live countdown
+- a homepage "Next Match" card with team crests, compact fixture metadata,
+  and an optional per-match sponsor
 - active and historical season-aware rosters
 - fixture and schedule management, including opponent-logo uploads
 - player, match, and season statistics
 - independently managed database-backed kit presentations for the homepage
-  and shop page
+  and shop page, including shop-page Home/Away kit variants
 - a protected admin portal for roster, schedule, seasons, stats, shop, branding, and platform billing
-- footer social and partner links
+- admin-managed footer social and partner links
 
 ## Design Direction
 
@@ -51,12 +51,15 @@ Core brand colors:
 
 - The homepage and `/shop` reuse the same `ShopKitSection` component while
   loading separate content and photo sets.
-- Each presentation's content and one to six ordered photos come from Supabase. Multiple Kit Photos
-  autoplay as a hands-off slideshow with no public controls; one photo remains static.
-- `/admin/shop` lets approved club managers switch between Homepage and Shop
-  Page, then independently edit each presentation with plain-language labels,
-  manage up to eight ordered product bullet points, edit multiline store
-  information, upload/reorder photos, and preview the exact public component.
+- The homepage renders one homepage kit. The `/shop` page exposes public
+  Home/Away tabs, backed by separate `kit_variant` rows.
+- Each presentation's content and one to six ordered photos come from Supabase.
+  Multiple Kit Photos autoplay as a hands-off slideshow with no public
+  controls; one photo remains static.
+- `/admin/shop` lets approved club managers switch between Home Page and Shop
+  Page. Home Page edits one kit; Shop Page edits Home Kit and Away Kit,
+  Purchase Details, the static Photo Row, product bullet points, multiline
+  store information, upload/reorder photos, and scaled public previews.
 - The admin editor adapts to mobile layouts.
 - The cinematic shop slideshow remains implemented but is temporarily hidden
   with `SHOW_SHOP_HERO = false` in `lib/site-flags.ts`.
@@ -68,7 +71,10 @@ environments need the additive `db/migrations/2026-07-shop-kit-details.sql`
 before bullet points and store information can be saved. The independent
 homepage/shop production rows and policies were verified on 2026-07-17;
 `db/migrations/2026-07-shop-kit-surfaces.sql` remains the setup path for new
-environments and copies existing content without removing data.
+environments and copies existing content without removing data. Apply
+`db/migrations/2026-07-shop-kit-variants.sql` for shop-page Home/Away kit
+variants and `db/migrations/2026-07-shop-purchase-details.sql` for the
+editable shop Purchase Details section.
 
 ## Shop Page Photo Row
 
@@ -88,27 +94,70 @@ environments and copies existing content without removing data.
 - The kit image uses the same white fade on the homepage and `/shop`, creating
   the intended transition into the photo row without exposing slideshow controls.
 
+## Homepage Content
+
+- `/admin/homepage` manages the public homepage photo slideshow and Behind the
+  Rose video section.
+- The slideshow supports up to six ordered photos. The migration seeds the
+  current three local slideshow images so the homepage does not need to be
+  rebuilt manually after enabling the editor.
+- The slideshow label shown in the bottom-left corner is editable and seeded
+  as `2025 – 2026 Season`.
+- New slideshow uploads go to the public `homepage` Storage bucket. When an
+  uploaded slideshow photo is removed from the saved set, the admin save flow
+  also removes that file from Storage so old replacements do not accumulate.
+- Behind the Rose fields include visibility, eyebrow, title, description,
+  video URL, iframe title, and caption. The migration seeds the current section
+  copy and YouTube embed.
+
+The homepage schema, seed data, grants, row-level security, and Storage
+policies are recorded in `db/migrations/2026-07-homepage-content.sql`. If that
+migration was already run before the slideshow label became editable, apply
+`db/migrations/2026-07-homepage-slideshow-settings.sql` as the additive patch.
+
+## Sponsor Logos
+
+- `/admin/sponsors` manages sponsor logos for the homepage carousel and footer
+  as separate placements.
+- The homepage carousel appears after the homepage photo slideshow and uses the
+  same continuous marquee pattern as the Yorba Linda preview, with Rose City's
+  trophy-section black background.
+- Carousel logos are capped at 10. Footer logos are capped at 6.
+- Both placements are seeded from the sponsor logos Rose City already used.
+  New admin uploads go into the public `sponsors/site-sponsors/...` Storage
+  folder, and saved removals clean up uploaded files from that folder only.
+
+The sponsor-logo schema, seed data, grants, row-level security, and Storage
+cleanup policy are recorded in `db/migrations/2026-07-site-sponsor-logos.sql`.
+
 ## Shared Club Logo
 
 - `/admin/branding` lets an approved club manager upload the main club logo
-  once and preview it on light and dark backgrounds.
+  once, preview it on light and dark backgrounds, and edit footer social media
+  links.
 - The saved logo updates website navigation and footer, the Next Match card,
   admin login/sidebar, player photo placeholders, and the browser tab icon.
+- The social-link editor changes the footer icons' outbound URLs only; icons
+  remain fixed local assets.
 - Player records without a real photo retain an empty semantic value, so their
   placeholder follows future logo changes without rewriting roster data.
-- Uploads use the public `logos_v2/club-branding` path. Previous files are
-  retained as a safety measure; saving only changes the active logo setting.
+- Uploads use the public `logos_v2/club-branding` path. When an
+  admin-uploaded logo is replaced, the previous uploaded file is removed after
+  the new logo is saved.
 
 The production `site_branding` row, public `logos_v2` bucket, and signed-in
 upload policies were manually verified on 2026-07-16. New environments must
 run the additive `db/migrations/2026-07-site-branding.sql` before testing a
-Branding save; it does not change the existing crest file.
+Branding save; it does not change the existing crest file. Run
+`db/migrations/2026-07-site-social-links.sql` before saving Social Media Links
+in Branding.
 
 ## Next Match Card
 
 - The homepage "Next Match" section (`components/NextMatchCard.tsx`) presents
-  Rose City on the left, the opponent crest on the right, a large red title,
-  an optional linked match sponsor, and a live Days/Hours/Min/Sec countdown.
+  Rose City on the left, the opponent crest on the right, compact
+  date/time/venue metadata, an optional linked match sponsor, and a Full
+  Schedule CTA.
 - `/admin/schedule` lets club managers upload an opponent logo and set an
   optional competition label per match. It also manages sponsor name, logo,
   and optional website link; new matches prefill only sponsor fields from the
@@ -150,9 +199,10 @@ left without a sponsor.
   with test-mode keys writes into the same `stripe_subscription` row
   production reads — clear or re-sync it afterward before trusting it live.
 
-## Social Links
+## Footer Social Links
 
-Footer links currently point to:
+Footer social URLs are editable in `/admin/branding` and backed by
+`site_social_links`. The default seeded links are:
 
 - Instagram: `https://www.instagram.com/rosecityfutbolclub/`
 - Facebook: `https://www.facebook.com/search/top?q=rose%20city%20futbol%20club`
@@ -175,13 +225,24 @@ Important files:
 
 - `app/(public)/page.tsx` — homepage composition
 - `app/(public)/shop/page.tsx` — public shop page
+- `app/admin/(protected)/homepage/page.tsx` — homepage slideshow and Behind the Rose editor
+- `app/admin/(protected)/sponsors/page.tsx` — sponsor carousel/footer logo editor
 - `app/admin/(protected)/shop/page.tsx` — admin shop editor
-- `app/admin/(protected)/branding/page.tsx` — shared club-logo editor
+- `app/admin/(protected)/branding/page.tsx` — shared club-logo and footer social-link editor
 - `components/ClubBrandingProvider.tsx` — site-wide active-logo context
+- `components/PhotoSlideshow.tsx` — public homepage slideshow
+- `components/SponsorCarousel.tsx` — public homepage sponsor marquee
+- `components/BehindTheRose.tsx` — public homepage video section
 - `components/ShopKitSection.tsx` — shared public kit presentation
+- `components/ShopPurchaseDetailsSection.tsx` — DB-backed shop Purchase Details section
 - `components/admin/AdminSaveFeedback.tsx` — shared save-state notification
 - `lib/queries.ts` — Supabase data queries
+- `lib/homepage-content.ts` — homepage defaults, URL normalization, and slideshow diff helpers
+- `lib/sponsor-content.ts` — sponsor defaults, placement caps, and logo diff helpers
+- `lib/social-links.ts` — footer social-link defaults and normalization
 - `lib/shop-kit.ts` — shop display and photo-diff helpers
+- `lib/shop-purchase-details.ts` — shop Purchase Details defaults and normalization
+- `lib/social-links.ts` — footer social-link defaults and normalization
 - `app/admin/(protected)/payments/page.tsx` — Subscribe/Manage Billing (billing-admin only)
 - `app/api/stripe/webhook/route.ts` — verifies Stripe signatures, syncs the subscription mirror
 - `lib/stripe-subscription-state.ts` — pure admin (0-day) and public (+7-day) lockout logic
@@ -231,11 +292,11 @@ npx tsc --noEmit --pretty false
 npm run build
 ```
 
-Current application baseline is commit `0d4150bf` on `main`. It includes
-Stripe subscription billing (admin + public lockout), the homepage fixture
-sponsor/countdown presentation, independent homepage/shop kit content and
-photos, responsive player/staff card refinements, the static shop Photo Row,
-and all earlier multi-season and branding work. Verification is 183/183
-Vitest tests, passing TypeScript, and a passing production build. Pushes to
+Current local verified state includes Stripe subscription billing, the homepage
+fixture sponsor presentation, admin-managed homepage/about/sponsors/shop/
+branding content, shop-page Home/Away kits, editable shop Purchase Details,
+footer social links, responsive player/staff refinements, and the static shop
+Photo Row. Latest verification in this working tree is 210/210 Vitest tests,
+passing TypeScript, and a passing production build. Pushes to
 `main` trigger the Vercel deployment — but never push without the user's
 explicit permission for that specific push.

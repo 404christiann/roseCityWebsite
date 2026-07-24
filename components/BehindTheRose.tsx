@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import type { DBBehindTheRoseSection } from "@/lib/db-types";
+import { DEFAULT_BEHIND_THE_ROSE_SECTION } from "@/lib/homepage-content";
+import { fetchHomepageContent } from "@/lib/queries";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -10,8 +13,21 @@ export default function BehindTheRose() {
   const sectionRef = useRef<HTMLElement>(null);
   const headerRef  = useRef<HTMLDivElement>(null);
   const videoRef   = useRef<HTMLDivElement>(null);
+  const [content, setContent] = useState<DBBehindTheRoseSection>(
+    DEFAULT_BEHIND_THE_ROSE_SECTION,
+  );
 
   useEffect(() => {
+    fetchHomepageContent()
+      .then(({ behindTheRose }) => setContent(behindTheRose))
+      .catch((error) => {
+        console.error("BehindTheRose:", error);
+        setContent(DEFAULT_BEHIND_THE_ROSE_SECTION);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!content.visible) return;
     const ctx = gsap.context(() => {
       gsap.fromTo(
         headerRef.current,
@@ -31,7 +47,9 @@ export default function BehindTheRose() {
       );
     }, sectionRef);
     return () => ctx.revert();
-  }, []);
+  }, [content.visible]);
+
+  if (!content.visible) return null;
 
   return (
     <section
@@ -45,21 +63,19 @@ export default function BehindTheRose() {
           className="font-display font-bold tracking-widest uppercase mb-4"
           style={{ color: "var(--color-red)", fontSize: "clamp(0.58rem, 2.6vw, 1.3rem)", whiteSpace: "nowrap" }}
         >
-          Behind the Rose · Season 1 · Episode 1
+          {content.eyebrow}
         </p>
         <h2
           className="font-display font-black uppercase text-white leading-none mb-6"
           style={{ fontSize: "clamp(1.85rem, 8.5vw, 6rem)", whiteSpace: "nowrap" }}
         >
-          Behind the Rose
+          {content.title}
         </h2>
         <p
           className="font-body leading-relaxed max-w-xl mx-auto"
           style={{ color: "rgba(255,255,255,0.5)", fontSize: "clamp(0.9rem, 1.5vw, 1.05rem)" }}
         >
-          Go behind the scenes with Pasadena&apos;s Rose City FC as they battle
-          during the 2024 UPSL Final. A cinematic view brings you even closer
-          to the City of Roses.
+          {content.description}
         </p>
       </div>
 
@@ -78,8 +94,8 @@ export default function BehindTheRose() {
           }}
         >
           <iframe
-            src="https://www.youtube.com/embed/fJf_A4LdKDw?rel=0&modestbranding=1&color=white"
-            title="Rose City FC — Behind the Rose S1 E1"
+            src={content.video_url}
+            title={content.video_title}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             style={{
@@ -98,7 +114,7 @@ export default function BehindTheRose() {
           className="font-display text-xs tracking-widest uppercase text-center mt-6"
           style={{ color: "rgba(255,255,255,0.2)" }}
         >
-          Rose City FC · 2024 UPSL Final
+          {content.caption}
         </p>
       </div>
 

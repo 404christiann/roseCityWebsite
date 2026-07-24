@@ -4,6 +4,7 @@ const Hero           = dynamic(() => import("@/components/Hero"),           { ss
 const NextMatchCard   = dynamic(() => import("@/components/NextMatchCard"),  { ssr: false });
 const ChampionsBadge = dynamic(() => import("@/components/ChampionsBadge"), { ssr: false });
 const PhotoSlideshow = dynamic(() => import("@/components/PhotoSlideshow"), { ssr: false });
+const SponsorCarousel = dynamic(() => import("@/components/SponsorCarouselContainer"), { ssr: false });
 const ShopKitSection  = dynamic(() => import("@/components/ShopKitSectionContainer"), { ssr: false });
 const BehindTheRose   = dynamic(() => import("@/components/BehindTheRose"),   { ssr: false });
 
@@ -15,6 +16,7 @@ export default function HomePage() {
       <ChampionsBadge />
       <NextMatchCard />
       <PhotoSlideshow />
+      <SponsorCarousel />
       <BehindTheRose />
     </>
   );

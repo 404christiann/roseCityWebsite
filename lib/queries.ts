@@ -8,15 +8,40 @@ import {
   DBSiteBranding,
   DBShopKitPhoto,
   DBShopKitSection,
+  DBShopPurchaseDetails,
   ShopKitSurface,
+  ShopKitVariant,
   DBShopCarouselPhoto,
+  DBHomepageSlideshowPhoto,
+  DBHomepageSlideshowSettings,
+  DBBehindTheRoseSection,
+  DBAboutPageContent,
+  DBClubLogoPageContent,
+  DBSiteSponsorLogo,
+  DBSiteSocialLink,
+  SponsorLogoPlacement,
 } from "@/lib/db-types";
 import { DEFAULT_CLUB_LOGO_PATH } from "@/lib/club-branding";
 import { coerceRating } from "@/lib/db-utils";
 import {
+  DEFAULT_BEHIND_THE_ROSE_SECTION,
+  DEFAULT_HOMEPAGE_SLIDESHOW_SETTINGS,
+  DEFAULT_HOMEPAGE_SLIDESHOW_PHOTOS,
+} from "@/lib/homepage-content";
+import {
   normalizeKitBulletPoints,
   normalizeKitStoreNote,
 } from "@/lib/shop-kit";
+import { normalizeShopPurchaseDetails } from "@/lib/shop-purchase-details";
+import { defaultSponsorLogosForPlacement } from "@/lib/sponsor-content";
+import {
+  DEFAULT_ABOUT_PAGE_CONTENT,
+  DEFAULT_CLUB_LOGO_PAGE_CONTENT,
+  normalizeAboutValues,
+  normalizeClubLogoFeatures,
+  normalizeStoryParagraphs,
+} from "@/lib/about-content";
+import { normalizeSiteSocialLinks } from "@/lib/social-links";
 
 function defaultGKStats(): GoalkeeperStats {
   return { goalsAgainst: 0, saves: 0, cleanSheets: 0, starts: 0, yellow: 0, red: 0, mins: 0 };
@@ -51,10 +76,14 @@ function mapStaff(row: DBStaff): Staff {
 function mapFixture(row: DBMatch): Fixture {
   return {
     date: row.date, time: row.time, opponent: row.opponent,
+    opponentShortName: row.opponent_short_name,
     opponentLogoUrl: row.opponent_logo_url, competition: row.competition,
     sponsorName: row.sponsor_name, sponsorLogoUrl: row.sponsor_logo_url,
     sponsorLink: row.sponsor_link,
     home: row.home, venue: row.venue, address: row.address ?? undefined,
+    city: row.city, state: row.state,
+    roseCityScore: row.rose_city_score,
+    opponentScore: row.opponent_score,
   };
 }
 
@@ -100,6 +129,17 @@ export type ClubBranding = {
   logoPath: string;
 };
 
+export type HomepageContent = {
+  slideshowPhotos: DBHomepageSlideshowPhoto[];
+  slideshowSettings: DBHomepageSlideshowSettings;
+  behindTheRose: DBBehindTheRoseSection;
+};
+
+export type AboutClubContent = {
+  about: DBAboutPageContent;
+  logo: DBClubLogoPageContent;
+};
+
 
 // ── Queries ───────────────────────────────────────────────────
 
@@ -139,13 +179,20 @@ export async function fetchClubBranding(): Promise<ClubBranding> {
 /** Fetches the singleton shop kit section and its ordered photos. */
 export async function fetchShopKitContent(
   surface: ShopKitSurface = "home",
+  variant: ShopKitVariant = "home",
 ): Promise<ShopKitContent> {
   const [sectionResult, photosResult] = await Promise.all([
-    supabase.from("shop_kit_section").select("*").eq("surface", surface).limit(1),
+    supabase
+      .from("shop_kit_section")
+      .select("*")
+      .eq("surface", surface)
+      .eq("kit_variant", variant)
+      .limit(1),
     supabase
       .from("shop_kit_photos")
       .select("*")
       .eq("surface", surface)
+      .eq("kit_variant", variant)
       .order("sort_order", { ascending: true }),
   ]);
   const error = sectionResult.error ?? photosResult.error;
@@ -163,6 +210,29 @@ export async function fetchShopKitContent(
   };
 }
 
+/** Fetches the home and away kit presentations for a public surface. */
+export async function fetchShopKitVariants(
+  surface: ShopKitSurface = "home",
+): Promise<Record<ShopKitVariant, ShopKitContent>> {
+  const [home, away] = await Promise.all([
+    fetchShopKitContent(surface, "home"),
+    fetchShopKitContent(surface, "away"),
+  ]);
+  return { home, away };
+}
+
+/** Fetches the editable purchase details section for the shop page. */
+export async function fetchShopPurchaseDetails(): Promise<DBShopPurchaseDetails> {
+  const { data, error } = await supabase
+    .from("shop_purchase_details")
+    .select("*")
+    .eq("id", 1)
+    .limit(1);
+  if (error) throw new Error(`fetchShopPurchaseDetails: ${error.message}`);
+  const row = ((data ?? []) as DBShopPurchaseDetails[])[0] ?? null;
+  return normalizeShopPurchaseDetails(row);
+}
+
 /** Fetches the ordered shop-page carousel photos. */
 export async function fetchShopCarouselPhotos(): Promise<DBShopCarouselPhoto[]> {
   const { data, error } = await supabase
@@ -171,6 +241,118 @@ export async function fetchShopCarouselPhotos(): Promise<DBShopCarouselPhoto[]> 
     .order("sort_order", { ascending: true });
   if (error) throw new Error(`fetchShopCarouselPhotos: ${error.message}`);
   return (data ?? []) as DBShopCarouselPhoto[];
+}
+
+/** Fetches admin-managed homepage slideshow photos and Behind the Rose content. */
+export async function fetchHomepageContent(): Promise<HomepageContent> {
+  const [slideshowResult, settingsResult, behindTheRoseResult] = await Promise.all([
+    supabase
+      .from("homepage_slideshow_photos")
+      .select("*")
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("homepage_slideshow_settings")
+      .select("*")
+      .eq("id", 1)
+      .limit(1),
+    supabase
+      .from("behind_the_rose_section")
+      .select("*")
+      .eq("id", 1)
+      .limit(1),
+  ]);
+
+  const slideshowPhotos =
+    slideshowResult.error || !slideshowResult.data
+      ? DEFAULT_HOMEPAGE_SLIDESHOW_PHOTOS
+      : ((slideshowResult.data ?? []) as DBHomepageSlideshowPhoto[]);
+  const slideshowSettings =
+    settingsResult.error || !settingsResult.data
+      ? DEFAULT_HOMEPAGE_SLIDESHOW_SETTINGS
+      : ((settingsResult.data ?? []) as DBHomepageSlideshowSettings[])[0] ??
+        DEFAULT_HOMEPAGE_SLIDESHOW_SETTINGS;
+  const behindTheRose =
+    behindTheRoseResult.error || !behindTheRoseResult.data
+      ? DEFAULT_BEHIND_THE_ROSE_SECTION
+      : ((behindTheRoseResult.data ?? []) as DBBehindTheRoseSection[])[0] ??
+        DEFAULT_BEHIND_THE_ROSE_SECTION;
+
+  return {
+    slideshowPhotos,
+    slideshowSettings,
+    behindTheRose,
+  };
+}
+
+/** Fetches editable About Club and Club Logo page content. */
+export async function fetchAboutClubContent(): Promise<AboutClubContent> {
+  const [aboutResult, logoResult] = await Promise.all([
+    supabase
+      .from("about_page_content")
+      .select("*")
+      .eq("id", 1)
+      .limit(1),
+    supabase
+      .from("club_logo_page_content")
+      .select("*")
+      .eq("id", 1)
+      .limit(1),
+  ]);
+
+  const rawAbout =
+    aboutResult.error || !aboutResult.data
+      ? null
+      : ((aboutResult.data ?? []) as DBAboutPageContent[])[0] ?? null;
+  const rawLogo =
+    logoResult.error || !logoResult.data
+      ? null
+      : ((logoResult.data ?? []) as DBClubLogoPageContent[])[0] ?? null;
+
+  return {
+    about: rawAbout
+      ? {
+          ...rawAbout,
+          story_paragraphs: normalizeStoryParagraphs(rawAbout.story_paragraphs),
+          values: normalizeAboutValues(rawAbout.values),
+        }
+      : DEFAULT_ABOUT_PAGE_CONTENT,
+    logo: rawLogo
+      ? {
+          ...rawLogo,
+          features: normalizeClubLogoFeatures(rawLogo.features),
+        }
+      : DEFAULT_CLUB_LOGO_PAGE_CONTENT,
+  };
+}
+
+/** Fetches ordered site sponsor logos for a public placement. */
+export async function fetchSiteSponsorLogos(
+  placement: SponsorLogoPlacement,
+): Promise<DBSiteSponsorLogo[]> {
+  const { data, error } = await supabase
+    .from("site_sponsor_logos")
+    .select("*")
+    .eq("placement", placement)
+    .order("sort_order", { ascending: true });
+  if (error) {
+    console.error(`fetchSiteSponsorLogos(${placement}):`, error.message);
+    return defaultSponsorLogosForPlacement(placement);
+  }
+  const rows = (data ?? []) as DBSiteSponsorLogo[];
+  return rows.length > 0 ? rows : defaultSponsorLogosForPlacement(placement);
+}
+
+/** Fetches editable footer social media links. */
+export async function fetchSiteSocialLinks(): Promise<DBSiteSocialLink[]> {
+  const { data, error } = await supabase
+    .from("site_social_links")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  if (error) {
+    console.error("fetchSiteSocialLinks:", error.message);
+    return normalizeSiteSocialLinks([]);
+  }
+  return normalizeSiteSocialLinks((data ?? []) as DBSiteSocialLink[]);
 }
 
 /**

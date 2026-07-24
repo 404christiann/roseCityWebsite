@@ -59,6 +59,7 @@ export type Staff = {
 export type Fixture = {
   date: string;
   opponent: string;
+  opponentShortName?: string | null;
   opponentLogoUrl?: string | null;
   competition?: string | null;
   sponsorName?: string | null;
@@ -68,6 +69,10 @@ export type Fixture = {
   time: string;
   venue: string;
   address?: string;
+  city?: string | null;
+  state?: string | null;
+  roseCityScore?: number | null;
+  opponentScore?: number | null;
 };
 
 export type ShopProduct = {

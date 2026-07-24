@@ -56,6 +56,14 @@ export function kitPhotoDisplayMode(count: number): "static" | "slideshow" {
   return count > 1 ? "slideshow" : "static";
 }
 
+export function shopKitSectionId(
+  surface: "home" | "shop",
+  variant: "home" | "away",
+): number {
+  if (surface === "home") return variant === "home" ? 1 : 3;
+  return variant === "home" ? 2 : 4;
+}
+
 export type DraftKitPhoto = {
   id: string | null;
   url: string;

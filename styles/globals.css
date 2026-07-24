@@ -5,6 +5,22 @@
 @tailwind utilities;
 
 @font-face {
+  font-family: 'D-DIN Condensed';
+  src: url('/fonts/d-din-condensed/D-DINCondensed.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'D-DIN Condensed';
+  src: url('/fonts/d-din-condensed/D-DINCondensed-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'LEMON MILK';
   src: url('/fonts/lemon-milk/LEMONMILK-Light.otf') format('opentype');
   font-weight: 300;
@@ -116,6 +132,7 @@
   --font-display: 'LEMON MILK', sans-serif;
   --font-body: 'DM Sans', sans-serif;
   --font-lemon-milk: 'LEMON MILK', sans-serif;
+  --font-din-condensed: 'D-DIN Condensed', sans-serif;
 }
 
 @layer base {
@@ -179,6 +196,10 @@
     font-family: var(--font-lemon-milk);
   }
 
+  .font-din-condensed {
+    font-family: var(--font-din-condensed);
+  }
+
   .text-green {
     color: var(--color-green);
   }
@@ -193,6 +214,75 @@
 
   .bg-red-brand {
     background-color: var(--color-red);
+  }
+
+  .sponsor-carousel-section {
+    overflow: hidden;
+    border-block: 1px solid rgba(255, 255, 255, 0.08);
+    padding: clamp(2.5rem, 5vw, 4rem) 1.5rem;
+    color: var(--color-white);
+    text-align: center;
+  }
+
+  .sponsor-carousel-section--compact {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.75rem;
+    padding: 2rem 0;
+  }
+
+  .sponsor-carousel-head {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    text-align: center;
+  }
+
+  .sponsor-carousel-eyebrow {
+    color: rgba(255, 255, 255, 0.62);
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .sponsor-carousel-marquee {
+    margin: 1.75rem -1.5rem 0;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+
+  .sponsor-carousel-track {
+    display: flex;
+    width: max-content;
+    align-items: center;
+    gap: 4rem;
+    animation: sponsor-carousel-scroll 32s linear infinite;
+  }
+
+  .sponsor-carousel-logo {
+    display: flex;
+    height: 5rem;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  @keyframes sponsor-carousel-scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sponsor-carousel-track {
+      animation: none;
+    }
   }
 
   /* Cinematic section spacing */

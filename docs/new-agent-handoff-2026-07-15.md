@@ -18,15 +18,14 @@ Read these files in order:
 6. `db/migrations/2026-07-multi-season.sql`
 7. `docs/stripe-subscription-plan.md`
 
-The current application baseline is release `9f98c2c1` on `main`, built on
-`0d4150bf`. It includes a placeholder-content Club nav section (About Club +
-Club Logo), Stripe subscription billing (admin + public lockout), the
-homepage fixture sponsor/countdown presentation, independent homepage and
-shop-page kit content/photos, responsive player and staff cards, the static
-shop Photo Row, and all earlier multi-season, branding, and admin-managed
-shop work. This handoff was originally written at `1737959a` (`Add
-admin-managed shop experience`) and has been refreshed after each shipped
-release. The worktree
+The last committed release recorded here is `9f98c2c1` on `main`, built on
+`0d4150bf`. The current local working tree extends that with admin-managed
+homepage/about/sponsor/shop/branding content: homepage slideshow and Behind
+the Rose editing, editable About and Club Logo pages, sponsor carousel/footer
+logos, shop-page Home/Away kits, editable shop Purchase Details, and editable
+footer social links. This handoff was originally written at `1737959a` (`Add
+admin-managed shop experience`) and has been refreshed after each shipped or
+locally verified release. The worktree
 may contain the generated cache file `tsconfig.tsbuildinfo`; do not treat it
 as product work or commit it by default. Always inspect `git status` and
 current diffs before editing because this repository has previously contained
@@ -40,22 +39,22 @@ afterward before trusting it live. See "Stripe Subscription Billing" below.
 
 ## Current Product State
 
-Shipped in `9f98c2c1`: a placeholder-content Club nav section. "Club" (after
+Shipped in `9f98c2c1`: a Club nav section. "Club" (after
 "Roster" in `components/Nav.tsx`) is **not a link** — it's a hover-triggered
 dropdown on desktop and a tap-to-expand accordion on mobile, existing only to
 reveal "About Club" (`/club/about`) and "Club Logo" (`/club/logo`); there is
-no `/club` hub route. `/club/about` is light editorial placeholder copy.
+no `/club` hub route. `/club/about` is a light editorial story page.
 `/club/logo` is a full-page dark (`#18181A`) crest explainer where the nav
 intentionally stays in its transparent/white-text hero state for the whole
 scroll (`isAlwaysTransparentPage` in `Nav.tsx`); it renders a single
 pre-composed annotated-crest image (`ClubLogo_initial_image.png`), five
 feature rows (Name/Rose/#23/Crown/Key, each cropping heavy transparent
 padding out of its source PNG via a measured CSS `scale()` on an
-`overflow-hidden` box), then the Pasadena map image. All copy/assets on these
-pages are placeholders — see `HANDOFF.md`'s Club section for the full record.
+`overflow-hidden` box), then the Pasadena map image. Current copy/assets are
+editable from `/admin/about`.
 
 Shipped in `5fb0b6fd`: the homepage Next Match presentation has an optional
-per-match linked sponsor and restored Days/Hours/Min/Sec countdown. Sponsor
+per-match linked sponsor and compact fixture metadata. Sponsor
 fields are edited in `/admin/schedule` and carried from the latest match when
 creating a new one. Production sponsor columns and upload policies were
 verified on 2026-07-17; existing matches intentionally remain unsponsored.
@@ -131,10 +130,21 @@ roster queries or admin actions.
   the video and on `/shop`; each surface loads its own content and ordered
   photos from the public Supabase `shop` bucket.
 - Homepage order is Hero → Home kit presentation → trophy feature → Next Match
-  → photo slideshow → Behind the Rose.
-- `/admin/shop` independently edits the homepage or shop-page kit content,
-  purchase link, and ordered photo set. Its scaled preview uses the same public
-  component, and the editor adapts to mobile admin layouts.
+  → photo slideshow → sponsor carousel → Behind the Rose.
+- `/admin/homepage` manages the homepage photo slideshow and Behind the Rose
+  video section. The slideshow supports up to six ordered photos, with the
+  current three local slideshow images seeded and retained as public fallbacks.
+  Behind the Rose has editable visibility, eyebrow, title, description, video
+  URL, iframe title, and caption, seeded from the current section content.
+  New slideshow uploads use the public `homepage` Storage bucket; saved
+  removals clean up uploaded Storage objects. Apply
+  `db/migrations/2026-07-homepage-content.sql` in environments missing this
+  editor/schema.
+- `/admin/shop` independently edits the homepage kit and shop-page kits.
+  Home Page has one kit. Shop Page has public Home/Away tabs, independent text,
+  purchase links, ordered photo sets, Purchase Details, and the shop-only
+  Photo Row. Its scaled previews use the same public components, and the
+  editor adapts to mobile admin layouts.
 - Shop form labels use plain language for non-technical club managers.
 - Save actions throughout the admin portal use the shared subtle
   saving/success feedback treatment.
@@ -161,6 +171,8 @@ roster queries or admin actions.
 - Player Bio and Season Stats sections begin expanded and remain collapsible.
 - Footer sponsors, except Tepito Coffee, use the public Supabase `sponsors`
   bucket. They are larger and remain fully visible without hover.
+- Footer social media links are editable from `/admin/branding`; icons remain
+  fixed local SVG assets.
 - `Behind the Rose` responsive headings retain their one-line fixes.
 
 ## Authentication And Deployment
@@ -178,13 +190,24 @@ roster queries or admin actions.
 
 ## Admin-Managed Shop Data - Complete
 
-- `shop_kit_section` stores separate `home` and `shop` text/purchase-link records.
-- `shop_kit_photos` stores one to six ordered public image URLs per surface. Multiple Kit
-  Photos autoplay horizontally with no public controls; one photo remains static.
+- `shop_kit_section` stores separate `home` and `shop` text/purchase-link records,
+  with `kit_variant` splitting each surface into `home` and `away` kits.
+- `shop_kit_photos` stores one to six ordered public image URLs per surface and
+  kit variant. Multiple Kit Photos autoplay horizontally with no public controls;
+  one photo remains static.
+- `shop_purchase_details` stores the shop-page Purchase Details heading, four
+  detail cards, footer copy, and CTA button/link.
+- `site_social_links` stores the footer social media URLs. Icons remain fixed
+  local assets; `/admin/branding` edits the outbound links.
 - The homepage and `/shop` both use `ShopKitSectionContainer` and the same
-  `ShopKitSection` presentation component.
+  `ShopKitSection` presentation component. Public Home/Away tabs appear only
+  on `/shop`; the homepage uses its single home kit presentation.
 - `/admin/shop` supports uploads to the public `shop` bucket, photo removal and
-  ordering, draft preview, and responsive mobile administration.
+  ordering, draft preview, Shop Page Home/Away kit editing, Purchase Details
+  editing, and responsive mobile administration.
+- `/admin/branding` manages the global club logo and footer social media links.
+- In `/admin/branding`, the logo preview/usage panel sits next to the Main
+  Club Logo card, and the Social Media Links panel spans below it.
 - The editor includes one to eight editable/reorderable product bullet points
   and editable multiline store information in the exact public preview.
 - `db/migrations/2026-07-shop-kit-section.sql` records the tables, grants, RLS
@@ -194,6 +217,15 @@ roster queries or admin actions.
 - The new `bullet_points` and `store_note` columns are an additive follow-up.
   Run `db/migrations/2026-07-shop-kit-details.sql` before testing those saves;
   do not rerun the original Shop migration.
+- The Home/Away split is the additive follow-up in
+  `db/migrations/2026-07-shop-kit-variants.sql`; it copies the current Home Kit
+  content/photos into Away Kit records so existing shop data is not reset.
+- The editable purchase-details block is the additive follow-up in
+  `db/migrations/2026-07-shop-purchase-details.sql`; run it before saving the
+  Purchase tab in `/admin/shop`.
+- The editable footer social links are the additive follow-up in
+  `db/migrations/2026-07-site-social-links.sql`; run it before saving Social
+  Media Links in `/admin/branding`.
 - New environments use `db/migrations/2026-07-shop-kit-surfaces.sql` for the
   `home`/`shop` split. `db/migrations/2026-07-shop-kit-rls-repair.sql` is the
   safe, rerunnable repair for stale authenticated section/photo policies.
@@ -202,6 +234,8 @@ roster queries or admin actions.
 
 - `/admin/branding` provides one plain-language main-logo upload workflow with
   file validation, light/dark previews, and the shared save feedback.
+- `/admin/branding` also edits the footer social media URLs stored in
+  `site_social_links`; social icons remain fixed local SVG assets.
 - `site_branding` is a singleton public-read/authenticated-write record. The
   active logo is stored as a `logos_v2` object path rather than a fixed URL.
 - `ClubBrandingProvider` supplies navigation, footer, admin login/sidebar,
@@ -211,8 +245,11 @@ roster queries or admin actions.
   normalized back to empty on save so they continue following the active crest.
 - Run the additive, idempotent
   `db/migrations/2026-07-site-branding.sql` before testing an admin upload in a
-  new environment. It does not remove or replace the current crest, and old
-  uploads are retained.
+  new environment. It does not remove or replace the current crest. The admin
+  replacement flow removes the previous admin-uploaded file after the new logo
+  is saved.
+- Run `db/migrations/2026-07-site-social-links.sql` before saving Social Media
+  Links in `/admin/branding` in a new environment.
 - Production `site_branding`, the public `logos_v2` bucket, and the signed-in
   Storage policies were manually verified on 2026-07-16. Do not rerun the
   setup against production by default.
@@ -223,6 +260,15 @@ Current shipped-release checks (2026-07-23, commit `9f98c2c1`):
 
 ```text
 npm test                         183/183 tests passed across 10 files
+npx tsc --noEmit --pretty false passed
+npm run build                    passed
+```
+
+Current local working-tree checks after the admin-managed content/social/shop
+updates:
+
+```text
+npm test                         210/210 tests passed across 12 files
 npx tsc --noEmit --pretty false passed
 npm run build                    passed
 ```
@@ -292,10 +338,9 @@ Do not mutate production data merely to repeat destructive CRUD verification.
 
 ## Remaining Work / Known Limitations
 
-- The Club pages (`/club/about`, `/club/logo`) are placeholder content with no
-  CMS/admin surface — copy lives directly in the page files, and
-  `/club/logo`'s Supabase asset URLs are hardcoded constants in
-  `app/(public)/club/logo/page.tsx`. Updating them means editing code.
+- The Club pages (`/club/about`, `/club/logo`) are editable from
+  `/admin/about`; run `db/migrations/2026-07-about-club-content.sql` in
+  environments missing those singleton rows.
 - The analytics data layer supports nullable match ratings, but the Match Stats
   admin form does not expose a rating input. Confirm rating columns and unique
   constraints in the target database before implementing it.
@@ -326,17 +371,17 @@ Do not mutate production data merely to repeat destructive CRUD verification.
   limitation, not something introduced by the Stripe work, but worth fixing if
   it becomes a recurring pain point for club staff logging in from phones.
 
-## Next Match Card, Sponsor, Countdown, And Opponent Logos — 2026-07-17
+## Next Match Card, Sponsor, And Opponent Logos — 2026-07-17
 
 The opponent-logo foundation shipped through `9f39c02b`; the current fixture
 presentation and sponsor workflow shipped in `5fb0b6fd`.
 
 - `components/NextMatchCard.tsx` renders Rose City on the left, a split-line
-  black "VS", the opponent crest on the right, the red "Next Match" title,
-  optional linked "Presented By" sponsor art, and a live four-part
-  Days/Hours/Minutes/Seconds countdown. The black "Full Schedule" CTA remains.
-- Team crests are 96px on mobile and 140px from the `sm` breakpoint upward.
-- The public card intentionally omits match date, kickoff time, and venue.
+  red "VS", the opponent crest on the right, compact match date/time/venue
+  metadata, optional linked "Presented By" sponsor art, and the Full Schedule
+  CTA.
+- The mobile metadata line is intentionally small and placed below the
+  crest/team-name row to avoid logo overlap.
 - New shared component `components/OpponentCrest.tsx`: circular crest that
   renders an uploaded logo image with no added backdrop or border (shows the
   crest artwork as-is), or falls back to an initial-monogram circle when no

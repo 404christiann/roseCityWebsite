@@ -31,10 +31,22 @@ function formatTime(timeStr: string): string {
   return `${hours}:${String(minutes).padStart(2, "0")} ${ampm}`;
 }
 
+function getResult(fixture: Fixture): { label: "W" | "D" | "L"; score: string } | null {
+  if (fixture.roseCityScore == null || fixture.opponentScore == null) return null;
+  const label =
+    fixture.roseCityScore > fixture.opponentScore
+      ? "W"
+      : fixture.roseCityScore < fixture.opponentScore
+        ? "L"
+        : "D";
+  return { label, score: `${fixture.roseCityScore}-${fixture.opponentScore}` };
+}
+
 export default function FixtureRow({ fixture, isNext, isPast, index }: Props) {
   const mapUrl = fixture.address
     ? `https://maps.google.com/?q=${encodeURIComponent(fixture.address)}`
     : null;
+  const result = getResult(fixture);
 
   return (
     <div
@@ -43,7 +55,7 @@ export default function FixtureRow({ fixture, isNext, isPast, index }: Props) {
         backgroundColor: isNext ? "var(--color-green)" : "transparent",
         borderBottom: "1px solid",
         borderColor: isNext ? "transparent" : "rgba(0,0,0,0.07)",
-        opacity: isPast ? 0.38 : 1,
+        opacity: isPast ? (result ? 0.78 : 0.38) : 1,
       }}
     >
       {/* Match number */}
@@ -127,6 +139,29 @@ export default function FixtureRow({ fixture, isNext, isPast, index }: Props) {
           {fixture.venue}
         </p>
       </div>
+
+      {result && (
+        <div className="flex flex-shrink-0 items-center gap-2 sm:mr-6">
+          <span
+            className="font-display font-black uppercase leading-none"
+            style={{
+              color: result.label === "W" ? "var(--color-red)" : isNext ? "#fff" : "var(--color-black)",
+              fontSize: "clamp(1.5rem, 3vw, 2.15rem)",
+            }}
+          >
+            {result.label}
+          </span>
+          <span
+            className="font-display font-black uppercase leading-none"
+            style={{
+              color: isNext ? "rgba(255,255,255,0.85)" : "var(--color-black)",
+              fontSize: "clamp(1.35rem, 2.5vw, 1.9rem)",
+            }}
+          >
+            {result.score}
+          </span>
+        </div>
+      )}
 
       {/* Directions CTA */}
       {mapUrl && (

@@ -8,6 +8,7 @@ import { getPlayerSeasonSeed } from "@/lib/player-season";
 import { createClient } from "@/lib/supabase-browser";
 import { useClubBranding } from "@/components/ClubBrandingProvider";
 import { getRosterImageSrc, isRosterPlaceholderLogo, rosterImageForStorage } from "@/lib/roster-images";
+import { deleteStorageUrls } from "@/lib/storage-cleanup";
 // ── Nationalities ─────────────────────────────
 
 const NATIONALITIES = [
@@ -156,10 +157,10 @@ const POSITIONS: Position[] = ["Goalkeeper", "Defender", "Midfielder", "Forward"
 
 // ── Photo upload helper ───────────────────────
 
-async function uploadPhoto(file: File, bucket: string): Promise<string> {
+async function uploadPhoto(file: File, bucket: string, folder: string): Promise<string> {
   const supabase = createClient();
   const ext  = file.name.split(".").pop() ?? "jpg";
-  const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
   if (error) throw new Error(error.message);
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
@@ -264,7 +265,7 @@ function PlayersTab() {
     try {
       const supabase = createClient();
       let photoUrl = rosterImageForStorage(addForm.photo_url);
-      if (addPhoto) photoUrl = await uploadPhoto(addPhoto, "roster-images");
+      if (addPhoto) photoUrl = await uploadPhoto(addPhoto, "roster-images", "players");
 
       const { data: insertedPlayer, error: e } = await supabase.from("players").insert([{
         ...addForm,
@@ -327,7 +328,8 @@ function PlayersTab() {
     try {
       const supabase = createClient();
       let photoUrl = rosterImageForStorage(editForm.photo_url);
-      if (editPhoto) photoUrl = await uploadPhoto(editPhoto, "roster-images");
+      const originalPlayer = players.find((player) => player.id === editingId);
+      if (editPhoto) photoUrl = await uploadPhoto(editPhoto, "roster-images", "players");
 
       const { error: e } = await supabase.from("players").update({
         ...editForm,
@@ -340,6 +342,9 @@ function PlayersTab() {
         foot:          editForm.foot?.trim()          || null,
       }).eq("id", editingId);
       if (e) { setError(e.message); setSaving(false); return; }
+      if (originalPlayer?.photo_url !== photoUrl) {
+        await deleteStorageUrls("roster-images", [originalPlayer?.photo_url], ["players/"]);
+      }
       setEditingId(null); setEditPhoto(null);
       await load(); flash();
     } catch (err: unknown) {
@@ -634,7 +639,7 @@ function StaffTab() {
     try {
       const supabase = createClient();
       let photoUrl = addForm.photo_url;
-      if (addPhoto) photoUrl = await uploadPhoto(addPhoto, "staff-images");
+      if (addPhoto) photoUrl = await uploadPhoto(addPhoto, "staff-images", "staff");
 
       const { error: e } = await supabase.from("staff").insert([{ ...addForm, photo_url: photoUrl, active: true }]);
       if (e) { setError(e.message); setSaving(false); return; }
@@ -660,10 +665,14 @@ function StaffTab() {
     try {
       const supabase = createClient();
       let photoUrl = editForm.photo_url;
-      if (editPhoto) photoUrl = await uploadPhoto(editPhoto, "staff-images");
+      const originalStaff = staff.find((staffMember) => staffMember.id === editingId);
+      if (editPhoto) photoUrl = await uploadPhoto(editPhoto, "staff-images", "staff");
 
       const { error: e } = await supabase.from("staff").update({ ...editForm, photo_url: photoUrl }).eq("id", editingId);
       if (e) { setError(e.message); setSaving(false); return; }
+      if (originalStaff?.photo_url !== photoUrl) {
+        await deleteStorageUrls("staff-images", [originalStaff?.photo_url], ["staff/"]);
+      }
       setEditingId(null); setEditPhoto(null);
       await load(); flash();
     } catch (err: unknown) {
@@ -1008,7 +1017,7 @@ function ActionPhotosPanel({ playerId }: { playerId: string }) {
       const supabase = createClient();
       const nextOrder = photos.length > 0 ? Math.max(...photos.map(p => p.sort_order)) + 1 : 0;
       for (let i = 0; i < files.length; i++) {
-        const url = await uploadPhoto(files[i], "player-action-photos");
+        const url = await uploadPhoto(files[i], "player-action-photos", "action");
         const { error: e } = await supabase.from("player_photos").insert([{
           player_id: playerId,
           url,
@@ -1023,15 +1032,17 @@ function ActionPhotosPanel({ playerId }: { playerId: string }) {
     setUploading(false);
   }
 
-  async function handleDelete(photoId: string) {
+  async function handleDelete(photo: ActionPhoto) {
     setError(null);
-    const supabase = createClient();
-    const { error: deleteError } = await supabase.from("player_photos").delete().eq("id", photoId);
-    if (deleteError) {
-      setError(deleteError.message);
-      return;
+    try {
+      const supabase = createClient();
+      const { error: deleteError } = await supabase.from("player_photos").delete().eq("id", photo.id);
+      if (deleteError) throw new Error(deleteError.message);
+      await deleteStorageUrls("player-action-photos", [photo.url], ["action/"]);
+      await loadPhotos();
+    } catch (deleteError: unknown) {
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete photo");
     }
-    await loadPhotos();
   }
 
   return (
@@ -1054,7 +1065,7 @@ function ActionPhotosPanel({ playerId }: { playerId: string }) {
             />
             <button
               type="button"
-              onClick={() => handleDelete(photo.id)}
+              onClick={() => void handleDelete(photo)}
               className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
               style={{ backgroundColor: "#dc2626" }}
               aria-label="Delete photo"

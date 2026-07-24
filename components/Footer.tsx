@@ -2,54 +2,34 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useClubBranding } from "@/components/ClubBrandingProvider";
-
-const socialLinks = [
-  {
-    label: "Instagram",
-    href: "https://www.instagram.com/rosecityfutbolclub/",
-    icon: "/images/logo/instagramLogo.svg",
-  },
-  {
-    label: "Facebook",
-    href: "https://www.facebook.com/search/top?q=rose%20city%20futbol%20club",
-    icon: "/images/logo/facebookLogo.svg",
-  },
-  {
-    label: "TikTok",
-    href: "https://www.tiktok.com/@rosecityfc",
-    icon: "/images/logo/tiktokLogo.svg",
-  },
-  {
-    label: "X",
-    href: "https://x.com/RoseCityFutbol",
-    icon: "/images/logo/xLogo.svg",
-  },
-  {
-    label: "YouTube",
-    href: "https://www.youtube.com/@RoseCityFC",
-    icon: "/images/logo/youtubeLogo.svg",
-  },
-];
-
-const SPONSOR_BASE =
-  `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/sponsors`;
-
-function sponsorLogo(filename: string) {
-  return `${SPONSOR_BASE}/${encodeURIComponent(filename)}`;
-}
-
-const partners = [
-  { name: "Chronic Tacos", src: sponsorLogo("Rose City FC 2027 Official Sponsor Chronic Tacos Logo Website.png") },
-  { name: "Modern Woodmen", src: sponsorLogo("Rose City FC 2027 Official Sponsor Modern Woodmen Logo Website white.png") },
-  { name: "Niky's Sports", src: sponsorLogo("Rose City FC 2027 Official Sponsor Niky's Sports Logo Website white & blue.png") },
-  { name: "Planted Beauty Rx", src: sponsorLogo("Rose City FC 2027 Official Sponsor Planted Beauty Logo Website green.png") },
-  { name: "Tepito Coffee", src: "/images/partners/tepitoSponsor.png", invert: true },
-  { name: "The Pack Shot Agency", src: sponsorLogo("Rose City FC 2027 Official Sponsor The Packshot Agency Logo Website white.png") },
-];
+import type { DBSiteSocialLink, DBSiteSponsorLogo } from "@/lib/db-types";
+import { DEFAULT_SITE_SOCIAL_LINKS } from "@/lib/social-links";
+import { DEFAULT_FOOTER_SPONSORS } from "@/lib/sponsor-content";
+import { fetchSiteSocialLinks, fetchSiteSponsorLogos } from "@/lib/queries";
 
 export default function Footer() {
   const { clubLogoUrl } = useClubBranding();
+  const [partners, setPartners] = useState<DBSiteSponsorLogo[]>(DEFAULT_FOOTER_SPONSORS);
+  const [socialLinks, setSocialLinks] =
+    useState<DBSiteSocialLink[]>(DEFAULT_SITE_SOCIAL_LINKS);
+
+  useEffect(() => {
+    fetchSiteSponsorLogos("footer")
+      .then(setPartners)
+      .catch((error) => {
+        console.error("Footer sponsors:", error);
+        setPartners(DEFAULT_FOOTER_SPONSORS);
+      });
+    fetchSiteSocialLinks()
+      .then(setSocialLinks)
+      .catch((error) => {
+        console.error("Footer social links:", error);
+        setSocialLinks(DEFAULT_SITE_SOCIAL_LINKS);
+      });
+  }, []);
+
   return (
     <footer
       className="border-t border-gray-200"
@@ -65,12 +45,12 @@ export default function Footer() {
         </p>
         <div className="flex items-center justify-center flex-wrap gap-8 md:gap-12">
           {partners.map((partner) => (
-            <div key={partner.name} className="relative h-12 w-32 opacity-100 md:h-14 md:w-36">
+            <div key={partner.id} className="relative h-12 w-32 opacity-100 md:h-14 md:w-36">
               <Image
-                src={partner.src}
+                src={partner.logo_url}
                 alt={partner.name}
                 fill
-                className={`object-contain ${partner.invert ? "filter brightness-0 invert" : ""}`}
+                className="object-contain"
               />
             </div>
           ))}
@@ -90,7 +70,7 @@ export default function Footer() {
             />
           </div>
           <p
-            className="font-display text-base font-bold tracking-widest uppercase"
+            className="font-display text-base font-bold italic tracking-widest uppercase"
             style={{ color: "var(--color-white)" }}
           >
             Rose City FC
@@ -109,6 +89,7 @@ export default function Footer() {
             { label: "Home", href: "/" },
             { label: "Roster", href: "/roster" },
             { label: "Schedule", href: "/schedule" },
+            { label: "Club", href: "/club/about" },
             { label: "Shop", href: "/shop" },
           ].map((link) => (
             <li key={link.href}>

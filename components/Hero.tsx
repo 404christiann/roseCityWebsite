@@ -129,15 +129,6 @@ export default function Hero() {
         style={{ backgroundColor: "rgba(0,0,0,0.52)", zIndex: 1 }}
       />
 
-      {/* Green gradient at bottom */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none"
-        style={{
-          zIndex: 2,
-          background: "linear-gradient(to top, rgba(27,77,62,0.55) 0%, transparent 100%)",
-        }}
-      />
-
       {/* Content */}
       <div
         className="absolute inset-0 flex flex-col items-end justify-end px-6 pb-28 text-center md:pb-16"

@@ -41,6 +41,7 @@ export type DBMatch = {
   date: string;
   time: string;
   opponent: string;
+  opponent_short_name: string | null;
   opponent_logo_url: string | null;
   competition: string | null;
   sponsor_name: string | null;
@@ -49,6 +50,10 @@ export type DBMatch = {
   home: boolean;
   venue: string;
   address: string | null;
+  city: string | null;
+  state: string | null;
+  rose_city_score: number | null;
+  opponent_score: number | null;
   season_id: string | null;
 };
 
@@ -101,10 +106,12 @@ export type DBGoalkeeperMatchStats = {
 };
 
 export type ShopKitSurface = "home" | "shop";
+export type ShopKitVariant = "home" | "away";
 
 export type DBShopKitSection = {
   id: number;
   surface: ShopKitSurface;
+  kit_variant: ShopKitVariant;
   eyebrow: string;
   title: string;
   description: string;
@@ -118,6 +125,7 @@ export type DBShopKitSection = {
 export type DBShopKitPhoto = {
   id: string;
   surface: ShopKitSurface;
+  kit_variant: ShopKitVariant;
   url: string;
   sort_order: number;
   created_at: string;
@@ -128,6 +136,104 @@ export type DBShopCarouselPhoto = {
   url: string;
   sort_order: number;
   created_at: string;
+};
+
+export type ShopPurchaseDetailCard = {
+  label: string;
+  title: string;
+  body: string;
+};
+
+export type DBShopPurchaseDetails = {
+  id: number;
+  heading: string;
+  cards: ShopPurchaseDetailCard[];
+  cta_eyebrow: string;
+  cta_text: string;
+  cta_label: string;
+  cta_link: string;
+  updated_at: string;
+};
+
+export type DBHomepageSlideshowPhoto = {
+  id: string;
+  url: string;
+  alt: string;
+  sort_order: number;
+  created_at: string;
+};
+
+export type DBHomepageSlideshowSettings = {
+  id: number;
+  season_label: string;
+  updated_at: string;
+};
+
+export type DBAboutPageContent = {
+  id: number;
+  hero_title: string;
+  story_paragraphs: string[];
+  feature_image_url: string;
+  values_heading: string;
+  values: Array<{ title: string; description: string }>;
+  closing_text: string;
+  closing_cta_label: string;
+  closing_cta_href: string;
+  updated_at: string;
+};
+
+export type DBClubLogoPageContent = {
+  id: number;
+  annotated_image_url: string;
+  features: Array<{
+    title: string;
+    icon_url: string;
+    icon_size: number;
+    icon_scale: number;
+    patch_url: string;
+    description: string;
+  }>;
+  map_image_url: string;
+  updated_at: string;
+};
+
+export type SponsorLogoPlacement = "carousel" | "footer";
+
+export type DBSiteSponsorLogo = {
+  id: string;
+  placement: SponsorLogoPlacement;
+  name: string;
+  logo_url: string;
+  sort_order: number;
+  created_at: string;
+};
+
+export type SiteSocialPlatform =
+  | "instagram"
+  | "facebook"
+  | "tiktok"
+  | "x"
+  | "youtube";
+
+export type DBSiteSocialLink = {
+  id: SiteSocialPlatform;
+  label: string;
+  href: string;
+  icon: string;
+  sort_order: number;
+  updated_at: string;
+};
+
+export type DBBehindTheRoseSection = {
+  id: number;
+  visible: boolean;
+  eyebrow: string;
+  title: string;
+  description: string;
+  video_url: string;
+  video_title: string;
+  caption: string;
+  updated_at: string;
 };
 
 export type DBSiteBranding = {

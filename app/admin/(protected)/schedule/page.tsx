@@ -9,6 +9,7 @@ import type { DBSeason } from "@/lib/db-types";
 import { createClient } from "@/lib/supabase-browser";
 import { useSeasons } from "@/lib/use-seasons";
 import { carrySponsorFromLatestMatch } from "@/lib/match-sponsor";
+import { deleteStorageUrls } from "@/lib/storage-cleanup";
 
 // ── Types ─────────────────────────────────────
 
@@ -17,6 +18,7 @@ type Match = {
   date: string;
   time: string;
   opponent: string;
+  opponent_short_name: string | null;
   opponent_logo_url: string | null;
   competition: string | null;
   sponsor_name: string | null;
@@ -25,6 +27,10 @@ type Match = {
   home: boolean;
   venue: string;
   address: string | null;
+  city: string | null;
+  state: string | null;
+  rose_city_score: number | null;
+  opponent_score: number | null;
   season_id: string;
 };
 
@@ -32,22 +38,54 @@ type FormState = Omit<Match, "id">;
 
 function emptyForm(seasonId = ""): FormState {
   return {
-    date: "", time: "", opponent: "", opponent_logo_url: null, competition: "",
+    date: "", time: "", opponent: "", opponent_short_name: null, opponent_logo_url: null, competition: "",
     sponsor_name: null, sponsor_logo_url: null, sponsor_link: null,
-    home: true, venue: "", address: "", season_id: seasonId,
+    home: true, venue: "", address: "", city: "", state: "",
+    rose_city_score: null, opponent_score: null, season_id: seasonId,
   };
 }
 
-async function uploadPhoto(file: File, bucket: string): Promise<string> {
+function normalizeScore(value: number | null): number | null {
+  return value === null || Number.isNaN(value) ? null : value;
+}
+
+async function uploadPhoto(file: File, bucket: string, folder: string): Promise<string> {
   const supabase = createClient();
   const extension = file.name.split(".").pop() ?? "jpg";
-  const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
   const { error } = await supabase.storage
     .from(bucket)
     .upload(path, file);
   if (error) throw new Error(error.message);
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return data.publicUrl;
+}
+
+async function deleteUnusedMatchImageUrls({
+  bucket,
+  urls,
+  column,
+  allowedPrefixes,
+}: {
+  bucket: string;
+  urls: Array<string | null | undefined>;
+  column: "opponent_logo_url" | "sponsor_logo_url";
+  allowedPrefixes: string[];
+}) {
+  const supabase = createClient();
+  const unusedUrls: string[] = [];
+
+  for (const url of urls) {
+    if (!url) continue;
+    const { count, error } = await supabase
+      .from("matches")
+      .select("id", { count: "exact", head: true })
+      .eq(column, url);
+    if (error) throw new Error(error.message);
+    if ((count ?? 0) === 0) unusedUrls.push(url);
+  }
+
+  await deleteStorageUrls(bucket, unusedUrls, allowedPrefixes);
 }
 
 // ── Main component ────────────────────────────
@@ -76,7 +114,7 @@ export default function SchedulePage() {
     const supabase = createClient();
     const { data, error: loadError } = await supabase
       .from("matches")
-      .select("id, date, time, opponent, opponent_logo_url, competition, sponsor_name, sponsor_logo_url, sponsor_link, home, venue, address, season_id")
+      .select("id, date, time, opponent, opponent_short_name, opponent_logo_url, competition, sponsor_name, sponsor_logo_url, sponsor_link, home, venue, address, city, state, rose_city_score, opponent_score, season_id")
       .order("date")
       .order("time");
     if (loadError) setError(loadError.message);
@@ -107,6 +145,19 @@ export default function SchedulePage() {
     if (!form.time)     return "Time is required.";
     if (!form.opponent.trim()) return "Opponent is required.";
     if (!form.venue.trim())    return "Venue is required.";
+    const roseCityScore = form.rose_city_score;
+    const opponentScore = form.opponent_score;
+    const hasRoseCityScore = roseCityScore !== null;
+    const hasOpponentScore = opponentScore !== null;
+    if (hasRoseCityScore !== hasOpponentScore) {
+      return "Enter both scores, or leave both blank.";
+    }
+    if (
+      (roseCityScore !== null && (!Number.isInteger(roseCityScore) || roseCityScore < 0)) ||
+      (opponentScore !== null && (!Number.isInteger(opponentScore) || opponentScore < 0))
+    ) {
+      return "Scores must be whole numbers of 0 or higher.";
+    }
     if (form.sponsor_logo_url && !form.sponsor_name?.trim()) {
       return "Sponsor name is required when a sponsor logo is uploaded.";
     }
@@ -130,6 +181,11 @@ export default function SchedulePage() {
     const { error: e } = await supabase.from("matches").insert([{
       ...addForm,
       address: addForm.address?.trim() || null,
+      city: addForm.city?.trim() || null,
+      state: addForm.state?.trim() || null,
+      rose_city_score: normalizeScore(addForm.rose_city_score),
+      opponent_score: normalizeScore(addForm.opponent_score),
+      opponent_short_name: addForm.opponent_short_name?.trim() || null,
       competition: addForm.competition?.trim() || null,
       sponsor_name: addForm.sponsor_name?.trim() || null,
       sponsor_logo_url: addForm.sponsor_logo_url?.trim() || null,
@@ -152,10 +208,14 @@ export default function SchedulePage() {
     setEditingId(m.id);
     setEditForm({
       date: m.date, time: m.time, opponent: m.opponent,
+      opponent_short_name: m.opponent_short_name,
       opponent_logo_url: m.opponent_logo_url, competition: m.competition ?? "",
       sponsor_name: m.sponsor_name, sponsor_logo_url: m.sponsor_logo_url,
       sponsor_link: m.sponsor_link,
-      home: m.home, venue: m.venue, address: m.address ?? "", season_id: m.season_id,
+      home: m.home, venue: m.venue, address: m.address ?? "",
+      city: m.city ?? "", state: m.state ?? "",
+      rose_city_score: m.rose_city_score, opponent_score: m.opponent_score,
+      season_id: m.season_id,
     });
   }
 
@@ -166,15 +226,41 @@ export default function SchedulePage() {
     setSaving(true);
     setError(null);
     const supabase = createClient();
+    const originalMatch = matches.find((match) => match.id === editingId);
     const { error: e } = await supabase.from("matches").update({
       ...editForm,
       address: editForm.address?.trim() || null,
+      city: editForm.city?.trim() || null,
+      state: editForm.state?.trim() || null,
+      rose_city_score: normalizeScore(editForm.rose_city_score),
+      opponent_score: normalizeScore(editForm.opponent_score),
+      opponent_short_name: editForm.opponent_short_name?.trim() || null,
       competition: editForm.competition?.trim() || null,
       sponsor_name: editForm.sponsor_name?.trim() || null,
       sponsor_logo_url: editForm.sponsor_logo_url?.trim() || null,
       sponsor_link: editForm.sponsor_link?.trim() || null,
     }).eq("id", editingId);
     if (e) { setError(e.message); setSaving(false); return; }
+    await deleteUnusedMatchImageUrls({
+      bucket: "opponent-logos",
+      urls: [
+        originalMatch?.opponent_logo_url !== editForm.opponent_logo_url
+          ? originalMatch?.opponent_logo_url
+          : null,
+      ],
+      column: "opponent_logo_url",
+      allowedPrefixes: ["match-opponents/"],
+    });
+    await deleteUnusedMatchImageUrls({
+      bucket: "sponsors",
+      urls: [
+        originalMatch?.sponsor_logo_url !== editForm.sponsor_logo_url
+          ? originalMatch?.sponsor_logo_url
+          : null,
+      ],
+      column: "sponsor_logo_url",
+      allowedPrefixes: ["match-sponsors/"],
+    });
     setEditingId(null);
     await load();
     flash();
@@ -262,7 +348,7 @@ export default function SchedulePage() {
           <p className="font-display font-black uppercase text-xs tracking-widest mb-4" style={{ color: "rgba(255,255,255,0.5)" }}>
             New Match
           </p>
-          <MatchForm form={addForm} onChange={setAddForm} seasons={seasons} />
+          <MatchForm form={addForm} onChange={setAddForm} seasons={seasons} cleanupDraftUploads />
           <div className="mt-4 flex gap-3">
             <button
               onClick={handleAdd}
@@ -350,6 +436,15 @@ export default function SchedulePage() {
                         {m.home ? "vs" : "@"} {m.opponent}
                       </p>
 
+                      {(m.rose_city_score !== null && m.opponent_score !== null) && (
+                        <p
+                          className="font-display mt-1 font-black uppercase tracking-widest"
+                          style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.72)" }}
+                        >
+                          Result: Rose City {m.rose_city_score} - {m.opponent_score} {m.opponent}
+                        </p>
+                      )}
+
                       {/* Competition */}
                       {m.competition && (
                         <p className="font-body truncate" style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.35)" }}>
@@ -365,7 +460,10 @@ export default function SchedulePage() {
 
                       {/* Venue */}
                       <p className="font-body mt-0.5 truncate" style={{ fontSize: "0.95rem", color: "rgba(255,255,255,0.3)" }}>
-                        {m.venue}{m.address ? ` · ${m.address}` : ""}
+                        {m.venue}
+                        {m.city ? `, ${m.city}` : ""}
+                        {m.state ? `, ${m.state}` : ""}
+                        {m.address ? ` · ${m.address}` : ""}
                       </p>
                       </div>
                     </div>
@@ -416,13 +514,19 @@ function MatchForm({
   form,
   onChange,
   seasons,
+  cleanupDraftUploads = false,
 }: {
   form: Omit<Match, "id">;
   onChange: (f: Omit<Match, "id">) => void;
   seasons: DBSeason[];
+  cleanupDraftUploads?: boolean;
 }) {
-  function set(field: string, value: string | boolean) {
+  function set(field: string, value: string | boolean | number | null) {
     onChange({ ...form, [field]: value });
+  }
+
+  function setScore(field: "rose_city_score" | "opponent_score", value: string) {
+    set(field, value === "" ? null : Number(value));
   }
 
   return (
@@ -471,6 +575,19 @@ function MatchForm({
         />
       </Field>
 
+      <Field
+        label="Opponent Short Name (optional)"
+        help="Used on the homepage Next Match card only when the full opponent name is too long to fit on one line."
+      >
+        <input
+          type="text"
+          placeholder="e.g. LA Galaxy Reserves"
+          value={form.opponent_short_name ?? ""}
+          onChange={(e) => set("opponent_short_name", e.target.value)}
+          style={inputStyle}
+        />
+      </Field>
+
       <Field label="Competition (optional)">
         <input
           type="text"
@@ -485,8 +602,28 @@ function MatchForm({
         <OpponentLogoUpload
           logoUrl={form.opponent_logo_url}
           opponentName={form.opponent}
-          onUploaded={(url) => onChange({ ...form, opponent_logo_url: url })}
-          onRemove={() => onChange({ ...form, opponent_logo_url: null })}
+          onUploaded={async (url) => {
+            if (cleanupDraftUploads) {
+              await deleteUnusedMatchImageUrls({
+                bucket: "opponent-logos",
+                urls: [form.opponent_logo_url],
+                column: "opponent_logo_url",
+                allowedPrefixes: ["match-opponents/"],
+              });
+            }
+            onChange({ ...form, opponent_logo_url: url });
+          }}
+          onRemove={async () => {
+            if (cleanupDraftUploads) {
+              await deleteUnusedMatchImageUrls({
+                bucket: "opponent-logos",
+                urls: [form.opponent_logo_url],
+                column: "opponent_logo_url",
+                allowedPrefixes: ["match-opponents/"],
+              });
+            }
+            onChange({ ...form, opponent_logo_url: null });
+          }}
         />
       </Field>
 
@@ -533,8 +670,28 @@ function MatchForm({
           <SponsorLogoUpload
             logoUrl={form.sponsor_logo_url}
             sponsorName={form.sponsor_name ?? ""}
-            onUploaded={(url) => onChange({ ...form, sponsor_logo_url: url })}
-            onRemove={() => onChange({ ...form, sponsor_logo_url: null })}
+            onUploaded={async (url) => {
+              if (cleanupDraftUploads) {
+                await deleteUnusedMatchImageUrls({
+                  bucket: "sponsors",
+                  urls: [form.sponsor_logo_url],
+                  column: "sponsor_logo_url",
+                  allowedPrefixes: ["match-sponsors/"],
+                });
+              }
+              onChange({ ...form, sponsor_logo_url: url });
+            }}
+            onRemove={async () => {
+              if (cleanupDraftUploads) {
+                await deleteUnusedMatchImageUrls({
+                  bucket: "sponsors",
+                  urls: [form.sponsor_logo_url],
+                  column: "sponsor_logo_url",
+                  allowedPrefixes: ["match-sponsors/"],
+                });
+              }
+              onChange({ ...form, sponsor_logo_url: null });
+            }}
           />
         </Field>
       </div>
@@ -569,6 +726,70 @@ function MatchForm({
           style={inputStyle}
         />
       </Field>
+
+      <Field label="City (optional)">
+        <input
+          type="text"
+          placeholder="e.g. Irvine"
+          value={form.city ?? ""}
+          onChange={(e) => set("city", e.target.value)}
+          style={inputStyle}
+        />
+      </Field>
+
+      <Field label="State (optional)">
+        <input
+          type="text"
+          placeholder="e.g. CA"
+          value={form.state ?? ""}
+          onChange={(e) => set("state", e.target.value)}
+          style={inputStyle}
+        />
+      </Field>
+
+      <div
+        className="mt-2 border-t pt-4 sm:col-span-2"
+        style={{ borderColor: "rgba(255,255,255,0.08)" }}
+      >
+        <p
+          className="font-display text-xs font-black uppercase tracking-widest"
+          style={{ color: "rgba(255,255,255,0.55)" }}
+        >
+          Match Result
+        </p>
+        <p
+          className="font-body mt-1 text-xs"
+          style={{ color: "rgba(255,255,255,0.28)" }}
+        >
+          Leave both scores blank until the match is complete. The public schedule updates automatically once both scores are saved.
+        </p>
+      </div>
+
+      <Field label="Rose City Score (optional)">
+        <input
+          type="number"
+          min="0"
+          step="1"
+          inputMode="numeric"
+          placeholder="e.g. 2"
+          value={form.rose_city_score ?? ""}
+          onChange={(e) => setScore("rose_city_score", e.target.value)}
+          style={inputStyle}
+        />
+      </Field>
+
+      <Field label="Opponent Score (optional)">
+        <input
+          type="number"
+          min="0"
+          step="1"
+          inputMode="numeric"
+          placeholder="e.g. 1"
+          value={form.opponent_score ?? ""}
+          onChange={(e) => setScore("opponent_score", e.target.value)}
+          style={inputStyle}
+        />
+      </Field>
     </div>
   );
 }
@@ -581,8 +802,8 @@ function OpponentLogoUpload({
 }: {
   logoUrl: string | null;
   opponentName: string;
-  onUploaded: (url: string) => void;
-  onRemove: () => void;
+  onUploaded: (url: string) => void | Promise<void>;
+  onRemove: () => void | Promise<void>;
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -593,7 +814,7 @@ function OpponentLogoUpload({
     setUploading(true);
     setError(null);
     try {
-      onUploaded(await uploadPhoto(file, "opponent-logos"));
+      await onUploaded(await uploadPhoto(file, "opponent-logos", "match-opponents"));
     } catch (uploadError: unknown) {
       setError(uploadError instanceof Error ? uploadError.message : "Upload failed");
     } finally {
@@ -622,7 +843,7 @@ function OpponentLogoUpload({
       {logoUrl && !uploading && (
         <button
           type="button"
-          onClick={onRemove}
+          onClick={() => void onRemove()}
           className="font-display font-bold uppercase tracking-widest text-xs"
           style={{ color: "rgba(220,38,38,0.8)" }}
         >
@@ -651,8 +872,8 @@ function SponsorLogoUpload({
 }: {
   logoUrl: string | null;
   sponsorName: string;
-  onUploaded: (url: string) => void;
-  onRemove: () => void;
+  onUploaded: (url: string) => void | Promise<void>;
+  onRemove: () => void | Promise<void>;
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -663,7 +884,7 @@ function SponsorLogoUpload({
     setUploading(true);
     setError(null);
     try {
-      onUploaded(await uploadPhoto(file, "sponsors"));
+      await onUploaded(await uploadPhoto(file, "sponsors", "match-sponsors"));
     } catch (uploadError: unknown) {
       setError(uploadError instanceof Error ? uploadError.message : "Upload failed");
     } finally {
@@ -715,7 +936,7 @@ function SponsorLogoUpload({
       {logoUrl && !uploading && (
         <button
           type="button"
-          onClick={onRemove}
+          onClick={() => void onRemove()}
           className="font-display text-xs font-bold uppercase tracking-widest"
           style={{ color: "rgba(220,38,38,0.8)" }}
         >
@@ -738,7 +959,7 @@ function SponsorLogoUpload({
   );
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({ label, required, help, children }: { label: string; required?: boolean; help?: string; children: React.ReactNode }) {
   return (
     <div>
       <label
@@ -749,6 +970,11 @@ function Field({ label, required, children }: { label: string; required?: boolea
         {required && <span style={{ color: "#dc2626", marginLeft: 3 }}>*</span>}
       </label>
       {children}
+      {help && (
+        <p className="font-body mt-1.5 text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.25)" }}>
+          {help}
+        </p>
+      )}
     </div>
   );
 }

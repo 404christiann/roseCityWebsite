@@ -1,6 +1,8 @@
 "use client";
 
 import { Fragment, useEffect, useRef } from "react";
+import type { ReactNode } from "react";
+import Link from "next/link";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type { DBShopKitPhoto, DBShopKitSection } from "@/lib/db-types";
@@ -20,6 +22,8 @@ interface ShopKitSectionProps {
   headingTag?: "h1" | "h2";
   animate?: boolean;
   fadeImageToWhite?: boolean;
+  ctaHref?: string;
+  variantTabs?: ReactNode;
 }
 
 export default function ShopKitSection({
@@ -28,6 +32,8 @@ export default function ShopKitSection({
   headingTag = "h2",
   animate = true,
   fadeImageToWhite = false,
+  ctaHref,
+  variantTabs,
 }: ShopKitSectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
@@ -139,6 +145,8 @@ export default function ShopKitSection({
             style={{ backgroundColor: "var(--color-red)" }}
           />
 
+          {variantTabs && <div className="mb-8">{variantTabs}</div>}
+
           <p
             className="font-body mb-8 leading-relaxed"
             style={{
@@ -175,21 +183,37 @@ export default function ShopKitSection({
             </p>
           )}
 
-          <a
-            href={section.cta_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-display flex items-center justify-center gap-3 px-10 py-4 text-sm font-bold uppercase tracking-widest transition-all duration-200 md:inline-flex md:w-auto"
-            style={{ backgroundColor: "var(--color-red)", color: "#fff" }}
-            onMouseEnter={(event) => {
-              event.currentTarget.style.backgroundColor = "var(--color-red-dark)";
-            }}
-            onMouseLeave={(event) => {
-              event.currentTarget.style.backgroundColor = "var(--color-red)";
-            }}
-          >
-            {section.cta_label}
-          </a>
+          {ctaHref ? (
+            <Link
+              href={ctaHref}
+              className="font-display flex items-center justify-center gap-3 px-10 py-4 text-sm font-bold uppercase tracking-widest transition-all duration-200 md:inline-flex md:w-auto"
+              style={{ backgroundColor: "var(--color-red)", color: "#fff" }}
+              onMouseEnter={(event) => {
+                event.currentTarget.style.backgroundColor = "var(--color-red-dark)";
+              }}
+              onMouseLeave={(event) => {
+                event.currentTarget.style.backgroundColor = "var(--color-red)";
+              }}
+            >
+              {section.cta_label}
+            </Link>
+          ) : (
+            <a
+              href={section.cta_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-display flex items-center justify-center gap-3 px-10 py-4 text-sm font-bold uppercase tracking-widest transition-all duration-200 md:inline-flex md:w-auto"
+              style={{ backgroundColor: "var(--color-red)", color: "#fff" }}
+              onMouseEnter={(event) => {
+                event.currentTarget.style.backgroundColor = "var(--color-red-dark)";
+              }}
+              onMouseLeave={(event) => {
+                event.currentTarget.style.backgroundColor = "var(--color-red)";
+              }}
+            >
+              {section.cta_label}
+            </a>
+          )}
         </div>
       </div>
     </section>

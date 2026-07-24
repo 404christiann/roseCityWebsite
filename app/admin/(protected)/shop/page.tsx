@@ -5,15 +5,20 @@ import { useEffect, useRef, useState } from "react";
 import AdminSaveFeedback from "@/components/admin/AdminSaveFeedback";
 import ScaledShopKitPreview from "@/components/admin/ScaledShopKitPreview";
 import ScaledShopPhotoStripPreview from "@/components/admin/ScaledShopPhotoStripPreview";
+import ScaledShopPurchaseDetailsPreview from "@/components/admin/ScaledShopPurchaseDetailsPreview";
 import type {
   DBShopCarouselPhoto,
   DBShopKitPhoto,
   DBShopKitSection,
+  DBShopPurchaseDetails,
+  ShopPurchaseDetailCard,
   ShopKitSurface,
+  ShopKitVariant,
 } from "@/lib/db-types";
 import {
   fetchShopCarouselPhotos,
   fetchShopKitContent,
+  fetchShopPurchaseDetails,
 } from "@/lib/queries";
 import {
   canAddKitPhoto,
@@ -23,6 +28,7 @@ import {
   diffShopKitPhotos,
   MAX_KIT_BULLET_POINTS,
   MAX_KIT_PHOTOS,
+  shopKitSectionId,
   type DraftKitPhoto,
 } from "@/lib/shop-kit";
 import {
@@ -31,6 +37,13 @@ import {
   MAX_PHOTO_STRIP_PHOTOS,
   type DraftPhotoStripPhoto,
 } from "@/lib/shop-photo-strip";
+import {
+  DEFAULT_SHOP_PURCHASE_DETAILS,
+  MAX_PURCHASE_DETAIL_CARDS,
+  normalizePurchaseDetailCards,
+  normalizeShopPurchaseDetails,
+} from "@/lib/shop-purchase-details";
+import { deleteStorageUrls } from "@/lib/storage-cleanup";
 import { createClient } from "@/lib/supabase-browser";
 
 type SectionFields = {
@@ -81,10 +94,10 @@ function sectionToFields(section: DBShopKitSection): SectionFields {
   };
 }
 
-async function uploadPhoto(file: File, bucket: string): Promise<string> {
+async function uploadPhoto(file: File, bucket: string, folder: string): Promise<string> {
   const supabase = createClient();
   const extension = file.name.split(".").pop() ?? "jpg";
-  const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
   const { error } = await supabase.storage
     .from(bucket)
     .upload(path, file);
@@ -93,16 +106,32 @@ async function uploadPhoto(file: File, bucket: string): Promise<string> {
   return data.publicUrl;
 }
 
-type AdminTab = "content" | "kit" | "photoStrip";
+type AdminTab = "content" | "kit" | "photoStrip" | "purchase";
+type PurchaseTextField = Exclude<
+  keyof DBShopPurchaseDetails,
+  "id" | "cards" | "updated_at"
+>;
+type PurchaseCardTextField = keyof ShopPurchaseDetailCard;
+
+const KIT_VARIANTS: Array<{ id: ShopKitVariant; label: string }> = [
+  { id: "home", label: "Home Kit" },
+  { id: "away", label: "Away Kit" },
+];
 
 export default function AdminShopPage() {
   const [selectedSurface, setSelectedSurface] = useState<ShopKitSurface>("home");
+  const [selectedKitVariant, setSelectedKitVariant] =
+    useState<ShopKitVariant>("home");
+  const activeKitVariant: ShopKitVariant =
+    selectedSurface === "home" ? "home" : selectedKitVariant;
   const [activeTab, setActiveTab] = useState<AdminTab>("content");
   const [fields, setFields] = useState<SectionFields>(EMPTY_FIELDS);
   const [draftPhotos, setDraftPhotos] = useState<DraftKitPhoto[]>([]);
   const [originalPhotos, setOriginalPhotos] = useState<DBShopKitPhoto[]>([]);
   const [draftPhotoStripPhotos, setDraftPhotoStripPhotos] = useState<DraftPhotoStripPhoto[]>([]);
   const [originalPhotoStripPhotos, setOriginalPhotoStripPhotos] = useState<DBShopCarouselPhoto[]>([]);
+  const [purchaseDetails, setPurchaseDetails] =
+    useState<DBShopPurchaseDetails>(DEFAULT_SHOP_PURCHASE_DETAILS);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -115,8 +144,12 @@ export default function AdminShopPage() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    Promise.all([fetchShopKitContent(selectedSurface), fetchShopCarouselPhotos()])
-      .then(([{ section, photos }, photoStripPhotos]) => {
+    Promise.all([
+      fetchShopKitContent(selectedSurface, activeKitVariant),
+      fetchShopCarouselPhotos(),
+      fetchShopPurchaseDetails(),
+    ])
+      .then(([{ section, photos }, photoStripPhotos, fetchedPurchaseDetails]) => {
         setFields(
           section
             ? sectionToFields(section)
@@ -131,13 +164,14 @@ export default function AdminShopPage() {
         setDraftPhotoStripPhotos(
           photoStripPhotos.map((photo) => ({ id: photo.id, url: photo.url })),
         );
+        setPurchaseDetails(fetchedPurchaseDetails);
         setDirty(false);
       })
       .catch((loadError: unknown) => {
         setError(loadError instanceof Error ? loadError.message : "Failed to load shop content");
       })
       .finally(() => setLoading(false));
-  }, [selectedSurface]);
+  }, [selectedSurface, activeKitVariant]);
 
   function markDirty() {
     setDirty(true);
@@ -154,6 +188,25 @@ export default function AdminShopPage() {
       ...current,
       bullet_points: current.bullet_points.map((point, pointIndex) =>
         pointIndex === index ? { ...point, text: value } : point,
+      ),
+    }));
+    markDirty();
+  }
+
+  function setPurchaseField(field: PurchaseTextField, value: string) {
+    setPurchaseDetails((current) => ({ ...current, [field]: value }));
+    markDirty();
+  }
+
+  function setPurchaseCardField(
+    index: number,
+    field: PurchaseCardTextField,
+    value: string,
+  ) {
+    setPurchaseDetails((current) => ({
+      ...current,
+      cards: current.cards.map((card, cardIndex) =>
+        cardIndex === index ? { ...card, [field]: value } : card,
       ),
     }));
     markDirty();
@@ -221,6 +274,34 @@ export default function AdminShopPage() {
     markDirty();
   }
 
+  async function removeKitPhoto(index: number) {
+    const photo = draftPhotos[index];
+    setDraftPhotos((current) => current.filter((_, photoIndex) => photoIndex !== index));
+    markDirty();
+
+    if (photo?.id === null) {
+      try {
+        await deleteStorageUrls("shop", [photo.url], ["kit/"]);
+      } catch (deleteError: unknown) {
+        setError(deleteError instanceof Error ? deleteError.message : "Failed to remove uploaded file");
+      }
+    }
+  }
+
+  async function removePhotoStripPhoto(index: number) {
+    const photo = draftPhotoStripPhotos[index];
+    setDraftPhotoStripPhotos((current) => current.filter((_, photoIndex) => photoIndex !== index));
+    markDirty();
+
+    if (photo?.id === null) {
+      try {
+        await deleteStorageUrls("shop", [photo.url], ["photo-strip/"]);
+      } catch (deleteError: unknown) {
+        setError(deleteError instanceof Error ? deleteError.message : "Failed to remove uploaded file");
+      }
+    }
+  }
+
   async function handleUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
     const remaining = Math.max(0, MAX_KIT_PHOTOS - draftPhotos.length);
@@ -233,7 +314,14 @@ export default function AdminShopPage() {
     try {
       const uploaded: DraftKitPhoto[] = [];
       for (const file of selected) {
-        uploaded.push({ id: null, url: await uploadPhoto(file, "shop") });
+        uploaded.push({
+          id: null,
+          url: await uploadPhoto(
+            file,
+            "shop",
+            `kit/${selectedSurface}-${activeKitVariant}`,
+          ),
+        });
       }
       setDraftPhotos((current) =>
         [...current, ...uploaded].slice(0, MAX_KIT_PHOTOS),
@@ -258,7 +346,7 @@ export default function AdminShopPage() {
     try {
       const uploaded: DraftPhotoStripPhoto[] = [];
       for (const file of selected) {
-        uploaded.push({ id: null, url: await uploadPhoto(file, "shop") });
+        uploaded.push({ id: null, url: await uploadPhoto(file, "shop", "photo-strip") });
       }
       setDraftPhotoStripPhotos((current) =>
         [...current, ...uploaded].slice(0, MAX_PHOTO_STRIP_PHOTOS),
@@ -290,8 +378,9 @@ export default function AdminShopPage() {
       const { error: sectionError } = await supabase
         .from("shop_kit_section")
         .upsert([{
-          id: selectedSurface === "home" ? 1 : 2,
+          id: shopKitSectionId(selectedSurface, activeKitVariant),
           surface: selectedSurface,
+          kit_variant: activeKitVariant,
           ...fields,
           bullet_points: cleanedBulletPoints,
           updated_at: new Date().toISOString(),
@@ -310,6 +399,11 @@ export default function AdminShopPage() {
           .in("id", toDelete);
         if (deleteError) throw new Error(deleteError.message);
       }
+      await deleteStorageUrls("shop", [
+        ...originalPhotos
+          .filter((photo) => toDelete.includes(photo.id))
+          .map((photo) => photo.url),
+      ], ["kit/"]);
 
       for (const update of toUpdate) {
         const { error: updateError } = await supabase
@@ -322,7 +416,11 @@ export default function AdminShopPage() {
       if (toInsert.length > 0) {
         const { error: insertError } = await supabase
           .from("shop_kit_photos")
-          .insert(toInsert.map((photo) => ({ ...photo, surface: selectedSurface })));
+          .insert(toInsert.map((photo) => ({
+            ...photo,
+            surface: selectedSurface,
+            kit_variant: activeKitVariant,
+          })));
         if (insertError) throw new Error(insertError.message);
       }
 
@@ -338,6 +436,11 @@ export default function AdminShopPage() {
           .in("id", photoStripDiff.toDelete);
         if (carouselDeleteError) throw new Error(carouselDeleteError.message);
       }
+      await deleteStorageUrls("shop", [
+        ...originalPhotoStripPhotos
+          .filter((photo) => photoStripDiff.toDelete.includes(photo.id))
+          .map((photo) => photo.url),
+      ], ["photo-strip/"]);
 
       for (const update of photoStripDiff.toUpdate) {
         const { error: carouselUpdateError } = await supabase
@@ -354,9 +457,21 @@ export default function AdminShopPage() {
         if (carouselInsertError) throw new Error(carouselInsertError.message);
       }
 
-      const [fresh, freshPhotoStrip] = await Promise.all([
-        fetchShopKitContent(selectedSurface),
+      const cleanedPurchaseDetails = normalizeShopPurchaseDetails({
+        ...purchaseDetails,
+        id: 1,
+        cards: normalizePurchaseDetailCards(purchaseDetails.cards),
+        updated_at: new Date().toISOString(),
+      });
+      const { error: purchaseDetailsError } = await supabase
+        .from("shop_purchase_details")
+        .upsert([cleanedPurchaseDetails]);
+      if (purchaseDetailsError) throw new Error(purchaseDetailsError.message);
+
+      const [fresh, freshPhotoStrip, freshPurchaseDetails] = await Promise.all([
+        fetchShopKitContent(selectedSurface, activeKitVariant),
         fetchShopCarouselPhotos(),
+        fetchShopPurchaseDetails(),
       ]);
       if (fresh.section) setFields(sectionToFields(fresh.section));
       setOriginalPhotos(fresh.photos);
@@ -367,6 +482,7 @@ export default function AdminShopPage() {
       setDraftPhotoStripPhotos(
         freshPhotoStrip.map((photo) => ({ id: photo.id, url: photo.url })),
       );
+      setPurchaseDetails(freshPurchaseDetails);
       setDirty(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -378,8 +494,9 @@ export default function AdminShopPage() {
   }
 
   const previewSection: DBShopKitSection = {
-    id: selectedSurface === "home" ? 1 : 2,
+    id: shopKitSectionId(selectedSurface, activeKitVariant),
     surface: selectedSurface,
+    kit_variant: activeKitVariant,
     ...fields,
     bullet_points: cleanKitBulletPoints(
       fields.bullet_points.map((point) => point.text),
@@ -389,6 +506,7 @@ export default function AdminShopPage() {
   const previewPhotos: DBShopKitPhoto[] = draftPhotos.map((photo, index) => ({
     id: photo.id ?? `draft-${index}`,
     surface: selectedSurface,
+    kit_variant: activeKitVariant,
     url: photo.url,
     sort_order: index,
     created_at: "",
@@ -401,11 +519,23 @@ export default function AdminShopPage() {
       created_at: "",
     }),
   );
+  const previewPurchaseDetails = normalizeShopPurchaseDetails({
+    ...purchaseDetails,
+    id: 1,
+    cards: normalizePurchaseDetailCards(purchaseDetails.cards),
+    updated_at: "",
+  });
   const hasBulletPoint =
     cleanKitBulletPoints(fields.bullet_points.map((point) => point.text)).length >
     0;
   const saveDisabled =
     saving || uploading || draftPhotos.length === 0 || !hasBulletPoint;
+  const activeEditorLabel =
+    selectedSurface === "home"
+      ? "Home Page Kit"
+      : `${activeKitVariant === "home" ? "Home" : "Away"} Shop Kit`;
+  const previewLabel =
+    activeTab === "purchase" ? "Purchase Details" : activeEditorLabel;
 
   return (
     <div className="mx-auto min-w-0 max-w-7xl overflow-hidden">
@@ -468,7 +598,13 @@ export default function AdminShopPage() {
                         return;
                       }
                       setSelectedSurface(surface.id);
-                      if (surface.id === "home" && activeTab === "photoStrip") {
+                      if (surface.id === "home") {
+                        setSelectedKitVariant("home");
+                      }
+                      if (
+                        surface.id === "home" &&
+                        (activeTab === "photoStrip" || activeTab === "purchase")
+                      ) {
                         setActiveTab("content");
                       }
                       setSaved(false);
@@ -485,11 +621,49 @@ export default function AdminShopPage() {
               })}
             </div>
 
+            {selectedSurface === "shop" && (
+              <div
+                className="mb-4 grid grid-cols-2 gap-1 rounded-lg p-1"
+                style={{ backgroundColor: "rgba(255,255,255,0.04)" }}
+                aria-label="Kit type"
+              >
+                {KIT_VARIANTS.map((variant) => {
+                  const isSelected = selectedKitVariant === variant.id;
+                  return (
+                    <button
+                      key={variant.id}
+                      type="button"
+                      disabled={saving || uploading}
+                      aria-pressed={isSelected}
+                      onClick={() => {
+                        if (variant.id === selectedKitVariant) return;
+                        if (
+                          dirty &&
+                          !window.confirm("Discard unsaved changes before switching kits?")
+                        ) {
+                          return;
+                        }
+                        setSelectedKitVariant(variant.id);
+                        setSaved(false);
+                      }}
+                      className="font-display rounded-md px-3 py-3 text-xs uppercase tracking-widest transition-colors"
+                      style={{
+                        backgroundColor: isSelected ? "#E7001B" : "transparent",
+                        color: isSelected ? "white" : "rgba(255,255,255,0.5)",
+                      }}
+                    >
+                      {variant.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             <p
               className="font-body mb-4 text-xs leading-relaxed"
               style={{ color: "rgba(255,255,255,0.32)" }}
             >
-              Editing the {selectedSurface === "home" ? "home page" : "shop page"} kit presentation.
+              Editing the {selectedSurface === "home" ? "home page kit" : `${activeKitVariant} shop kit`}.
               Content and Kit Photos are saved independently.
             </p>
 
@@ -507,7 +681,16 @@ export default function AdminShopPage() {
                     label: "Photo Row",
                     count: `${draftPhotoStripPhotos.length}/${MAX_PHOTO_STRIP_PHOTOS}`,
                   },
-                ].filter((tab) => selectedSurface === "shop" || tab.id !== "photoStrip")
+                  {
+                    id: "purchase" as const,
+                    label: "Purchase",
+                    count: null,
+                  },
+                ].filter(
+                  (tab) =>
+                    selectedSurface === "shop" ||
+                    (tab.id !== "photoStrip" && tab.id !== "purchase"),
+                )
               ).map((tab) => {
                 const hasIssue =
                   (tab.id === "content" && !hasBulletPoint) ||
@@ -696,13 +879,135 @@ export default function AdminShopPage() {
                 </Field>
                 <Field
                   label="Purchase Page Link"
-                  help="Paste the full web address where supporters can buy the kit."
+                  help={
+                    selectedSurface === "home"
+                      ? "Not used here — the homepage button always sends fans to the Team Store page. Set the real purchase link on the Shop Page surface instead."
+                      : "Paste the full web address where supporters can buy the kit."
+                  }
                 >
                   <input
                     type="url"
                     placeholder="https://..."
                     value={fields.cta_link}
                     onChange={(event) => setField("cta_link", event.target.value)}
+                    disabled={selectedSurface === "home"}
+                    style={
+                      selectedSurface === "home"
+                        ? { ...inputStyle, opacity: 0.4, cursor: "not-allowed" }
+                        : inputStyle
+                    }
+                  />
+                </Field>
+              </div>
+            </div>
+            )}
+
+            {activeTab === "purchase" && selectedSurface === "shop" && (
+            <div className="space-y-4">
+              <Field
+                label="Purchase Section Heading"
+                help='Example: "Purchase Details"'
+              >
+                <input
+                  type="text"
+                  value={previewPurchaseDetails.heading}
+                  onChange={(event) => setPurchaseField("heading", event.target.value)}
+                  style={inputStyle}
+                />
+              </Field>
+
+              <div className="space-y-3">
+                {previewPurchaseDetails.cards
+                  .slice(0, MAX_PURCHASE_DETAIL_CARDS)
+                  .map((card, index) => (
+                    <div
+                      key={`purchase-card-${index}`}
+                      className="rounded-lg p-3"
+                      style={{
+                        backgroundColor: "rgba(255,255,255,0.03)",
+                        border: "1px solid rgba(255,255,255,0.07)",
+                      }}
+                    >
+                      <p
+                        className="font-display mb-3 text-xs uppercase tracking-widest"
+                        style={{ color: "rgba(255,255,255,0.35)" }}
+                      >
+                        Detail Card {index + 1}
+                      </p>
+                      <div className="space-y-3">
+                        <Field label="Red Label">
+                          <input
+                            type="text"
+                            value={card.label}
+                            onChange={(event) =>
+                              setPurchaseCardField(index, "label", event.target.value)
+                            }
+                            style={inputStyle}
+                          />
+                        </Field>
+                        <Field label="Card Title">
+                          <input
+                            type="text"
+                            value={card.title}
+                            onChange={(event) =>
+                              setPurchaseCardField(index, "title", event.target.value)
+                            }
+                            style={inputStyle}
+                          />
+                        </Field>
+                        <Field label="Card Body">
+                          <textarea
+                            value={card.body}
+                            onChange={(event) =>
+                              setPurchaseCardField(index, "body", event.target.value)
+                            }
+                            rows={3}
+                            style={{ ...inputStyle, resize: "vertical" }}
+                          />
+                        </Field>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+
+              <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <Field label="Footer Label">
+                  <input
+                    type="text"
+                    value={previewPurchaseDetails.cta_eyebrow}
+                    onChange={(event) =>
+                      setPurchaseField("cta_eyebrow", event.target.value)
+                    }
+                    style={inputStyle}
+                  />
+                </Field>
+                <Field label="Footer Text">
+                  <textarea
+                    value={previewPurchaseDetails.cta_text}
+                    onChange={(event) =>
+                      setPurchaseField("cta_text", event.target.value)
+                    }
+                    rows={2}
+                    style={{ ...inputStyle, resize: "vertical" }}
+                  />
+                </Field>
+                <Field label="Button Text">
+                  <input
+                    type="text"
+                    value={previewPurchaseDetails.cta_label}
+                    onChange={(event) =>
+                      setPurchaseField("cta_label", event.target.value)
+                    }
+                    style={inputStyle}
+                  />
+                </Field>
+                <Field label="Button Link">
+                  <input
+                    type="url"
+                    value={previewPurchaseDetails.cta_link}
+                    onChange={(event) =>
+                      setPurchaseField("cta_link", event.target.value)
+                    }
                     style={inputStyle}
                   />
                 </Field>
@@ -751,12 +1056,7 @@ export default function AdminShopPage() {
                     />
                     <button
                       type="button"
-                      onClick={() => {
-                        setDraftPhotos((current) =>
-                          current.filter((_, photoIndex) => photoIndex !== index),
-                        );
-                        markDirty();
-                      }}
+                      onClick={() => void removeKitPhoto(index)}
                       className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full opacity-100 transition-opacity sm:h-6 sm:w-6 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                       style={{ backgroundColor: "#E7001B" }}
                       aria-label={`Remove kit photo ${index + 1}`}
@@ -881,12 +1181,7 @@ export default function AdminShopPage() {
                     />
                     <button
                       type="button"
-                      onClick={() => {
-                        setDraftPhotoStripPhotos((current) =>
-                          current.filter((_, photoIndex) => photoIndex !== index),
-                        );
-                        markDirty();
-                      }}
+                      onClick={() => void removePhotoStripPhoto(index)}
                       className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full opacity-100 transition-opacity sm:h-6 sm:w-6 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                       style={{ backgroundColor: "#E7001B" }}
                       aria-label={`Remove photo row image ${index + 1}`}
@@ -990,7 +1285,7 @@ export default function AdminShopPage() {
                   ? "Saving…"
                   : uploading
                     ? "Uploading…"
-                    : `Save ${selectedSurface === "home" ? "Home Page" : "Shop Page"}`}
+                    : `Save ${activeEditorLabel}`}
               </button>
             </div>
           </section>
@@ -1002,7 +1297,7 @@ export default function AdminShopPage() {
                   className="font-display font-bold uppercase tracking-widest text-white"
                   style={{ fontSize: "0.9rem" }}
                 >
-                  {selectedSurface === "home" ? "Home Page" : "Shop Page"} Preview
+                  {previewLabel} Preview
                 </p>
                 <p
                   className="font-body mt-1 text-xs"
@@ -1026,7 +1321,9 @@ export default function AdminShopPage() {
               className="overflow-hidden rounded-lg"
               style={{ border: "1px solid rgba(255,255,255,0.08)" }}
             >
-              {previewPhotos.length > 0 ? (
+              {activeTab === "purchase" ? (
+                <ScaledShopPurchaseDetailsPreview details={previewPurchaseDetails} />
+              ) : previewPhotos.length > 0 ? (
                 <ScaledShopKitPreview
                   section={previewSection}
                   photos={previewPhotos}
@@ -1046,7 +1343,7 @@ export default function AdminShopPage() {
               )}
             </div>
 
-            {selectedSurface === "shop" && (
+            {selectedSurface === "shop" && activeTab !== "purchase" && (
             <>
             <div className="mb-3 mt-6 flex flex-wrap items-end justify-between gap-3">
               <div>

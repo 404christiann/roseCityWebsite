@@ -52,35 +52,19 @@ export default function ChampionsBadge() {
   return (
     <section
       ref={sectionRef}
-      className="relative overflow-hidden px-6 py-20 md:flex md:h-[50vh] md:min-h-[420px] md:items-center md:py-8 lg:min-h-[440px] lg:px-10"
-      style={{ backgroundColor: "var(--color-green)" }}
+      className="relative overflow-hidden px-6 py-20 md:flex md:h-[50vh] md:min-h-[620px] md:items-center md:py-8 lg:min-h-[780px] lg:px-10"
+      style={{ backgroundColor: "#0D0D0D" }}
     >
-      {/* Mobile: fade bottom into black (slideshow bg) */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-32 md:hidden pointer-events-none"
-        style={{ background: "linear-gradient(to top, #000, transparent)", zIndex: 5 }}
-      />
-
-      {/* Subtle background texture */}
-      <div
-        className="absolute inset-0 opacity-5 pointer-events-none"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)",
-          backgroundSize: "20px 20px",
-        }}
-      />
-
-      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center gap-10 md:flex-row md:justify-center md:gap-8 lg:gap-12">
+      <div className="relative z-10 mx-auto flex w-full max-w-[1400px] flex-col items-center gap-10 md:flex-row md:justify-center md:gap-8 lg:gap-12">
         {/* Trophy */}
         <div ref={trophyRef} className="flex w-full flex-shrink-0 justify-center md:w-[52%]" style={{ opacity: 0 }}>
-          <div className="relative aspect-square w-[min(90vw,560px)] drop-shadow-2xl md:w-full md:max-w-[380px] lg:max-w-[410px]">
+          <div className="relative aspect-square w-[min(100vw,950px)] drop-shadow-2xl md:w-full md:max-w-[650px] lg:max-w-[700px]">
             <Image
               src="/images/home/trophy.png"
               alt="UPSL Championship Trophy"
               fill
               className="object-contain"
-              sizes="(max-width: 767px) 90vw, (max-width: 1280px) 40vw, 410px"
+              sizes="(max-width: 767px) 100vw, (max-width: 1280px) 52vw, 700px"
             />
           </div>
         </div>

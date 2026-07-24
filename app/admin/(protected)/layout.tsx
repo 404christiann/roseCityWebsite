@@ -21,6 +21,17 @@ const NAV_ITEMS = [
     ),
   },
   {
+    label: "Homepage",
+    href: "/admin/homepage",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M3 11l9-8 9 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M5 10v10h14V10" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+        <path d="M9 20v-6h6v6" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
     label: "Seasons",
     href: "/admin/seasons",
     icon: (
@@ -78,6 +89,25 @@ const NAV_ITEMS = [
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path d="M6 8V6a6 6 0 0112 0v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
         <path d="M4 8h16l-1 13H5L4 8z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
+    label: "About",
+    href: "/admin/about",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
+        <path d="M12 10v7M12 7h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+  },
+  {
+    label: "Sponsors",
+    href: "/admin/sponsors",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M12 3l2.6 5.3 5.9.85-4.25 4.15 1 5.85L12 16.35 6.75 19.15l1-5.85L3.5 9.15l5.9-.85L12 3z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
       </svg>
     ),
   },

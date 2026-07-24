@@ -5,12 +5,12 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
 
 ## Current Status
 
-- Shipped in `9f98c2c1` (built on `0d4150bf`): a placeholder-content Club nav
+- Shipped in `9f98c2c1` (built on `0d4150bf`): a Club nav
   section. "Club" (`components/Nav.tsx`, after "Roster") is **not a link** —
   it's a hover dropdown on desktop / tap-to-expand accordion on mobile that
   only reveals "About Club" (`/club/about`) and "Club Logo" (`/club/logo`);
   there is no `/club` hub route (`NavLink.href` is now optional to support
-  this). `/club/about` is light editorial placeholder copy. `/club/logo` is a
+  this). `/club/about` is a light editorial story page. `/club/logo` is a
   full-page dark (`#18181A`) crest explainer — the one route where the nav
   intentionally stays in its transparent/white-text hero state for the whole
   page (`isAlwaysTransparentPage` in `Nav.tsx`) — built from a single
@@ -18,9 +18,11 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
   (Name/Rose/#23/Crown/Key) and a map image, all sourced from the `Aboutassets`
   Supabase bucket. Every source PNG carries heavy transparent padding; each
   `<Image>` crops it out via a measured CSS `scale()` inside an
-  `overflow-hidden` box rather than re-exporting assets. All Club copy/assets
-  are placeholders with no admin/CMS surface — see `HANDOFF.md` for the full
-  record.
+  `overflow-hidden` box rather than re-exporting assets.
+- Added after `9f98c2c1`: `/admin/about` manages the About Club and Club Logo
+  public pages with editable text/images and previews. Run
+  `db/migrations/2026-07-about-club-content.sql` in environments missing those
+  singleton rows.
 - Shipped in `0d4150bf` (built on `a94d4958`/`29f3ada5`): Stripe subscription
   billing for the platform itself — Rose City FC pays Christian $65.00/mo
   (the Starter-tier price, not the originally planned $99.99 Pro price) via a
@@ -58,7 +60,7 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
     requires requesting and opening the link in the same browser/device;
     requesting on one device and opening the email on another will fail.
 - Shipped in `5fb0b6fd`: the homepage Next Match section follows the
-  crest/VS/Next Match/optional sponsor/countdown hierarchy. Per-match sponsor
+  crest/VS/fixture metadata/optional sponsor hierarchy. Per-match sponsor
   name, logo, and optional link are managed in `/admin/schedule`; Add Match
   carries sponsor fields from the latest scheduled match in that season.
   Existing matches remain unsponsored. The production columns and sponsor
@@ -70,10 +72,39 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
   Kit Photos. The production surface rows, photo sets, and authenticated write
   policies were verified on 2026-07-17. Retain the surface and RLS migrations
   for new environments and repairs.
+- Added after `9f98c2c1`: `/admin/shop` now keeps the Home Page kit as a
+  single kit presentation and gives the public `/shop` page Home/Away kit
+  tabs. Shop-page purchase details are also editable from a Purchase tab.
+  Apply `db/migrations/2026-07-shop-kit-variants.sql` and
+  `db/migrations/2026-07-shop-purchase-details.sql` in environments missing
+  those tables/columns.
+- Added after `9f98c2c1`: `/admin/homepage` manages the public homepage
+  slideshow and Behind the Rose video section. `PhotoSlideshow.tsx` now loads
+  `homepage_slideshow_photos` with the current three local images as fallback
+  and migration seed data. `BehindTheRose.tsx` loads the singleton
+  `behind_the_rose_section` with the current copy/video as fallback and has a
+  visibility toggle. New slideshow uploads use the public `homepage` Storage
+  bucket, and saved removals clean up uploaded Storage objects. Run
+  `db/migrations/2026-07-homepage-content.sql` in environments that do not yet
+  have these tables, policies, seed rows, and bucket policies.
+- Added after `9f98c2c1`: `/admin/sponsors` manages two sponsor-logo
+  placements. The homepage carousel is capped at 10 logos and renders after
+  the homepage slideshow using the Yorba Linda-style continuous marquee on
+  Rose City's trophy-section black background. The footer placement is capped
+  at 6 logos and replaces the previous hardcoded footer partner strip. Both
+  placements are seeded from Rose City's existing sponsor logos. New uploads
+  go under `sponsors/site-sponsors/...`; saved removals only clean up files
+  from that folder. Run `db/migrations/2026-07-site-sponsor-logos.sql` in
+  environments missing this table/policy seed.
+- Added after `9f98c2c1`: `/admin/branding` also manages footer social media
+  URLs. The footer reads `site_social_links` with hard-coded defaults as a
+  fallback; icons stay as fixed local assets. Run
+  `db/migrations/2026-07-site-social-links.sql` before saving those fields in
+  a new environment.
 
 - The current application baseline is `9f98c2c1` on `main` (built on
   `0d4150bf`). It includes the Club nav section, Stripe subscription billing
-  (admin + public lockout), the fixture sponsor/countdown work, independent
+  (admin + public lockout), the fixture sponsor work, independent
   homepage/shop kit content, responsive roster-card refinements, and all
   earlier admin-managed shop, branding, navigation, and multi-season work.
 - The shop page gained a static "Photo Row" gallery below the kit section on
@@ -94,11 +125,14 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
   The shared gradient and hands-off Kit Photos slideshow were browser-verified
   locally on both public routes.
 - The homepage "Next Match" section is `components/NextMatchCard.tsx`: Rose
-  City crest, split-line "VS", opponent crest, large red title, optional
-  linked "Presented By" sponsor, live Days/Hours/Min/Sec countdown, and the
-  retained "Full Schedule" CTA. Rose City stays on the left.
+  City crest, red "VS", opponent crest, a compact mobile-safe match metadata
+  line, optional linked "Presented By" sponsor, and the retained "Full
+  Schedule" CTA. Rose City stays on the left.
 - Homepage section order is Hero → Home kit presentation → trophy feature →
-  Next Match → photo slideshow → Behind the Rose.
+  Next Match → photo slideshow → sponsor carousel → Behind the Rose.
+- The photo slideshow and Behind the Rose content are editable from
+  `/admin/homepage`; defaults preserve the shipped local images and current
+  Behind the Rose copy/video until the migration is applied.
 - Admins can upload an opponent logo and set a competition label per match
   from `/admin/schedule`. Opponent crests also render on the public
   `/schedule` fixture list (`components/FixtureRow.tsx`), sized larger on the
@@ -122,16 +156,21 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
   `SHOW_SHOP_HERO` in `lib/site-flags.ts`.
 - The homepage and `/shop` reuse the same kit presentation component but load
   independent database-backed content and ordered photo sets selected from
-  `/admin/shop`.
+  `/admin/shop`. Public Home/Away tabs appear only on `/shop`, not on the
+  homepage.
 - Multiple Kit Photos autoplay as a hands-off horizontal slideshow with no
   public arrows, dots, dragging, or swiping; a single photo remains static.
 - The Shop editor supports up to eight editable/reorderable bullet points and
-  editable multiline store information. New environments must apply
-  `db/migrations/2026-07-shop-kit-details.sql` before those saves.
+  editable multiline store information. Shop Page also exposes Home/Away kit
+  editing, a static Photo Row tab, and a Purchase Details tab. New
+  environments must apply `db/migrations/2026-07-shop-kit-details.sql`,
+  `db/migrations/2026-07-shop-kit-variants.sql`, and
+  `db/migrations/2026-07-shop-purchase-details.sql` before those saves.
 - `/admin/branding` lets an approved admin upload one shared club logo that
   updates navigation, footer, admin identity, next-match crest, player
-  placeholders, and the browser icon. New environments must apply
-  `db/migrations/2026-07-site-branding.sql` first.
+  placeholders, and the browser icon. It also edits footer social media URLs.
+  New environments must apply `db/migrations/2026-07-site-branding.sql` and
+  `db/migrations/2026-07-site-social-links.sql` first.
 - Production `site_branding`, the public `logos_v2` bucket, and the signed-in
   Storage policies were manually verified on 2026-07-16. Do not rerun branding
   setup against production by default.
@@ -141,8 +180,8 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
   show the name, nationality flag, initials badge, and staff title.
 - Player modal Bio and Season Stats controls begin expanded but remain
   collapsible.
-- The only expected local worktree change after verification is the generated
-  TypeScript cache `tsconfig.tsbuildinfo`; do not commit it by default.
+- The generated TypeScript cache `tsconfig.tsbuildinfo` may appear after
+  verification; do not commit it by default.
 - A full continuation packet lives at
   `docs/new-agent-handoff-2026-07-15.md`. The Stripe billing design/decision
   record and Dashboard setup steps live at `docs/stripe-subscription-plan.md`.
@@ -178,9 +217,9 @@ npm test
 npm run build
 ```
 
-Current shipped-release result (`9f98c2c1`, built on `0d4150bf`): TypeScript
-passed, all 183 Vitest tests passed (unchanged — the Club pages ship no new
-tests), and the production build passed. The build still reports non-blocking
+Current local verification after the admin-managed homepage/about/sponsors/shop/
+branding updates: TypeScript passed, all 210 Vitest tests passed, and the
+production build passed. The build still reports non-blocking
 Next.js lint warnings for a few raw `<img>` elements and unnecessary analytics
 `useMemo` dependencies. Destructive authenticated CRUD should only be tested
 with safe test data or explicit approval. The Stripe integration was verified

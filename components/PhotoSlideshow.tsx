@@ -4,30 +4,52 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import type { DBHomepageSlideshowPhoto } from "@/lib/db-types";
+import {
+  DEFAULT_HOMEPAGE_SLIDESHOW_SETTINGS,
+  DEFAULT_HOMEPAGE_SLIDESHOW_PHOTOS,
+} from "@/lib/homepage-content";
+import { fetchHomepageContent } from "@/lib/queries";
 
 gsap.registerPlugin(ScrollTrigger);
-
-const slides = [
-  { src: "/images/home/homepageSlideShowPic1.jpeg", alt: "Rose City FC Match Action" },
-  { src: "/images/home/homepageSlideShowPic2.jpeg", alt: "Rose City FC Players" },
-  { src: "/images/home/homepageSlideShowPic3.jpeg", alt: "Rose City FC Team" },
-];
 
 const SLIDE_DURATION = 4500;
 
 export default function PhotoSlideshow() {
   const [current, setCurrent] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
+  const [slides, setSlides] = useState<DBHomepageSlideshowPhoto[]>(
+    DEFAULT_HOMEPAGE_SLIDESHOW_PHOTOS,
+  );
+  const [seasonLabel, setSeasonLabel] = useState(
+    DEFAULT_HOMEPAGE_SLIDESHOW_SETTINGS.season_label,
+  );
   const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    fetchHomepageContent()
+      .then(({ slideshowPhotos, slideshowSettings }) => {
+        setSlides(slideshowPhotos);
+        setSeasonLabel(slideshowSettings.season_label);
+        setCurrent(0);
+        setPrev(null);
+      })
+      .catch((error) => {
+        console.error("PhotoSlideshow:", error);
+        setSlides(DEFAULT_HOMEPAGE_SLIDESHOW_PHOTOS);
+        setSeasonLabel(DEFAULT_HOMEPAGE_SLIDESHOW_SETTINGS.season_label);
+      });
+  }, []);
 
   // Auto-advance
   useEffect(() => {
+    if (slides.length <= 1) return;
     const timer = setInterval(() => {
       setPrev(current);
       setCurrent((c) => (c + 1) % slides.length);
     }, SLIDE_DURATION);
     return () => clearInterval(timer);
-  }, [current]);
+  }, [current, slides.length]);
 
   // Scroll reveal
   useEffect(() => {
@@ -49,6 +71,8 @@ export default function PhotoSlideshow() {
     return () => ctx.revert();
   }, []);
 
+  if (slides.length === 0) return null;
+
   return (
     <section
       ref={sectionRef}
@@ -58,12 +82,12 @@ export default function PhotoSlideshow() {
       {/* Images */}
       {slides.map((slide, i) => (
         <div
-          key={slide.src}
+          key={slide.id}
           className="absolute inset-0 transition-opacity duration-1000"
           style={{ opacity: i === current ? 1 : 0 }}
         >
           <Image
-            src={slide.src}
+            src={slide.url}
             alt={slide.alt}
             fill
             className="object-cover object-center"
@@ -86,29 +110,33 @@ export default function PhotoSlideshow() {
         className="absolute bottom-8 right-8 flex items-center gap-4"
         style={{ zIndex: 2 }}
       >
-        <span
-          className="font-display text-white/60 text-sm tracking-widest"
-        >
-          {String(current + 1).padStart(2, "0")} / {String(slides.length).padStart(2, "0")}
-        </span>
-        <div className="flex gap-1.5">
-          {slides.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => { setPrev(current); setCurrent(i); }}
-              className="transition-all duration-300"
-              style={{
-                width: i === current ? "2rem" : "0.5rem",
-                height: "2px",
-                backgroundColor:
-                  i === current ? "var(--color-red)" : "rgba(255,255,255,0.4)",
-                border: "none",
-                cursor: "pointer",
-              }}
-              aria-label={`Slide ${i + 1}`}
-            />
-          ))}
-        </div>
+        {slides.length > 1 && (
+          <>
+            <span
+              className="font-display text-white/60 text-sm tracking-widest"
+            >
+              {String(current + 1).padStart(2, "0")} / {String(slides.length).padStart(2, "0")}
+            </span>
+            <div className="flex gap-1.5">
+              {slides.map((slide, i) => (
+                <button
+                  key={slide.id}
+                  onClick={() => { setPrev(current); setCurrent(i); }}
+                  className="transition-all duration-300"
+                  style={{
+                    width: i === current ? "2rem" : "0.5rem",
+                    height: "2px",
+                    backgroundColor:
+                      i === current ? "var(--color-red)" : "rgba(255,255,255,0.4)",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                  aria-label={`Slide ${i + 1}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Optional label bottom-left */}
@@ -120,7 +148,7 @@ export default function PhotoSlideshow() {
           className="font-display text-xs font-semibold tracking-widest uppercase"
           style={{ color: "rgba(255,255,255,0.5)" }}
         >
-          2025 – 2026 Season
+          {seasonLabel}
         </p>
       </div>
     </section>
