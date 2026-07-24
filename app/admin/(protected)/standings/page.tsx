@@ -52,6 +52,10 @@ function createDraftRow(index: number): DraftRow {
   };
 }
 
+function isPersistedRow(row: DraftRow): boolean {
+  return !row.isNew && !row.id.startsWith("default-") && !row.id.startsWith("draft-");
+}
+
 async function uploadStandingLogo(file: File): Promise<string> {
   const supabase = createClient();
   const extension = file.name.split(".").pop() ?? "png";
@@ -83,7 +87,10 @@ export default function AdminStandingsPage() {
     fetchLeagueStandings()
       .then((content) => {
         setSettings(content.settings);
-        setRows(content.rows.map((row) => ({ ...row })));
+        setRows(content.rows.map((row) => ({
+          ...row,
+          isNew: row.id.startsWith("default-"),
+        })));
         setOriginalRows(content.rows);
         setPendingDeleteUrls([]);
         setDirty(false);
@@ -196,7 +203,7 @@ export default function AdminStandingsPage() {
       const cleanedRows = rows
         .filter((row) => row.team_name.trim())
         .map((row, index) => ({
-          id: row.isNew ? undefined : row.id,
+          id: isPersistedRow(row) ? row.id : null,
           team_name: row.team_name.trim(),
           team_abbreviation:
             row.team_abbreviation?.trim().toUpperCase() ||
@@ -213,8 +220,22 @@ export default function AdminStandingsPage() {
           updated_at: now,
         }));
 
-      const originalIds = new Set(originalRows.map((row) => row.id));
-      const draftIds = new Set(rows.filter((row) => !row.isNew).map((row) => row.id));
+      const existingRows = cleanedRows
+        .filter((row) => row.id !== null)
+        .map((row) => ({
+          ...row,
+          id: row.id as string,
+        }));
+      const rowsToInsert = cleanedRows
+        .filter((row) => row.id === null)
+        .map(({ id, ...row }) => row);
+
+      const originalIds = new Set(
+        originalRows
+          .filter((row) => !row.id.startsWith("default-"))
+          .map((row) => row.id),
+      );
+      const draftIds = new Set(rows.filter(isPersistedRow).map((row) => row.id));
       const deletedIds = Array.from(originalIds).filter((id) => !draftIds.has(id));
 
       const { error: settingsError } = await supabase
@@ -230,11 +251,18 @@ export default function AdminStandingsPage() {
         if (deleteError) throw new Error(deleteError.message);
       }
 
-      if (cleanedRows.length > 0) {
+      if (existingRows.length > 0) {
         const { error: rowError } = await supabase
           .from("league_standings")
-          .upsert(cleanedRows);
+          .upsert(existingRows);
         if (rowError) throw new Error(rowError.message);
+      }
+
+      if (rowsToInsert.length > 0) {
+        const { error: insertError } = await supabase
+          .from("league_standings")
+          .insert(rowsToInsert);
+        if (insertError) throw new Error(insertError.message);
       }
 
       await deleteStorageUrls("standings", pendingDeleteUrls, ["teams/"]);
