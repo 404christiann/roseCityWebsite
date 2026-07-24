@@ -17,14 +17,19 @@ export default function ShopKitSectionContainer({
   headingTag = "h2",
   fadeImageToWhite = false,
   surface,
+  selectedVariant,
+  onVariantChange,
 }: {
   headingTag?: "h1" | "h2";
   fadeImageToWhite?: boolean;
   surface: ShopKitSurface;
+  selectedVariant?: ShopKitVariant;
+  onVariantChange?: (variant: ShopKitVariant) => void;
 }) {
   const [contentByVariant, setContentByVariant] =
     useState<Record<ShopKitVariant, ShopKitContent> | null>(null);
-  const [selectedVariant, setSelectedVariant] = useState<ShopKitVariant>("home");
+  const [internalVariant, setInternalVariant] = useState<ShopKitVariant>("home");
+  const activeVariant = selectedVariant ?? internalVariant;
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,9 +59,9 @@ export default function ShopKitSectionContainer({
   }
 
   const content =
-    contentByVariant?.[selectedVariant]?.section &&
-    contentByVariant[selectedVariant].photos.length > 0
-      ? contentByVariant[selectedVariant]
+    contentByVariant?.[activeVariant]?.section &&
+    contentByVariant[activeVariant].photos.length > 0
+      ? contentByVariant[activeVariant]
       : contentByVariant?.home;
 
   if (!content?.section || content.photos.length === 0) return null;
@@ -80,13 +85,16 @@ export default function ShopKitSectionContainer({
           aria-label="Select kit type"
         >
           {KIT_VARIANTS.map((variant) => {
-            const isSelected = selectedVariant === variant.id;
+            const isSelected = activeVariant === variant.id;
             return (
               <button
                 key={variant.id}
                 type="button"
                 aria-pressed={isSelected}
-                onClick={() => setSelectedVariant(variant.id)}
+                onClick={() => {
+                  setInternalVariant(variant.id);
+                  onVariantChange?.(variant.id);
+                }}
                 className="font-display rounded-full px-5 py-2 text-xs font-bold uppercase tracking-widest transition-colors"
                 style={{
                   backgroundColor: isSelected ? "var(--color-black)" : "transparent",

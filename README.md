@@ -19,12 +19,13 @@ The platform includes:
 - a cinematic homepage
 - a homepage "Next Match" card with team crests, compact fixture metadata,
   and an optional per-match sponsor
+- a homepage league standings table after the sponsor carousel
 - active and historical season-aware rosters
 - fixture and schedule management, including opponent-logo uploads
 - player, match, and season statistics
 - independently managed database-backed kit presentations for the homepage
   and shop page, including shop-page Home/Away kit variants
-- a protected admin portal for roster, schedule, seasons, stats, shop, branding, and platform billing
+- a protected admin portal for roster, schedule, seasons, stats, shop, standings, branding, and platform billing
 - admin-managed footer social and partner links
 
 ## Design Direction
@@ -57,9 +58,10 @@ Core brand colors:
   Multiple Kit Photos autoplay as a hands-off slideshow with no public
   controls; one photo remains static.
 - `/admin/shop` lets approved club managers switch between Home Page and Shop
-  Page. Home Page edits one kit; Shop Page edits Home Kit and Away Kit,
-  Purchase Details, the static Photo Row, product bullet points, multiline
-  store information, upload/reorder photos, and scaled public previews.
+  Page. Home Page edits one kit; Shop Page edits Home Kit and Away Kit, each
+  with its own Kit Photos and shop-page Photo Row, plus shared Purchase
+  Details, product bullet points, multiline store information, uploads/reorder
+  controls, and scaled public previews.
 - The admin editor adapts to mobile layouts.
 - The cinematic shop slideshow remains implemented but is temporarily hidden
   with `SHOW_SHOP_HERO = false` in `lib/site-flags.ts`.
@@ -78,19 +80,20 @@ editable shop Purchase Details section.
 
 ## Shop Page Photo Row
 
-- Below the kit section on `/shop` only (not the homepage), a static row of
-  up to six admin-uploaded photos shows all at once — no autoplay, no
-  arrows, no motion. Each photo is cropped to a fixed portrait shape so the
-  row always looks uniform and gapless regardless of source-photo
-  proportions or how many are uploaded.
+- Below the kit section on `/shop` only (not the homepage), the selected
+  Home/Away kit has its own static row of up to six admin-uploaded photos.
+  All photos show at once — no autoplay, no arrows, no motion. Each photo is
+  cropped to a fixed portrait shape so the row always looks uniform and
+  gapless regardless of source-photo proportions or how many are uploaded.
 - On mobile, the row scrolls horizontally instead of wrapping, since six
   columns don't fit a phone width.
 - Managed from a "Photo Row" tab on `/admin/shop`, next to "Content" and
   "Kit Photos" tabs (the admin editor was split into tabs so only one
   section's fields render at a time, instead of one very long page).
 - Backed by the `shop_carousel_photos` table (name predates the current
-  static design; kept as-is since the schema didn't need to change). See
-  `db/migrations/2026-07-shop-carousel.sql`, already run in production.
+  static design) with a `kit_variant` column so Home and Away rows stay
+  separate. See `db/migrations/2026-07-shop-carousel.sql`; existing global
+  rows migrate to the Home Kit by default.
 - The kit image uses the same white fade on the homepage and `/shop`, creating
   the intended transition into the photo row without exposing slideshow controls.
 
@@ -129,6 +132,20 @@ migration was already run before the slideshow label became editable, apply
 
 The sponsor-logo schema, seed data, grants, row-level security, and Storage
 cleanup policy are recorded in `db/migrations/2026-07-site-sponsor-logos.sql`.
+
+## League Standings
+
+- The homepage renders a white, mobile-fit league standings table directly
+  after the sponsor carousel.
+- Rose City's row is highlighted with the club red overlay/accent and uses the
+  current shared Rose City crest automatically.
+- Other teams can show an uploaded logo or fall back to short abbreviations.
+- `/admin/standings` edits the section label/title/intro, teams, records,
+  goal difference, points, Rose City row marker, and optional team logos.
+
+The standings schema, seed rows, grants, row-level security, and public
+`standings` Storage bucket are recorded in
+`db/migrations/2026-07-league-standings.sql`.
 
 ## Shared Club Logo
 
@@ -234,6 +251,8 @@ Important files:
 - `components/ClubBrandingProvider.tsx` — site-wide active-logo context
 - `components/PhotoSlideshow.tsx` — public homepage slideshow
 - `components/SponsorCarousel.tsx` — public homepage sponsor marquee
+- `components/LeagueStandingsTable.tsx` — public homepage standings table
+- `components/LeagueStandingsContainer.tsx` — loads DB-backed standings content
 - `components/BehindTheRose.tsx` — public homepage video section
 - `components/ShopKitSection.tsx` — shared public kit presentation
 - `components/ShopPurchaseDetailsSection.tsx` — DB-backed shop Purchase Details section
@@ -241,6 +260,7 @@ Important files:
 - `lib/queries.ts` — Supabase data queries
 - `lib/homepage-content.ts` — homepage defaults, URL normalization, and slideshow diff helpers
 - `lib/sponsor-content.ts` — sponsor defaults, placement caps, and logo diff helpers
+- `lib/standings-content.ts` — standings defaults, ranking, and abbreviation helpers
 - `lib/social-links.ts` — footer social-link defaults and normalization
 - `lib/shop-kit.ts` — shop display and photo-diff helpers
 - `lib/shop-purchase-details.ts` — shop Purchase Details defaults and normalization

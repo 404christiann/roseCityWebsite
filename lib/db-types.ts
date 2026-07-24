@@ -133,6 +133,7 @@ export type DBShopKitPhoto = {
 
 export type DBShopCarouselPhoto = {
   id: string;
+  kit_variant: ShopKitVariant;
   url: string;
   sort_order: number;
   created_at: string;
@@ -239,6 +240,31 @@ export type DBBehindTheRoseSection = {
 export type DBSiteBranding = {
   id: number;
   club_logo_path: string;
+  updated_at: string;
+};
+
+export type DBLeagueStandingsSettings = {
+  id: number;
+  eyebrow: string;
+  title: string;
+  intro: string;
+  updated_at: string;
+};
+
+export type DBLeagueStandingRow = {
+  id: string;
+  team_name: string;
+  team_abbreviation: string | null;
+  logo_url: string | null;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goal_difference: number;
+  points: number;
+  is_club: boolean;
+  sort_order: number;
+  created_at: string;
   updated_at: string;
 };
 

@@ -97,6 +97,12 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
   go under `sponsors/site-sponsors/...`; saved removals only clean up files
   from that folder. Run `db/migrations/2026-07-site-sponsor-logos.sql` in
   environments missing this table/policy seed.
+- Added after `9f98c2c1`: `/admin/standings` manages a DB-backed homepage
+  league standings table rendered directly after the sponsor carousel. The
+  public table is white, compact on mobile, uses Rose City red for the club
+  highlight/overlay, displays the shared Rose City crest for the `is_club`
+  row, and falls back to abbreviations for other clubs without uploaded logos.
+  New environments must run `db/migrations/2026-07-league-standings.sql`.
 - Added after `9f98c2c1`: `/admin/branding` also manages footer social media
   URLs. The footer reads `site_social_links` with hard-coded defaults as a
   fallback; icons stay as fixed local assets. Run
@@ -108,29 +114,30 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
   (admin + public lockout), the fixture sponsor work, independent
   homepage/shop kit content, responsive roster-card refinements, and all
   earlier admin-managed shop, branding, navigation, and multi-season work.
-- The shop page gained a static "Photo Row" gallery below the kit section on
-  `/shop` only (never the homepage): up to six admin-uploaded photos, all
-  shown at once with no motion, each cropped to a fixed portrait shape so the
-  row stays gapless and uniform regardless of source-photo proportions or
-  count. Shipped as `6fe91a9f` (replacing an earlier autosliding-carousel
+- The shop page has a static "Photo Row" gallery below the kit section on
+  `/shop` only (never the homepage): Home Kit and Away Kit each have their
+  own row of up to six admin-uploaded photos, all shown at once with no
+  motion, each cropped to a fixed portrait shape so the row stays gapless and
+  uniform regardless of source-photo proportions or count. Initially shipped
+  as `6fe91a9f` (replacing an earlier autosliding-carousel
   attempt from `e47e3085` that was superseded before release) and tuned in
   `5ce20126`. Key files: `components/ShopPhotoStrip.tsx`,
   `ShopPhotoStripContainer.tsx`, `components/admin/ScaledShopPhotoStripPreview.tsx`,
   `lib/shop-photo-strip.ts`. Backed by the existing `shop_carousel_photos`
-  table (name kept as-is; no schema change was needed to raise the max from 4
-  to 6) — see `db/migrations/2026-07-shop-carousel.sql`, already run in
-  production. Managed from a "Photo Row" tab on `/admin/shop` alongside the
-  existing kit-photo editor.
+  table with a `kit_variant` column (existing rows default to `home`) — see
+  `db/migrations/2026-07-shop-carousel.sql`. Managed from a "Photo Row" tab
+  on `/admin/shop` alongside the selected Home/Away kit-photo editor.
 - The kit image now fades into the white page through a dedicated overlay on
   both the homepage and `/shop`, preserving the transition into the photo row.
-  The shared gradient and hands-off Kit Photos slideshow were browser-verified
-  locally on both public routes.
+  Multiple Kit Photos use a hands-off fade rotation that skips failed image
+  URLs instead of exposing a blank slide.
 - The homepage "Next Match" section is `components/NextMatchCard.tsx`: Rose
   City crest, red "VS", opponent crest, a compact mobile-safe match metadata
   line, optional linked "Presented By" sponsor, and the retained "Full
   Schedule" CTA. Rose City stays on the left.
 - Homepage section order is Hero → Home kit presentation → trophy feature →
-  Next Match → photo slideshow → sponsor carousel → Behind the Rose.
+  Next Match → photo slideshow → sponsor carousel → league standings →
+  Behind the Rose.
 - The photo slideshow and Behind the Rose content are editable from
   `/admin/homepage`; defaults preserve the shipped local images and current
   Behind the Rose copy/video until the migration is applied.
@@ -159,11 +166,12 @@ portal. Treat it as a production Next.js/Supabase project for a real club.
   independent database-backed content and ordered photo sets selected from
   `/admin/shop`. Public Home/Away tabs appear only on `/shop`, not on the
   homepage.
-- Multiple Kit Photos autoplay as a hands-off horizontal slideshow with no
-  public arrows, dots, dragging, or swiping; a single photo remains static.
+- Multiple Kit Photos autoplay as a hands-off fade rotation with no public
+  arrows, dots, dragging, or swiping; a single photo remains static.
 - The Shop editor supports up to eight editable/reorderable bullet points and
   editable multiline store information. Shop Page also exposes Home/Away kit
-  editing, a static Photo Row tab, and a Purchase Details tab. New
+  editing, variant-specific static Photo Row editing, and a Purchase Details
+  tab. New
   environments must apply `db/migrations/2026-07-shop-kit-details.sql`,
   `db/migrations/2026-07-shop-kit-variants.sql`, and
   `db/migrations/2026-07-shop-purchase-details.sql` before those saves.

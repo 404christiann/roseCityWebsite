@@ -1,11 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { kitPhotoDisplayMode } from "@/lib/shop-kit";
 
 const AUTO_ADVANCE_MS = 4500;
-const SLIDE_TRANSITION_MS = 900;
+const FADE_TRANSITION_MS = 900;
 
 export type KitPhoto = {
   url: string;
@@ -24,9 +24,13 @@ export default function KitImageGrid({
   priority = false,
 }: KitImageGridProps) {
   const [activeSlide, setActiveSlide] = useState(0);
-  const [transitionEnabled, setTransitionEnabled] = useState(true);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const displayMode = kitPhotoDisplayMode(photos.length);
+  const [failedUrls, setFailedUrls] = useState<Set<string>>(() => new Set());
+  const visiblePhotos = useMemo(
+    () => photos.filter((photo) => !failedUrls.has(photo.url)),
+    [failedUrls, photos],
+  );
+  const displayMode = kitPhotoDisplayMode(visiblePhotos.length);
   const photoSignature = photos.map((photo) => photo.url).join("|");
 
   useEffect(() => {
@@ -39,26 +43,28 @@ export default function KitImageGrid({
 
   useEffect(() => {
     setActiveSlide(0);
-    setTransitionEnabled(false);
-    const frame = window.requestAnimationFrame(() => setTransitionEnabled(true));
-    return () => window.cancelAnimationFrame(frame);
+    setFailedUrls(new Set());
   }, [photoSignature]);
 
   useEffect(() => {
     if (displayMode === "static" || prefersReducedMotion) return;
 
     const interval = window.setInterval(() => {
-      setTransitionEnabled(true);
-      setActiveSlide((current) => current + 1);
+      setActiveSlide((current) => (current + 1) % visiblePhotos.length);
     }, AUTO_ADVANCE_MS);
 
     return () => window.clearInterval(interval);
-  }, [displayMode, photoSignature, prefersReducedMotion]);
+  }, [displayMode, photoSignature, prefersReducedMotion, visiblePhotos.length]);
 
-  if (photos.length === 0) return null;
+  useEffect(() => {
+    if (activeSlide < visiblePhotos.length) return;
+    setActiveSlide(0);
+  }, [activeSlide, visiblePhotos.length]);
+
+  if (visiblePhotos.length === 0) return null;
 
   if (displayMode === "static") {
-    const photo = photos[0];
+    const photo = visiblePhotos[0];
     return (
       <div className="pointer-events-none relative h-full w-full select-none">
         <Image
@@ -69,55 +75,48 @@ export default function KitImageGrid({
           sizes={sizes}
           priority={priority}
           draggable={false}
+          onError={() => {
+            setFailedUrls((current) => new Set(current).add(photo.url));
+          }}
         />
       </div>
     );
   }
 
-  const slides = [...photos, photos[0]];
-
   return (
     <div
-      className="pointer-events-none h-full w-full select-none overflow-hidden"
+      className="pointer-events-none relative h-full w-full select-none overflow-hidden"
       aria-live="off"
     >
-      <div
-        className="flex h-full will-change-transform"
-        style={{
-          transform: `translate3d(-${activeSlide * 100}%, 0, 0)`,
-          transition: transitionEnabled && !prefersReducedMotion
-            ? `transform ${SLIDE_TRANSITION_MS}ms cubic-bezier(0.65, 0, 0.35, 1)`
-            : "none",
-        }}
-        onTransitionEnd={() => {
-          if (activeSlide === photos.length) {
-            setTransitionEnabled(false);
-            setActiveSlide(0);
-          }
-        }}
-      >
-        {slides.map((photo, index) => {
-          const isClone = index === photos.length;
-          const visibleIndex = activeSlide === photos.length ? 0 : activeSlide;
-          return (
-            <div
-              key={`${photo.url}-${index}`}
-              className="relative h-full w-full shrink-0"
-              aria-hidden={isClone || index !== visibleIndex}
-            >
-              <Image
-                src={photo.url}
-                alt={isClone ? "" : photo.alt}
-                fill
-                className="object-contain object-bottom"
-                sizes={sizes}
-                priority={priority}
-                draggable={false}
-              />
-            </div>
-          );
-        })}
-      </div>
+      {visiblePhotos.map((photo, index) => {
+        const isActive = index === activeSlide;
+        return (
+          <div
+            key={photo.url}
+            className="absolute inset-0 transition-opacity ease-in-out"
+            style={{
+              opacity: isActive ? 1 : 0,
+              transitionDuration: prefersReducedMotion
+                ? "0ms"
+                : `${FADE_TRANSITION_MS}ms`,
+            }}
+            aria-hidden={!isActive}
+          >
+            <Image
+              src={photo.url}
+              alt={photo.alt}
+              fill
+              className="object-contain object-bottom"
+              sizes={sizes}
+              priority={priority && index === 0}
+              draggable={false}
+              onError={() => {
+                setFailedUrls((current) => new Set(current).add(photo.url));
+              }}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }

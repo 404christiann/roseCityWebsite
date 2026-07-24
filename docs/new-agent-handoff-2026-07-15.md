@@ -130,7 +130,7 @@ roster queries or admin actions.
   the video and on `/shop`; each surface loads its own content and ordered
   photos from the public Supabase `shop` bucket.
 - Homepage order is Hero → Home kit presentation → trophy feature → Next Match
-  → photo slideshow → sponsor carousel → Behind the Rose.
+  → photo slideshow → sponsor carousel → league standings → Behind the Rose.
 - `/admin/homepage` manages the homepage photo slideshow and Behind the Rose
   video section. The slideshow supports up to six ordered photos, with the
   current three local slideshow images seeded and retained as public fallbacks.
@@ -142,9 +142,15 @@ roster queries or admin actions.
   editor/schema.
 - `/admin/shop` independently edits the homepage kit and shop-page kits.
   Home Page has one kit. Shop Page has public Home/Away tabs, independent text,
-  purchase links, ordered photo sets, Purchase Details, and the shop-only
-  Photo Row. Its scaled previews use the same public components, and the
+  purchase links, ordered photo sets, Purchase Details, and shop-only
+  variant-specific Photo Rows. Its scaled previews use the same public components, and the
   editor adapts to mobile admin layouts.
+- `/admin/standings` manages the homepage league standings table. The public
+  table renders after the sponsor carousel, uses a white Rose City-branded
+  treatment, highlights the Rose City row in red, uses the shared club crest
+  for the Rose City row, and lets admins upload optional team logos for the
+  other clubs. Run `db/migrations/2026-07-league-standings.sql` before using
+  this editor in a new environment.
 - Shop form labels use plain language for non-technical club managers.
 - Save actions throughout the admin portal use the shared subtle
   saving/success feedback treatment.
@@ -173,6 +179,8 @@ roster queries or admin actions.
   bucket. They are larger and remain fully visible without hover.
 - Footer social media links are editable from `/admin/branding`; icons remain
   fixed local SVG assets.
+- League standings are editable from `/admin/standings`; teams without
+  uploaded logos use abbreviations so the table still looks complete.
 - `Behind the Rose` responsive headings retain their one-line fixes.
 
 ## Authentication And Deployment
@@ -193,8 +201,8 @@ roster queries or admin actions.
 - `shop_kit_section` stores separate `home` and `shop` text/purchase-link records,
   with `kit_variant` splitting each surface into `home` and `away` kits.
 - `shop_kit_photos` stores one to six ordered public image URLs per surface and
-  kit variant. Multiple Kit Photos autoplay horizontally with no public controls;
-  one photo remains static.
+  kit variant. Multiple Kit Photos autoplay as a fade rotation with no public
+  controls; one photo remains static.
 - `shop_purchase_details` stores the shop-page Purchase Details heading, four
   detail cards, footer copy, and CTA button/link.
 - `site_social_links` stores the footer social media URLs. Icons remain fixed
@@ -419,13 +427,13 @@ Shipped on top of the Next Match Card baseline above, through commit
 `e47e3085` that was fully replaced, per explicit follow-up feedback, before
 release — no carousel code remains).
 
-- New static gallery on `/shop` only (never the homepage): up to six
-  admin-uploaded photos below the kit section, all shown at once, no
-  autoplay/arrows/motion. Each photo is cropped (`object-cover`) into a fixed
-  portrait column so the row stays gapless and uniform regardless of each
-  source photo's proportions or how many are uploaded — fewer photos just
-  produce a shorter, centered row rather than stretched/differently-cropped
-  columns.
+- Static gallery on `/shop` only (never the homepage): Home Kit and Away Kit
+  each have their own set of up to six admin-uploaded photos below the
+  selected kit section, all shown at once, no autoplay/arrows/motion. Each
+  photo is cropped (`object-cover`) into a fixed portrait column so the row
+  stays gapless and uniform regardless of each source photo's proportions or
+  how many are uploaded — fewer photos just produce a shorter, centered row
+  rather than stretched/differently-cropped columns.
 - On mobile, six fixed-shape columns don't fit a phone width, so the row
   scrolls horizontally instead of wrapping.
 - New files: `components/ShopPhotoStrip.tsx` (presentational),
@@ -436,12 +444,13 @@ release — no carousel code remains).
   scale-down technique as `ScaledShopKitPreview`), `lib/shop-photo-strip.ts`
   (display-mode/max-count/alt-text helpers; reorder diff is a re-export of
   `diffShopKitPhotos` from `lib/shop-kit.ts`, which was already table-agnostic).
-- Data model: reuses the existing `shop_carousel_photos` table (`id`, `url`,
-  `sort_order`, `created_at`) — kept that name rather than renaming, since
-  raising the max from 4 to 6 needed no schema change. Migration
+- Data model: reuses the existing `shop_carousel_photos` table (`id`,
+  `kit_variant`, `url`, `sort_order`, `created_at`) — kept that name rather
+  than renaming, with `kit_variant` separating Home and Away photo rows.
+  Existing global rows default to the Home Kit. Migration
   `db/migrations/2026-07-shop-carousel.sql` (grants + RLS; no new Storage
   policy needed since it reuses the public `shop` bucket's existing
-  authenticated upload policy) has already been run in production.
+  authenticated upload policy) remains the setup/update path.
 - `/admin/shop` was split into three tabs — "Content", "Kit Photos", "Photo
   Row" — so only one section's fields render at a time. This was a
   side-effect fix for the admin page having become very long/scrolly across
@@ -452,10 +461,10 @@ release — no carousel code remains).
   (alt text, hidden/shown display-mode gating, max-6 clamping, and the
   reorder diff), mirroring `shop-kit.test.ts`'s structure. Full suite is
   147/147 passing.
-- The previous white-gap report was addressed by fading the `/shop` kit image
-  into the white page with a dedicated overlay rather than continuing to
-  adjust Photo Row padding. The homepage intentionally does not use this shop
-  fade. The hands-off Kit Photos slideshow remains shared by both surfaces.
+- The previous white-gap report was addressed by fading the kit image into the
+  white page with a dedicated overlay rather than continuing to adjust Photo
+  Row padding. The homepage and `/shop` kit sections now share this fade. The
+  hands-off Kit Photos slideshow remains shared by both surfaces.
 
 ## Stripe Subscription Billing — 2026-07-22
 

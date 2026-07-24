@@ -3,20 +3,25 @@
 import { useEffect, useState } from "react";
 import ShopPhotoStrip from "@/components/ShopPhotoStrip";
 import { fetchShopCarouselPhotos } from "@/lib/queries";
-import type { DBShopCarouselPhoto } from "@/lib/db-types";
+import type { DBShopCarouselPhoto, ShopKitVariant } from "@/lib/db-types";
 
-export default function ShopPhotoStripContainer() {
+export default function ShopPhotoStripContainer({
+  variant = "home",
+}: {
+  variant?: ShopKitVariant;
+}) {
   const [photos, setPhotos] = useState<DBShopCarouselPhoto[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchShopCarouselPhotos()
+    setLoading(true);
+    fetchShopCarouselPhotos(variant)
       .then(setPhotos)
       .catch((error) => {
         console.error("ShopPhotoStrip:", error);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [variant]);
 
   if (loading) {
     return (

@@ -31,6 +31,11 @@ set public = true,
 alter table about_page_content enable row level security;
 alter table club_logo_page_content enable row level security;
 
+grant select on about_page_content to anon, authenticated;
+grant all on about_page_content to authenticated;
+grant select on club_logo_page_content to anon, authenticated;
+grant all on club_logo_page_content to authenticated;
+
 drop policy if exists "Public can read about page content" on about_page_content;
 create policy "Public can read about page content"
   on about_page_content for select

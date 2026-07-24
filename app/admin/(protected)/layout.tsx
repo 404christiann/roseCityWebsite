@@ -112,6 +112,16 @@ const NAV_ITEMS = [
     ),
   },
   {
+    label: "Standings",
+    href: "/admin/standings",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M4 19h16M7 16V8M12 16V5M17 16v-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        <path d="M5 8h4M10 5h4M15 10h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+  },
+  {
     label: "Branding",
     href: "/admin/branding",
     icon: (

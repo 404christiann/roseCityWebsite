@@ -20,6 +20,7 @@ import {
   fetchSeasons,
   fetchActiveSeason,
   fetchClubBranding,
+  fetchShopCarouselPhotos,
   fetchShopKitContent,
   fetchShopPurchaseDetails,
   fetchSiteSocialLinks,
@@ -307,6 +308,54 @@ describe('fetchShopKitContent', () => {
 
     await expect(fetchShopKitContent())
       .rejects.toThrow('fetchShopKitContent: photos unavailable')
+  })
+})
+
+describe('fetchShopCarouselPhotos', () => {
+  const photos = [
+    {
+      id: 'strip-a',
+      kit_variant: 'away',
+      url: 'away-a.jpg',
+      sort_order: 0,
+      created_at: '2026-07-24T00:00:00Z',
+    },
+    {
+      id: 'strip-b',
+      kit_variant: 'away',
+      url: 'away-b.jpg',
+      sort_order: 1,
+      created_at: '2026-07-24T00:00:00Z',
+    },
+  ]
+
+  it('fetches the home photo row by default', async () => {
+    const query = chain({ data: [], error: null })
+    mockFrom.mockReturnValue(query)
+
+    await expect(fetchShopCarouselPhotos()).resolves.toEqual([])
+    expect(mockFrom).toHaveBeenCalledWith('shop_carousel_photos')
+    expect(query.eq).toHaveBeenCalledWith('kit_variant', 'home')
+    expect(query.order).toHaveBeenCalledWith('sort_order', { ascending: true })
+  })
+
+  it('scopes photo row reads to the selected shop kit variant', async () => {
+    const query = chain({ data: photos, error: null })
+    mockFrom.mockReturnValue(query)
+
+    await expect(fetchShopCarouselPhotos('away')).resolves.toEqual(photos)
+    expect(query.eq).toHaveBeenCalledWith('kit_variant', 'away')
+    expect(query.order).toHaveBeenCalledWith('sort_order', { ascending: true })
+  })
+
+  it('throws with context when the photo row query fails', async () => {
+    mockFrom.mockReturnValue(chain({
+      data: null,
+      error: { message: 'photo row unavailable' },
+    }))
+
+    await expect(fetchShopCarouselPhotos('home'))
+      .rejects.toThrow('fetchShopCarouselPhotos: photo row unavailable')
   })
 })
 

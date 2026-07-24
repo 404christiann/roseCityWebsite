@@ -48,6 +48,10 @@ GRANT ALL ON public.site_sponsor_logos TO authenticated;
 
 ALTER TABLE public.site_sponsor_logos ENABLE ROW LEVEL SECURITY;
 
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('sponsors', 'sponsors', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -101,6 +105,38 @@ BEGIN
     FOR DELETE
     TO authenticated
     USING (true);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage'
+      AND tablename = 'objects'
+      AND policyname = 'Authenticated users can upload site sponsor images'
+  ) THEN
+    CREATE POLICY "Authenticated users can upload site sponsor images"
+    ON storage.objects
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+      bucket_id = 'sponsors'
+      AND (storage.foldername(name))[1] = 'site-sponsors'
+    );
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage'
+      AND tablename = 'objects'
+      AND policyname = 'Authenticated users can read site sponsor image metadata'
+  ) THEN
+    CREATE POLICY "Authenticated users can read site sponsor image metadata"
+    ON storage.objects
+    FOR SELECT
+    TO authenticated
+    USING (
+      bucket_id = 'sponsors'
+      AND (storage.foldername(name))[1] = 'site-sponsors'
+    );
   END IF;
 
   IF NOT EXISTS (

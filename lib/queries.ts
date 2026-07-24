@@ -19,6 +19,8 @@ import {
   DBClubLogoPageContent,
   DBSiteSponsorLogo,
   DBSiteSocialLink,
+  DBLeagueStandingRow,
+  DBLeagueStandingsSettings,
   SponsorLogoPlacement,
 } from "@/lib/db-types";
 import { DEFAULT_CLUB_LOGO_PATH } from "@/lib/club-branding";
@@ -42,6 +44,12 @@ import {
   normalizeStoryParagraphs,
 } from "@/lib/about-content";
 import { normalizeSiteSocialLinks } from "@/lib/social-links";
+import {
+  DEFAULT_STANDINGS_ROWS,
+  normalizeStandingsRows,
+  normalizeStandingsSettings,
+  type StandingsTableContent,
+} from "@/lib/standings-content";
 
 function defaultGKStats(): GoalkeeperStats {
   return { goalsAgainst: 0, saves: 0, cleanSheets: 0, starts: 0, yellow: 0, red: 0, mins: 0 };
@@ -233,11 +241,14 @@ export async function fetchShopPurchaseDetails(): Promise<DBShopPurchaseDetails>
   return normalizeShopPurchaseDetails(row);
 }
 
-/** Fetches the ordered shop-page carousel photos. */
-export async function fetchShopCarouselPhotos(): Promise<DBShopCarouselPhoto[]> {
+/** Fetches the ordered shop-page photo row for one shop kit variant. */
+export async function fetchShopCarouselPhotos(
+  variant: ShopKitVariant = "home",
+): Promise<DBShopCarouselPhoto[]> {
   const { data, error } = await supabase
     .from("shop_carousel_photos")
     .select("*")
+    .eq("kit_variant", variant)
     .order("sort_order", { ascending: true });
   if (error) throw new Error(`fetchShopCarouselPhotos: ${error.message}`);
   return (data ?? []) as DBShopCarouselPhoto[];
@@ -340,6 +351,37 @@ export async function fetchSiteSponsorLogos(
   }
   const rows = (data ?? []) as DBSiteSponsorLogo[];
   return rows.length > 0 ? rows : defaultSponsorLogosForPlacement(placement);
+}
+
+/** Fetches the DB-backed league standings table for the homepage. */
+export async function fetchLeagueStandings(): Promise<StandingsTableContent> {
+  const [settingsResult, rowsResult] = await Promise.all([
+    supabase
+      .from("league_standings_settings")
+      .select("*")
+      .eq("id", 1)
+      .limit(1),
+    supabase
+      .from("league_standings")
+      .select("*")
+      .order("sort_order", { ascending: true }),
+  ]);
+
+  if (settingsResult.error || rowsResult.error) {
+    const message = settingsResult.error?.message ?? rowsResult.error?.message;
+    console.error("fetchLeagueStandings:", message);
+    return {
+      settings: normalizeStandingsSettings(null),
+      rows: DEFAULT_STANDINGS_ROWS,
+    };
+  }
+
+  return {
+    settings: normalizeStandingsSettings(
+      ((settingsResult.data ?? []) as DBLeagueStandingsSettings[])[0] ?? null,
+    ),
+    rows: normalizeStandingsRows((rowsResult.data ?? []) as DBLeagueStandingRow[]),
+  };
 }
 
 /** Fetches editable footer social media links. */

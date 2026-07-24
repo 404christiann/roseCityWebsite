@@ -39,9 +39,10 @@ export default function ShopKitSection({
   const imageRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const Heading = headingTag;
-  const kitPhotos = photos.map((photo, index) => ({
-    url: photo.url,
-    alt: kitPhotoAlt(section.title, index, photos.length),
+  const validPhotos = photos.filter((photo) => photo.url.trim().length > 0);
+  const kitPhotos = validPhotos.map((photo, index) => ({
+    url: photo.url.trim(),
+    alt: kitPhotoAlt(section.title, index, validPhotos.length),
   }));
   const bulletPoints = normalizeKitBulletPoints(section.bullet_points);
   const storeNote = normalizeKitStoreNote(section.store_note).trim();

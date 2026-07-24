@@ -146,7 +146,7 @@ export default function AdminShopPage() {
     setError(null);
     Promise.all([
       fetchShopKitContent(selectedSurface, activeKitVariant),
-      fetchShopCarouselPhotos(),
+      fetchShopCarouselPhotos(activeKitVariant),
       fetchShopPurchaseDetails(),
     ])
       .then(([{ section, photos }, photoStripPhotos, fetchedPurchaseDetails]) => {
@@ -346,7 +346,10 @@ export default function AdminShopPage() {
     try {
       const uploaded: DraftPhotoStripPhoto[] = [];
       for (const file of selected) {
-        uploaded.push({ id: null, url: await uploadPhoto(file, "shop", "photo-strip") });
+        uploaded.push({
+          id: null,
+          url: await uploadPhoto(file, "shop", `photo-strip/${activeKitVariant}`),
+        });
       }
       setDraftPhotoStripPhotos((current) =>
         [...current, ...uploaded].slice(0, MAX_PHOTO_STRIP_PHOTOS),
@@ -453,7 +456,10 @@ export default function AdminShopPage() {
       if (photoStripDiff.toInsert.length > 0) {
         const { error: carouselInsertError } = await supabase
           .from("shop_carousel_photos")
-          .insert(photoStripDiff.toInsert);
+          .insert(photoStripDiff.toInsert.map((photo) => ({
+            ...photo,
+            kit_variant: activeKitVariant,
+          })));
         if (carouselInsertError) throw new Error(carouselInsertError.message);
       }
 
@@ -470,7 +476,7 @@ export default function AdminShopPage() {
 
       const [fresh, freshPhotoStrip, freshPurchaseDetails] = await Promise.all([
         fetchShopKitContent(selectedSurface, activeKitVariant),
-        fetchShopCarouselPhotos(),
+        fetchShopCarouselPhotos(activeKitVariant),
         fetchShopPurchaseDetails(),
       ]);
       if (fresh.section) setFields(sectionToFields(fresh.section));
@@ -514,6 +520,7 @@ export default function AdminShopPage() {
   const previewPhotoStripPhotos: DBShopCarouselPhoto[] = draftPhotoStripPhotos.map(
     (photo, index) => ({
       id: photo.id ?? `draft-${index}`,
+      kit_variant: activeKitVariant,
       url: photo.url,
       sort_order: index,
       created_at: "",
@@ -664,7 +671,7 @@ export default function AdminShopPage() {
               style={{ color: "rgba(255,255,255,0.32)" }}
             >
               Editing the {selectedSurface === "home" ? "home page kit" : `${activeKitVariant} shop kit`}.
-              Content and Kit Photos are saved independently.
+              Content, Kit Photos, and Shop Page Photo Row are saved independently.
             </p>
 
             <div className="mb-4 flex gap-1 rounded-lg p-1" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>
@@ -1148,13 +1155,13 @@ export default function AdminShopPage() {
                   className="font-display text-xs uppercase tracking-widest"
                   style={{ color: "rgba(255,255,255,0.35)" }}
                 >
-                  Shop Page Photo Row
+                  {activeKitVariant === "home" ? "Home Kit" : "Away Kit"} Photo Row
                 </p>
                 <p
                   className="font-body mt-1 text-xs"
                   style={{ color: "rgba(255,255,255,0.22)" }}
                 >
-                  Static photo row shown on the shop page. Leave empty to hide it.
+                  Static photo row shown below the selected shop kit. Leave empty to hide it.
                 </p>
               </div>
               <span
